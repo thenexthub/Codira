@@ -129,6 +129,10 @@ pub struct EGraph {
     pub(crate) opaque: Vec<Op>,
     /// What the caller knows about argument types (see [`TypeEnv`]).
     types: TypeEnv,
+    /// The number of e-nodes across all classes, kept exact on every
+    /// change rather than recounted. It is what the node cap is checked
+    /// against before *each* rewrite is applied, so it has to be O(1).
+    node_count: usize,
 }
 
 impl Default for EGraph {
@@ -154,11 +158,17 @@ impl EGraph {
             parents_of: FxHashMap::default(),
             pending: Vec::new(),
             opaque: Vec::new(),
+            node_count: 0,
         }
     }
 
     pub fn num_nodes(&self) -> usize {
-        self.classes.values().map(Vec::len).sum()
+        debug_assert_eq!(
+            self.node_count,
+            self.classes.values().map(Vec::len).sum::<usize>(),
+            "e-node accounting drifted"
+        );
+        self.node_count
     }
 
     pub fn num_classes(&self) -> usize {
@@ -199,6 +209,7 @@ impl EGraph {
         self.ranks.push(0);
         self.classes.insert(id, vec![node]);
         self.analyses.insert(id, analysis);
+        self.node_count += 1;
         id
     }
 
@@ -275,6 +286,7 @@ impl EGraph {
         // Re-canonicalize this class's own nodes and dedupe them, so the
         // class does not keep stale children around.
         let nodes = self.classes.remove(&id).unwrap_or_default();
+        let before = nodes.len();
         let mut fresh: Vec<ENode> = Vec::with_capacity(nodes.len());
         for node in nodes {
             let canon = self.canonicalize(&node);
@@ -282,6 +294,9 @@ impl EGraph {
                 fresh.push(canon);
             }
         }
+        // Nodes that became identical once their children were merged
+        // are one node now; the count follows.
+        self.node_count -= before - fresh.len();
         self.classes.insert(id, fresh);
 
         // Re-memoize the parents under their new canonical form, merging
@@ -505,11 +520,37 @@ impl EGraph {
 
     /// Applies every rewrite rule repeatedly until nothing new is
     /// discovered or a limit is hit.
+    ///
+    /// # The node cap is hard
+    ///
+    /// `opt.max_nodes` is checked before *each* rewrite is instantiated,
+    /// against the most nodes that rewrite could possibly add
+    /// ([`crate::rules::node_bound`]). A rewrite that might cross the cap
+    /// is not applied, and the round ends there. So the graph never holds
+    /// more than `max_nodes` nodes because of saturation -- the bound is on
+    /// memory, not a hint about when to stop.
+    ///
+    /// The check used to run once per *round*, after every match of the
+    /// round had been applied; a round is unbounded in what it adds, and on
+    /// a 48-term sum of products a 10,000-node cap ended at 14,545 nodes.
+    ///
+    /// Which rewrites make it in under the cap is deterministic: matches
+    /// are sorted by class before they are applied (see
+    /// [`crate::rules::collect_matches`]), and the cut-off is the first
+    /// match that does not fit. The budget is counted in nodes, never in
+    /// time (`KGEN_SUPERSET_STATUS` §32.5).
+    ///
+    /// The graph the body itself builds is not saturation's to bound: it
+    /// is linear in the body's size. When that alone already fills the cap,
+    /// nothing is rewritten and the body is extracted as it stands.
     pub(crate) fn saturate(&mut self, opt: &EGraphOptimizer) -> SaturationReport {
         let mut iterations = 0;
         let mut saturated = false;
 
-        for _ in 0..opt.max_iterations {
+        'rounds: for _ in 0..opt.max_iterations {
+            if self.num_nodes() >= opt.max_nodes {
+                break;
+            }
             iterations += 1;
             // Collect matches against a *snapshot*, then apply: mutating
             // while matching would make rule application order-dependent.
@@ -520,6 +561,12 @@ impl EGraph {
             }
             let mut changed = false;
             for (class, term) in matches {
+                if self.node_count + crate::rules::node_bound(&term) > opt.max_nodes {
+                    // Restore congruence for what was applied, then stop:
+                    // the graph must be left consistent for extraction.
+                    self.rebuild();
+                    break 'rounds;
+                }
                 // A rewrite is an *equality*, so the replacement has the
                 // same type as the class it rewrites. Nested subterms
                 // inherit it, which is correct for every rule in the set:
@@ -534,9 +581,6 @@ impl EGraph {
                 saturated = true;
                 break;
             }
-            if self.num_nodes() >= opt.max_nodes {
-                break;
-            }
         }
 
         SaturationReport {
@@ -544,6 +588,7 @@ impl EGraph {
             nodes: self.num_nodes(),
             classes: self.num_classes(),
             saturated,
+            extraction: crate::Extraction::Greedy,
         }
     }
 }

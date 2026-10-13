@@ -50,6 +50,7 @@ fn stdlib_check_status_is_stable() {
     let config = Config {
         target: Target::host_target().expect("unable to determine host target"),
         optimization_lvl: OptimizationLevel::None,
+        mode: codira_compiler::BuildMode::default(),
         out_dir: None,
         emit_ir: false,
     };

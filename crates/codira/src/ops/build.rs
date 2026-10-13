@@ -23,6 +23,26 @@ pub enum UseColor {
     Auto,
 }
 
+/// `--mode`: whether the Eidos mid-level optimizer runs.
+#[derive(Copy, Clone, PartialEq, Eq, clap::ValueEnum)]
+pub enum Mode {
+    /// Skip Eidos: lower every function straight to LLVM IR. For the
+    /// edit-build loop.
+    Dev,
+    /// Run Eidos (inlining, unrolling, equality saturation, compile-time
+    /// evaluation). The default.
+    Release,
+}
+
+impl Mode {
+    fn build_mode(self) -> codira_compiler::BuildMode {
+        match self {
+            Mode::Dev => codira_compiler::BuildMode::Dev,
+            Mode::Release => codira_compiler::BuildMode::Release,
+        }
+    }
+}
+
 #[derive(clap::Args)]
 pub struct Args {
     /// Path to the manifest of the project
@@ -32,6 +52,11 @@ pub struct Args {
     /// Optimization level [0,3]
     #[clap(long, short = 'O', default_value_t = 2)]
     opt_level: u8,
+
+    /// Build mode: `dev` skips the Eidos optimizer for faster builds,
+    /// `release` runs it. Independent of `-O`, which drives LLVM.
+    #[clap(long, value_enum, default_value_t = Mode::Release)]
+    mode: Mode,
 
     /// Use color in output
     #[clap(long, value_enum)]
@@ -134,6 +159,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         let request = BuildRequest {
             manifest_path: manifest_path.clone(),
             opt_level: args.opt_level,
+            mode: args.mode.build_mode().name().to_owned(),
             target: args.target.as_ref().map(|target| target.triple.clone()),
             emit_ir: args.emit_ir,
             // Decided here, not by the daemon: this process is the one
@@ -160,6 +186,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
             |target| target.target,
         ),
         optimization_lvl,
+        mode: args.mode.build_mode(),
         out_dir: None,
         emit_ir: args.emit_ir,
     };

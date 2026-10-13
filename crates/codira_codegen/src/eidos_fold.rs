@@ -61,10 +61,15 @@ use inkwell::values::{BasicValueEnum, FunctionValue};
 /// allowed to decline: the body may not lower to MIR at all, may still
 /// reference runtime arguments, may fail to evaluate, or may produce a
 /// value that does not fit the declared return type.
+///
+/// `optimizer` carries the build's e-graph bounds and the target's cost
+/// table (`crate::EidosOptions::optimizer`); a build that skips Eidos never
+/// calls this at all.
 pub(crate) fn fold_to_constant<'ink>(
     db: &dyn HirDatabase,
     function: codira_hir::Function,
     fn_value: FunctionValue<'ink>,
+    optimizer: &codira_egraph::EGraphOptimizer,
 ) -> Option<BasicValueEnum<'ink>> {
     // A function with runtime parameters cannot be constant -- `core.arg`
     // would survive evaluation. (The interpreter would refuse anyway;
@@ -105,7 +110,7 @@ pub(crate) fn fold_to_constant<'ink>(
     // 2. Equality saturation: explore every rewrite simultaneously and extract the
     //    cheapest form. Catches reassociations the ordered pipeline above cannot
     //    reach.
-    let body = codira_egraph::optimize(&body);
+    let (body, _report) = optimizer.optimize_body(&body);
 
     // 3. Evaluate. Anything referencing a runtime value, or exceeding the
     //    interpreter's fuel, declines here.

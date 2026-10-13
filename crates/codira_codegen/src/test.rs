@@ -1498,6 +1498,96 @@ fn eidos_folds_across_a_call() {
     );
 }
 
+/// The file IR of a single-file package, built with the given Eidos options
+/// and no LLVM optimization (so what is folded was folded by Eidos).
+fn file_ir_with_eidos(text: &str, eidos: crate::EidosOptions) -> String {
+    let mut db = MockDatabase::with_files(text);
+    db.set_optimization_level(OptimizationLevel::None);
+    db.set_eidos_options(eidos);
+    db.set_target(Target::host_target().unwrap());
+
+    let llvm_context = Context::create();
+    let code_gen = CodeGenContext::new(&llvm_context, &db);
+    let module_partition = db.module_partition();
+    module_partition
+        .iter()
+        .map(|(_, module_group)| {
+            let group_ir = gen_file_group_ir(&code_gen, module_group);
+            gen_file_ir(&code_gen, &group_ir, module_group)
+                .llvm_module
+                .print_to_string()
+                .to_string()
+        })
+        .collect()
+}
+
+#[test]
+fn dev_mode_skips_eidos_and_release_mode_runs_it() {
+    // `outer` is constant only once `inner` is inlined, which is Eidos's
+    // work, not LLVM's (nothing is optimized at -O0).
+    let text = r#"
+    public func inner() -> i64 {
+        6 * 7
+    }
+
+    public func outer() -> i64 {
+        inner() + 0
+    }"#;
+    let outer = |ir: &str| -> String {
+        let start = ir.find("@outer(").expect("outer is defined");
+        ir[start..].split("\n}").next().unwrap().to_string()
+    };
+
+    let release = file_ir_with_eidos(text, crate::EidosOptions::default());
+    let release_outer = outer(&release);
+    assert!(release_outer.contains("ret i64 42"), "{release_outer}");
+    assert!(!release_outer.contains("call"), "{release_outer}");
+
+    let dev = file_ir_with_eidos(
+        text,
+        crate::EidosOptions::default().with_mode(crate::BuildMode::Dev),
+    );
+    let dev_outer = outer(&dev);
+    assert!(
+        dev_outer.contains("call"),
+        "dev mode must lower `outer` as written:\n{dev_outer}"
+    );
+}
+
+#[test]
+fn eidos_options_are_an_input_that_invalidates_codegen() {
+    // Changing the mode must recompile the assembly; leaving it alone
+    // must not.
+    let (mut db, file_id) = MockDatabase::with_single_file(
+        r#"
+        public func answer() -> i64 { 40 + 2 }
+        "#,
+    );
+    db.set_eidos_options(crate::EidosOptions::default());
+    let group = db
+        .module_partition()
+        .group_for_file(file_id)
+        .expect("a group for the file");
+    db.assembly_ir(group);
+
+    let unchanged = db.log_executed(|| {
+        db.assembly_ir(group);
+    });
+    assert!(
+        !format!("{unchanged:?}").contains("assembly_ir"),
+        "{unchanged:#?}"
+    );
+
+    db.set_eidos_options(crate::EidosOptions::default().with_mode(crate::BuildMode::Dev));
+    let changed = db.log_executed(|| {
+        db.assembly_ir(group);
+    });
+    assert!(
+        format!("{changed:?}").contains("assembly_ir"),
+        "{changed:#?}"
+    );
+}
+
 #[test]
 fn eidos_declines_when_a_parameter_is_involved() {
     // Not constant: the fold must decline and leave ordinary lowering in

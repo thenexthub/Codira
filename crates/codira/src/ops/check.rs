@@ -59,6 +59,7 @@ pub fn check(args: Args) -> Result<ExitStatus, anyhow::Error> {
     let config = Config {
         target: Target::host_target().expect("unable to determine host target"),
         optimization_lvl: codira_compiler::OptimizationLevel::None,
+        mode: codira_compiler::BuildMode::default(),
         out_dir: None,
         emit_ir: false,
     };

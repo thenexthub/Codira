@@ -8,8 +8,8 @@
 //! int/bool/float literals, arithmetic/comparison/logical/bitwise/shift
 //! operators, unary neg/not, and `if`/`else` fold today. Anything
 //! referencing a name (`Path`), calling a function, indexing, looping, or
-//! containing a statement bails out (`None`) and the caller leaves the
-//! block to lower exactly as it did before this module existed -- an
+//! containing a statement bails out (`NotFolded::Unsupported`) and the caller
+//! leaves the block to lower exactly as it did before this module existed -- an
 //! honest, additive-only improvement: nothing that used to work stops
 //! working, and a real (if narrow) subset of `comptime` now actually
 //! evaluates at compile time instead of always running at ordinary
@@ -24,13 +24,58 @@ use crate::expr::{
     LiteralIntKind, LogicOp, Ordering, UnaryOp,
 };
 
-/// Attempts to evaluate `block` (already-lowered HIR) at compile time.
-/// `None` means "not foldable with today's restricted subset," not an
-/// error -- callers should fall back to leaving the block unevaluated.
-pub(crate) fn try_eval(exprs: &Arena<Expr>, block: ExprId) -> Option<codira_comptime::Value> {
+/// Why a `comptime` block was not folded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum NotFolded {
+    /// The block uses something outside the restricted subset, or its
+    /// evaluation failed for a reason the program itself is responsible
+    /// for at run time (a division by zero, say). The block is left to run
+    /// at run time, as before this module existed.
+    Unsupported,
+    /// The block is inside the subset, but evaluating it ran out of the
+    /// interpreter's budget. This is reported, not hidden: the program
+    /// asked for the value at compile time, and quietly computing it at run
+    /// time instead would change what the program costs without saying so.
+    Exhausted(ComptimeLimit),
+}
+
+/// Which of the interpreter's deterministic budgets ran out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ComptimeLimit {
+    /// The op-evaluation budget (`codira_comptime::DEFAULT_FUEL`).
+    Fuel(u64),
+    /// The call-nesting limit (`codira_comptime::DEFAULT_CALL_DEPTH`).
+    CallDepth(usize),
+}
+
+/// Attempts to evaluate `block` (already-lowered HIR) at compile time,
+/// with the interpreter's default budgets.
+pub(crate) fn try_eval(
+    exprs: &Arena<Expr>,
+    block: ExprId,
+) -> Result<codira_comptime::Value, NotFolded> {
+    try_eval_with(exprs, block, codira_comptime::EvalCtx::new())
+}
+
+/// [`try_eval`] under an explicit evaluation context -- budgets included,
+/// which is how the exhaustion path is tested without a million-op block.
+pub(crate) fn try_eval_with(
+    exprs: &Arena<Expr>,
+    block: ExprId,
+    ctx: codira_comptime::EvalCtx<'_>,
+) -> Result<codira_comptime::Value, NotFolded> {
     let mut body = codira_mir::Body::new();
-    build_op(exprs, block, &mut body)?;
-    codira_comptime::eval_body(&body, &codira_comptime::Env::new()).ok()
+    build_op(exprs, block, &mut body).ok_or(NotFolded::Unsupported)?;
+    ctx.eval(&body, &codira_comptime::Env::new())
+        .map_err(|error| match error {
+            codira_comptime::EvalError::FuelExhausted => {
+                NotFolded::Exhausted(ComptimeLimit::Fuel(ctx.fuel))
+            }
+            codira_comptime::EvalError::CallDepthExceeded { limit } => {
+                NotFolded::Exhausted(ComptimeLimit::CallDepth(limit))
+            }
+            _ => NotFolded::Unsupported,
+        })
 }
 
 /// Converts a concrete evaluation result back into a source `Expr`,
@@ -417,6 +462,59 @@ mod tests {
         // wrong answer.
         let mut exprs = Arena::new();
         let unsupported = exprs.alloc(Expr::Missing);
-        assert!(try_eval(&exprs, unsupported).is_none());
+        assert_eq!(try_eval(&exprs, unsupported), Err(NotFolded::Unsupported));
+    }
+
+    #[test]
+    fn running_out_of_fuel_is_reported_not_hidden() {
+        // `1 + 2` costs three ops; with two units of fuel it cannot finish.
+        // That is a different outcome from "outside the subset": the caller
+        // turns it into a diagnostic instead of a silent run-time fallback.
+        let mut exprs = Arena::new();
+        let one = exprs.alloc(Expr::Literal(Literal::Int(LiteralInt {
+            kind: LiteralIntKind::Unsuffixed,
+            value: 1,
+        })));
+        let two = exprs.alloc(Expr::Literal(Literal::Int(LiteralInt {
+            kind: LiteralIntKind::Unsuffixed,
+            value: 2,
+        })));
+        let sum = exprs.alloc(Expr::BinaryOp {
+            lhs: one,
+            rhs: two,
+            op: Some(BinaryOp::ArithOp(ArithOp::Add)),
+        });
+
+        let starved = codira_comptime::EvalCtx {
+            fuel: 2,
+            ..codira_comptime::EvalCtx::new()
+        };
+        assert_eq!(
+            try_eval_with(&exprs, sum, starved),
+            Err(NotFolded::Exhausted(ComptimeLimit::Fuel(2)))
+        );
+        // With enough fuel the same block folds.
+        assert_eq!(try_eval(&exprs, sum), Ok(codira_comptime::Value::Int(3)));
+    }
+
+    #[test]
+    fn a_runtime_failure_is_left_to_run_time() {
+        // `1 / 0` evaluates to an error the program owns; the block is not
+        // folded and no budget diagnostic is due.
+        let mut exprs = Arena::new();
+        let one = exprs.alloc(Expr::Literal(Literal::Int(LiteralInt {
+            kind: LiteralIntKind::Unsuffixed,
+            value: 1,
+        })));
+        let zero = exprs.alloc(Expr::Literal(Literal::Int(LiteralInt {
+            kind: LiteralIntKind::Unsuffixed,
+            value: 0,
+        })));
+        let div = exprs.alloc(Expr::BinaryOp {
+            lhs: one,
+            rhs: zero,
+            op: Some(BinaryOp::ArithOp(ArithOp::Divide)),
+        });
+        assert_eq!(try_eval(&exprs, div), Err(NotFolded::Unsupported));
     }
 }

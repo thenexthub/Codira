@@ -196,6 +196,7 @@ pub fn bindgen(args: Args) -> Result<ExitStatus, anyhow::Error> {
         // Bindings are derived from signatures, which optimization does not
         // change; this only has to type-check, not codegen.
         optimization_lvl: codira_compiler::OptimizationLevel::None,
+        mode: codira_compiler::BuildMode::default(),
         out_dir: None,
         emit_ir: false,
     };

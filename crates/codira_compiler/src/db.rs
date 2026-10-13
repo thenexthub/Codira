@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use codira_codegen::{CodeGenDatabase, CodeGenDatabaseStorage};
+use codira_codegen::{CodeGenDatabase, CodeGenDatabaseStorage, EidosOptions};
 use codira_hir::{salsa, HirDatabase};
 
 use crate::Config;
@@ -39,6 +39,10 @@ impl CompilerDatabase {
     pub fn set_config(&mut self, config: &Config) {
         self.set_target(config.target.clone());
         self.set_optimization_level(config.optimization_lvl);
+        // The bounds start at the compiler's defaults; a package's
+        // `[eidos]` table overrides them once its manifest is read
+        // (`Driver::with_package_path`).
+        self.set_eidos_options(EidosOptions::default().with_mode(config.mode));
     }
 }
 

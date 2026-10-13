@@ -72,6 +72,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     hir_function: codira_hir::Function,
     external_globals: ExternalGlobals<'ink>,
     module_group: &'t ModuleGroup,
+    /// The e-graph optimizer Eidos runs with; `None` skips Eidos entirely
+    /// (`--mode=dev`). See `crate::EidosOptions`.
+    eidos: Option<codira_egraph::EGraphOptimizer>,
 }
 
 impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
@@ -87,6 +90,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         external_globals: ExternalGlobals<'ink>,
         hir_types: &'t HirTypeCache<'db, 'ink>,
         module_group: &'t ModuleGroup,
+        eidos: Option<codira_egraph::EGraphOptimizer>,
     ) -> Self {
         let (hir_function, ir_function) = function;
 
@@ -118,6 +122,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             external_globals,
             hir_types,
             module_group,
+            eidos,
         }
     }
 
@@ -127,14 +132,21 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // constant (after inlining, unrolling, equality saturation and
         // interpretation -- see `crate::eidos_fold`), emit just that
         // constant. Declining is always safe: the ordinary lowering
-        // below produces correct code either way.
-        if let Some(value) =
-            crate::eidos_fold::fold_to_constant(self.db, self.hir_function, self.fn_value)
-        {
-            self.builder
-                .build_return(Some(&value))
-                .expect("failed to build return for a constant-folded function");
-            return;
+        // below produces correct code either way. This is the one place
+        // Eidos enters a build, so `--mode=dev` (no optimizer) skips it
+        // here and nowhere else.
+        if let Some(optimizer) = &self.eidos {
+            if let Some(value) = crate::eidos_fold::fold_to_constant(
+                self.db,
+                self.hir_function,
+                self.fn_value,
+                optimizer,
+            ) {
+                self.builder
+                    .build_return(Some(&value))
+                    .expect("failed to build return for a constant-folded function");
+                return;
+            }
         }
 
         // Iterate over all parameters and their type and store them so we can reference

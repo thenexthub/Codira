@@ -28,6 +28,11 @@ pub struct CodeGenContext<'db, 'ink> {
 
     /// The target to generate code for
     pub target_machine: Rc<TargetMachine>,
+
+    /// The e-graph optimizer Eidos runs with, or `None` when this build
+    /// skips Eidos (`--mode=dev`). Read once from the salsa inputs here so
+    /// every function body of the group sees the same answer.
+    pub eidos: Option<codira_egraph::EGraphOptimizer>,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
@@ -41,6 +46,7 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
             hir_types: HirTypeCache::new(context, db, target_machine.get_target_data()),
             optimization_level: db.optimization_level(),
             target_machine,
+            eidos: db.eidos_options().optimizer(&db.target()),
             db,
         }
     }

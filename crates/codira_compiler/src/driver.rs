@@ -8,7 +8,9 @@
 //! `Driver` is a stateful compiler frontend that enables incremental
 //! compilation by retaining state from previous compilation.
 
-use codira_codegen::{AssemblyIr, CodeGenDatabase, ModuleGroup, ModuleGroupId, TargetAssembly};
+use codira_codegen::{
+    AssemblyIr, CodeGenDatabase, EidosOptions, ModuleGroup, ModuleGroupId, TargetAssembly,
+};
 use codira_hir::{AstDatabase, DiagnosticSink, Module};
 use codira_hir_input::{FileId, PackageSet, SourceDatabase, SourceRoot, SourceRootId};
 use codira_paths::RelativePathBuf;
@@ -226,6 +228,7 @@ impl Driver {
 
         // Construct the driver
         let mut driver = Driver::with_config(config, output_dir);
+        driver.apply_eidos_settings(package.manifest().eidos());
 
         // Iterate over all files in the source directory of the package and store their
         // information in the database
@@ -323,6 +326,40 @@ impl Driver {
         driver.db.set_packages(Arc::new(package_set));
 
         Ok(driver)
+    }
+}
+
+impl Driver {
+    /// Applies a package's `[eidos]` table on top of the build mode the
+    /// driver was configured with. Keys the table leaves out keep the
+    /// compiler's defaults.
+    ///
+    /// Only an actual change is written: the options are a salsa input,
+    /// and setting one -- even to the value it already has -- invalidates
+    /// everything compiled from it.
+    pub fn apply_eidos_settings(&mut self, settings: &codira_project::EidosSettings) {
+        let current = self.db.eidos_options();
+        let defaults = EidosOptions::default();
+        let options = EidosOptions {
+            mode: current.mode,
+            max_egraph_nodes_per_region: settings
+                .max_egraph_nodes_per_region
+                .unwrap_or(defaults.max_egraph_nodes_per_region),
+            max_egraph_iterations: settings
+                .max_egraph_iterations
+                .unwrap_or(defaults.max_egraph_iterations),
+            exact_extraction_budget: settings
+                .exact_extraction_budget
+                .unwrap_or(defaults.exact_extraction_budget),
+        };
+        if options != current {
+            self.db.set_eidos_options(options);
+        }
+    }
+
+    /// The build mode and e-graph bounds this driver compiles with.
+    pub fn eidos_options(&self) -> EidosOptions {
+        self.db.eidos_options()
     }
 }
 

@@ -118,6 +118,7 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
+            code_gen.eidos,
         );
 
         code_gen.gen_fn_body();
@@ -135,6 +136,7 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
+            code_gen.eidos,
         );
 
         code_gen.gen_fn_wrapper();

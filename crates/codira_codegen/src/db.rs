@@ -36,6 +36,11 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     #[salsa::input]
     fn optimization_level(&self) -> inkwell::OptimizationLevel;
 
+    /// The build mode and the e-graph bounds Eidos runs under (see
+    /// [`crate::EidosOptions`]).
+    #[salsa::input]
+    fn eidos_options(&self) -> crate::EidosOptions;
+
     /// Returns the current module partition
     #[salsa::invoke(crate::module_partition::build_partition)]
     fn module_partition(&self) -> Arc<ModulePartition>;

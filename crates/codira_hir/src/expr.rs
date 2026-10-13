@@ -37,7 +37,16 @@ pub type PatId = Idx<Pat>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ExprDiagnostic {
-    LiteralError { expr: ExprId, err: LiteralError },
+    LiteralError {
+        expr: ExprId,
+        err: LiteralError,
+    },
+    /// A `comptime` block ran out of the interpreter's budget. `block` is
+    /// the block's own expression.
+    ComptimeExhausted {
+        block: ExprId,
+        limit: crate::comptime_fold::ComptimeLimit,
+    },
 }
 
 /// The body of an item (function, const etc.).
@@ -1010,12 +1019,20 @@ impl<'a> ExprCollector<'a> {
             ast::ExprKind::ComptimeExpr(e) => {
                 let block = self.collect_block_opt(e.body());
                 match crate::comptime_fold::try_eval(&self.exprs, block) {
-                    Some(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value)
-                    {
+                    Ok(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value) {
                         Some(folded) => self.alloc_expr(folded, syntax_ptr),
                         None => block,
                     },
-                    None => block,
+                    // The block was meant to be evaluated now and could not
+                    // be within the interpreter's budget: say so. It still
+                    // lowers as an ordinary block, so the rest of the body
+                    // type-checks as before.
+                    Err(crate::comptime_fold::NotFolded::Exhausted(limit)) => {
+                        self.diagnostics
+                            .push(ExprDiagnostic::ComptimeExhausted { block, limit });
+                        block
+                    }
+                    Err(crate::comptime_fold::NotFolded::Unsupported) => block,
                 }
             }
             // `match`, `perform`, `handle`, and postfix `!` (force-unwrap) are fully
@@ -1648,8 +1665,8 @@ mod diagnostics {
     use crate::{
         code_model::DefWithBody,
         diagnostics::{
-            DiagnosticSink, IntLiteralTooLarge, InvalidFloatingPointLiteral, InvalidLiteral,
-            InvalidLiteralSuffix,
+            ComptimeBudgetExhausted, DiagnosticSink, IntLiteralTooLarge,
+            InvalidFloatingPointLiteral, InvalidLiteral, InvalidLiteralSuffix,
         },
         HirDatabase,
     };
@@ -1702,6 +1719,18 @@ mod diagnostics {
                             sink.push(InvalidLiteral { literal });
                         }
                     }
+                }
+                ExprDiagnostic::ComptimeExhausted { block, limit } => {
+                    let block = source_map
+                        .expr_syntax(*block)
+                        .expect("could not retrieve the comptime block from the source map");
+                    sink.push(ComptimeBudgetExhausted {
+                        file: block.file_id,
+                        block: block
+                            .value
+                            .either(|ptr| ptr.syntax_node_ptr(), |ptr| ptr.syntax_node_ptr()),
+                        limit: *limit,
+                    });
                 }
             }
         }

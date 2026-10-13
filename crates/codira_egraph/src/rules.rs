@@ -106,6 +106,22 @@ pub(crate) fn instantiate(graph: &mut EGraph, term: &Term, ty: TypeId) -> EClass
     }
 }
 
+/// The most e-nodes [`instantiate`] can add for `term`: one per literal
+/// or operation it builds, plus one per operation for the literal the
+/// constant analysis attaches when that operation turns out to be
+/// constant (see `EGraph::add`). Existing classes cost nothing.
+///
+/// An upper bound, not a prediction -- hashconsing usually finds some of
+/// the nodes already present. Saturation checks it against the node cap
+/// before applying a rewrite, which is what makes the cap hard.
+pub(crate) fn node_bound(term: &Term) -> usize {
+    match term {
+        Term::Class(_) => 0,
+        Term::Const(_) => 1,
+        Term::Node(_, args) => 2 + args.iter().map(node_bound).sum::<usize>(),
+    }
+}
+
 /// Scans every class for rule matches. Read-only: the caller instantiates
 /// and unions the results, so rule application never depends on the order
 /// classes happen to be visited in.

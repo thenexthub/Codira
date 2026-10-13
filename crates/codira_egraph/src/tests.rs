@@ -18,7 +18,7 @@ use smallvec::SmallVec;
 
 use crate::{
     egraph::{EClassId, EGraph, ENode, NodeKind},
-    optimize, EGraphOptimizer, TypeEnv,
+    optimize, CostTable, EGraphOptimizer, Extraction, TypeEnv,
 };
 
 // ---- a minimal independent evaluator ------------------------------------
@@ -535,6 +535,7 @@ fn tight_limits_still_produce_valid_output() {
     let opt = EGraphOptimizer {
         max_iterations: 1,
         max_nodes: 8,
+        ..EGraphOptimizer::default()
     };
     let (out, report) = opt.optimize_body(&body);
     verify_body(&out).unwrap();
@@ -581,5 +582,232 @@ fn type_env_unlocks_gated_rules() {
 %0 = core.const 0
 ",
         "with x known integer, x - x folds to 0"
+    );
+}
+
+// ---- bounds: the node cap is hard -----------------------------------------
+
+/// `a0*a1 + a1*a2 + ... + a(n-1)*a0` with every argument an integer:
+/// commutativity, associativity, factoring and expansion all fire, which
+/// is the shape that grows an e-graph fastest.
+fn sum_of_products(terms: usize) -> Body {
+    let mut body = Body::new();
+    let args: Vec<OpId> = (0..terms as u32).map(|i| arg(&mut body, i)).collect();
+    let mut acc = body.push(OpKind::Mul, [args[0], args[1 % terms]]);
+    for i in 1..terms {
+        let p = body.push(OpKind::Mul, [args[i], args[(i + 1) % terms]]);
+        acc = body.push(OpKind::Add, [acc, p]);
+    }
+    body
+}
+
+#[test]
+fn node_cap_is_never_exceeded() {
+    // Before the cap was checked per rewrite, a round ran to completion
+    // and then compared: on these inputs a 10,000-node cap ended at up to
+    // 14,545 nodes and a 1,000-node cap at up to 1,423.
+    for terms in [8usize, 16, 48] {
+        let body = sum_of_products(terms);
+        let env = TypeEnv::with_int_args(0..terms as u32);
+        // The body's own graph: what is there before any rewrite.
+        let own = EGraphOptimizer {
+            max_iterations: 0,
+            ..EGraphOptimizer::default()
+        }
+        .optimize_body_with(&body, &env)
+        .1
+        .nodes;
+        for cap in [100usize, 1_000, 10_000] {
+            let opt = EGraphOptimizer {
+                max_iterations: 30,
+                max_nodes: cap,
+                ..EGraphOptimizer::default()
+            };
+            let (out, report) = opt.optimize_body_with(&body, &env);
+            if own >= cap {
+                // Nothing may be added to a graph that is already full.
+                assert_eq!(report.iterations, 0);
+                assert_eq!(report.nodes, own);
+            } else {
+                assert!(
+                    report.nodes <= cap,
+                    "{terms} terms, cap {cap}: saturation left {} nodes",
+                    report.nodes
+                );
+            }
+            verify_body(&out).unwrap();
+        }
+    }
+}
+
+#[test]
+fn a_body_that_fills_the_cap_is_not_rewritten() {
+    // The body's own graph is 11 nodes; with a cap of 10 no rewrite may
+    // run at all, and the output is still the same program.
+    let body = sum_of_products(4);
+    let opt = EGraphOptimizer {
+        max_nodes: 10,
+        ..EGraphOptimizer::default()
+    };
+    let (out, report) = opt.optimize_body_with(&body, &TypeEnv::with_int_args(0..4));
+    assert_eq!(report.iterations, 0);
+    assert!(!report.saturated);
+    assert!(report.nodes > 10);
+    verify_body(&out).unwrap();
+    assert_eq!(
+        print_body(&out).matches("core.mul").count(),
+        4,
+        "{}",
+        print_body(&out)
+    );
+}
+
+#[test]
+fn capped_saturation_is_deterministic() {
+    let body = sum_of_products(16);
+    let opt = EGraphOptimizer {
+        max_iterations: 30,
+        max_nodes: 2_000,
+        ..EGraphOptimizer::default()
+    };
+    let env = TypeEnv::with_int_args(0..16);
+    let (first, first_report) = opt.optimize_body_with(&body, &env);
+    for _ in 0..3 {
+        let (again, report) = opt.optimize_body_with(&body, &env);
+        assert_eq!(report, first_report);
+        assert_eq!(print_body(&again), print_body(&first));
+    }
+}
+
+// ---- extraction: exact search and the cost table --------------------------
+
+/// A graph where the greedy (tree-cost) choice is not the cheapest DAG:
+///
+/// ```text
+/// root = tuple(A, B)
+/// A    = { neg(P), neg(Q) }      P = x * y  (tree cost 5)
+/// B    = not(P)                  Q = x + y  (tree cost 3)
+/// ```
+///
+/// Greedy picks `neg(Q)` for A because it is cheaper *in isolation*, and
+/// then pays for both P and Q. The exact extractor sees that B needs P
+/// anyway and shares it.
+fn sharing_graph() -> (EGraph, EClassId) {
+    let mut graph = EGraph::new();
+    let x = leaf(&mut graph, "x");
+    let y = leaf(&mut graph, "y");
+    let node = |kind: OpKind, children: &[EClassId]| ENode {
+        kind: NodeKind::Pure(kind),
+        children: children.iter().copied().collect(),
+        ty: TypeId::UNTYPED,
+    };
+    let p = graph.add(node(OpKind::Mul, &[x, y]));
+    let q = graph.add(node(OpKind::Add, &[x, y]));
+    let a1 = graph.add(node(OpKind::Neg, &[p]));
+    let a2 = graph.add(node(OpKind::Neg, &[q]));
+    graph.union(a1, a2);
+    graph.rebuild();
+    let b = graph.add(node(OpKind::Not, &[p]));
+    let root = graph.add(node(OpKind::Tuple, &[a1, b]));
+    graph.rebuild();
+    (graph, root)
+}
+
+#[test]
+fn exact_extraction_shares_what_greedy_duplicates() {
+    let (graph, root) = sharing_graph();
+
+    let (greedy, how) = crate::extract::extract(&graph, root, &CostTable::GENERIC, 0);
+    assert_eq!(how, Extraction::Greedy);
+    let greedy_text = print_body(&greedy);
+    assert!(greedy_text.contains("core.add"), "{greedy_text}");
+
+    let (exact, how) = crate::extract::extract(&graph, root, &CostTable::GENERIC, 10_000);
+    assert_eq!(how, Extraction::Exact { improved: true });
+    let exact_text = print_body(&exact);
+    assert!(
+        !exact_text.contains("core.add"),
+        "the shared product should serve both uses:\n{exact_text}"
+    );
+    assert_eq!(exact_text.matches("core.mul").count(), 1, "{exact_text}");
+    verify_body(&exact).unwrap();
+}
+
+#[test]
+fn an_exhausted_budget_falls_back_to_greedy_deterministically() {
+    let (graph, root) = sharing_graph();
+    let (greedy, _) = crate::extract::extract(&graph, root, &CostTable::GENERIC, 0);
+    // One step is not enough to complete a single program.
+    for _ in 0..3 {
+        let (out, how) = crate::extract::extract(&graph, root, &CostTable::GENERIC, 1);
+        assert_eq!(how, Extraction::BudgetExhausted { improved: false });
+        assert_eq!(print_body(&out), print_body(&greedy));
+    }
+}
+
+#[test]
+fn exact_extraction_never_changes_meaning() {
+    // The exact extractor is on by default; greedy-only is a zero budget.
+    // Both must produce valid programs that compute what the input does.
+    for terms in [3usize, 4, 6] {
+        let body = sum_of_products(terms);
+        let env = TypeEnv::with_int_args(0..terms as u32);
+        let exact = EGraphOptimizer::default().optimize_body_with(&body, &env);
+        let greedy = EGraphOptimizer {
+            exact_extraction_budget: 0,
+            ..EGraphOptimizer::default()
+        }
+        .optimize_body_with(&body, &env);
+        assert_eq!(greedy.1.extraction, Extraction::Greedy);
+        assert!(matches!(
+            exact.1.extraction,
+            Extraction::Exact { .. } | Extraction::BudgetExhausted { .. }
+        ));
+        verify_body(&exact.0).unwrap();
+        verify_body(&greedy.0).unwrap();
+    }
+    // A two-argument shape with shared structure, checked on values.
+    let mut body = Body::new();
+    let a = arg(&mut body, 0);
+    let b = arg(&mut body, 1);
+    let ab = body.push(OpKind::Mul, [a, b]);
+    let ba = body.push(OpKind::Mul, [b, a]);
+    let s = body.push(OpKind::Add, [ab, a]);
+    let t = body.push(OpKind::Add, [ba, b]);
+    body.push(OpKind::Sub, [s, t]);
+    let out = EGraphOptimizer::default()
+        .optimize_body_with(&body, &TypeEnv::with_int_args([0, 1]))
+        .0;
+    check_equivalent(&body, &out, 2);
+}
+
+#[test]
+fn the_cost_table_decides_what_is_extracted() {
+    // `a * 8` and `a << 3` are equal; which one comes out is the cost
+    // table's call. With the generic table the shift wins (1 < 3); where
+    // shifts are dear, the multiply does.
+    let mut body = Body::new();
+    let a = arg(&mut body, 0);
+    let eight = int(&mut body, 8);
+    body.push(OpKind::Mul, [a, eight]);
+    let env = TypeEnv::with_int_args([0]);
+
+    let generic = EGraphOptimizer::default().optimize_body_with(&body, &env).0;
+    assert!(print_body(&generic).contains("core.shl"));
+
+    let dear_shifts = EGraphOptimizer {
+        costs: CostTable {
+            name: "dear-shifts",
+            shift: 10,
+            ..CostTable::GENERIC
+        },
+        ..EGraphOptimizer::default()
+    };
+    let out = dear_shifts.optimize_body_with(&body, &env).0;
+    check_equivalent(&body, &out, 1);
+    let text = print_body(&out);
+    assert!(
+        text.contains("core.mul") && !text.contains("core.shl"),
+        "{text}"
     );
 }

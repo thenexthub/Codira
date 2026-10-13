@@ -78,11 +78,13 @@
 //! evident. A typed MIR would recover them; until then, refusing to
 //! optimize is the correct failure mode.
 
+mod cost;
 mod egraph;
 mod extract;
 mod rules;
 
 use codira_mir::{verify_body, Body};
+pub use cost::CostTable;
 pub use egraph::{EClassId, EGraph};
 use rustc_hash::FxHashSet;
 
@@ -153,7 +155,9 @@ impl TypeEnv {
 pub struct SaturationReport {
     /// Rule-application rounds actually run.
     pub iterations: usize,
-    /// E-nodes in the graph when saturation stopped.
+    /// E-nodes in the graph when saturation stopped. Never more than the
+    /// node cap, unless the body's own graph already was (see
+    /// [`EGraphOptimizer::max_nodes`]).
     pub nodes: usize,
     /// E-classes when saturation stopped.
     pub classes: usize,
@@ -161,30 +165,69 @@ pub struct SaturationReport {
     /// `false` when a limit cut the search short -- the output is still
     /// correct, just possibly not the best the rules could find.
     pub saturated: bool,
+    /// Which extractor chose the program that was returned.
+    pub extraction: Extraction,
+}
+
+/// How the extracted program was chosen (see `extract.rs`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Extraction {
+    /// Greedy tree-cost extraction only: the exact search was disabled
+    /// (a zero budget) or not applicable.
+    Greedy,
+    /// The exact search ran to completion: no program in the graph has a
+    /// lower DAG cost. `improved` says whether it beat the greedy choice.
+    Exact { improved: bool },
+    /// The exact search ran out of its step budget. The best program it
+    /// had found is used -- never worse than greedy; `improved` says
+    /// whether it was better.
+    BudgetExhausted { improved: bool },
 }
 
 /// Search limits. Equality saturation can grow an e-graph without bound
 /// on expressions with rich rewrite structure (associativity plus
 /// commutativity alone generate factorially many orderings), so a real
 /// implementation is always budgeted.
-#[derive(Debug, Clone, Copy)]
+///
+/// Every limit is a count of work, never a duration: the same input and
+/// limits give the same program on every machine and every run
+/// (`KGEN_SUPERSET_STATUS` §32.5). There is deliberately no timeout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EGraphOptimizer {
-    /// Maximum rule-application rounds.
+    /// Maximum rule-application rounds, per region.
     pub max_iterations: usize,
-    /// Node budget; a round that would exceed it is the last one.
+    /// Hard e-node budget, per region: a rewrite that could take the graph
+    /// past it is not applied (see `EGraph::saturate`). The graph a body
+    /// builds before any rewrite is linear in the body and not bounded by
+    /// this; a body whose own graph fills the cap is extracted without
+    /// being rewritten.
     pub max_nodes: usize,
+    /// Step budget of the exact (branch-and-bound) extractor, per region;
+    /// `0` extracts greedily only. See `extract.rs`.
+    pub exact_extraction_budget: u64,
+    /// Per-operation costs extraction minimizes; see [`CostTable`].
+    pub costs: CostTable,
 }
 
 impl Default for EGraphOptimizer {
     fn default() -> Self {
         EGraphOptimizer {
-            max_iterations: 8,
-            max_nodes: 10_000,
+            max_iterations: Self::DEFAULT_MAX_ITERATIONS,
+            max_nodes: Self::DEFAULT_MAX_NODES,
+            exact_extraction_budget: Self::DEFAULT_EXACT_EXTRACTION_BUDGET,
+            costs: CostTable::GENERIC,
         }
     }
 }
 
 impl EGraphOptimizer {
+    /// Default rule-application rounds per region.
+    pub const DEFAULT_MAX_ITERATIONS: usize = 8;
+    /// Default e-node cap per region.
+    pub const DEFAULT_MAX_NODES: usize = 10_000;
+    /// Default exact-extraction step budget per region.
+    pub const DEFAULT_EXACT_EXTRACTION_BUDGET: u64 = 10_000;
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -215,6 +258,7 @@ impl EGraphOptimizer {
                     nodes: 0,
                     classes: 0,
                     saturated: true,
+                    extraction: Extraction::Greedy,
                 },
             );
         }
@@ -233,13 +277,16 @@ impl EGraphOptimizer {
                         nodes: graph.num_nodes(),
                         classes: graph.num_classes(),
                         saturated: true,
+                        extraction: Extraction::Greedy,
                     },
                 )
             }
         };
 
-        let report = graph.saturate(self);
-        let extracted = extract::extract(&graph, root);
+        let mut report = graph.saturate(self);
+        let (extracted, extraction) =
+            extract::extract(&graph, root, &self.costs, self.exact_extraction_budget);
+        report.extraction = extraction;
 
         // Extraction is the one place a bug could produce malformed IR;
         // verifying here means a defect surfaces as "optimizer declined"

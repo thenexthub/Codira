@@ -124,6 +124,7 @@ impl Project {
         BuildRequest {
             manifest_path: self.manifest(),
             opt_level: 2,
+            mode: "release".to_owned(),
             target: None,
             emit_ir: false,
             color: false,
@@ -305,7 +306,17 @@ fn different_settings_get_different_sessions() {
     assert!(ir.success);
     assert!(project.dir.path().join("target").join("mod.ll").is_file());
 
-    assert_eq!(client.ping().unwrap().sessions, 3);
+    // The build mode is a salsa input too, so it gets its own session.
+    let dev = client
+        .build(BuildRequest {
+            mode: "dev".to_owned(),
+            ..project.request()
+        })
+        .unwrap();
+    assert!(dev.success);
+    assert!(!dev.session_reused);
+
+    assert_eq!(client.ping().unwrap().sessions, 4);
 }
 
 #[test]
@@ -403,6 +414,15 @@ fn only_manifests_can_be_built() {
         },
     );
     assert!(bad_level.contains("optimization levels 0-3"), "{bad_level}");
+
+    let bad_mode = build_error(
+        &mut client,
+        BuildRequest {
+            mode: "debug".to_owned(),
+            ..project.request()
+        },
+    );
+    assert!(bad_mode.contains("unknown build mode"), "{bad_mode}");
 
     let bad_target = build_error(
         &mut client,

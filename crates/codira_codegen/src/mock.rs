@@ -14,7 +14,7 @@ use parking_lot::Mutex;
 
 use crate::{
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
-    OptimizationLevel,
+    EidosOptions, OptimizationLevel,
 };
 
 /// A mock implementation of the IR database. It can be used to set up a simple
@@ -48,6 +48,7 @@ impl Default for MockDatabase {
             events: Mutex::default(),
         };
         db.set_optimization_level(OptimizationLevel::Default);
+        db.set_eidos_options(EidosOptions::default());
         db.set_target(Target::host_target().unwrap());
         db
     }

@@ -6,13 +6,14 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use serde_derive::{Deserialize, Serialize};
 
-use super::{Manifest, ManifestMetadata, PackageId};
+use super::{EidosSettings, Manifest, ManifestMetadata, PackageId};
 
 /// A manifest as specified in a codira.toml file.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TomlManifest {
     package: TomlProject,
+    eidos: Option<TomlEidos>,
 }
 
 /// Represents the `package` section of a codira.toml file.
@@ -21,6 +22,82 @@ pub struct TomlProject {
     name: String,
     version: semver::Version,
     authors: Option<Vec<String>>,
+}
+
+/// The `[eidos]` table: bounds on the mid-level optimizer.
+///
+/// Unknown keys are an error rather than ignored: a misspelled bound that
+/// silently fell back to its default is exactly the mistake a bound exists
+/// to prevent. Two keys are recognized only to be refused with a reason
+/// (see `TomlEidos::into_settings`).
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct TomlEidos {
+    max_egraph_nodes_per_region: Option<u64>,
+    max_egraph_iterations: Option<u64>,
+    exact_extraction_budget: Option<u64>,
+    egraph_timeout_ms: Option<::toml::Value>,
+    ilp_extractor_fallback: Option<::toml::Value>,
+}
+
+/// The largest e-node cap the manifest accepts. A node costs on the order
+/// of a hundred bytes with its hashcons and parent entries, so this is a
+/// few hundred megabytes per region -- far past any useful setting, and
+/// low enough that a stray extra zero is caught rather than obeyed.
+pub const MAX_EGRAPH_NODES_PER_REGION: u64 = 1_000_000;
+
+/// The most rule-application rounds the manifest accepts.
+pub const MAX_EGRAPH_ITERATIONS: u64 = 1_000;
+
+impl TomlEidos {
+    fn into_settings(self) -> Result<EidosSettings, anyhow::Error> {
+        if self.egraph_timeout_ms.is_some() {
+            anyhow::bail!(
+                "[eidos] egraph_timeout_ms is not supported: Codira's output must be \
+                 deterministic, and a wall-clock timeout would make the optimized program \
+                 depend on how fast, and how busy, the building machine was. Bound the \
+                 e-graph with max_egraph_nodes_per_region and max_egraph_iterations \
+                 instead; they count work, so the same sources always build to the same \
+                 program"
+            );
+        }
+        if self.ilp_extractor_fallback.is_some() {
+            anyhow::bail!(
+                "[eidos] ilp_extractor_fallback is not supported: Codira has no ILP solver. \
+                 Its exact extractor is a deterministic branch-and-bound search that keeps \
+                 the greedy result when its budget runs out; set exact_extraction_budget \
+                 (search steps per region, 0 to extract greedily) instead"
+            );
+        }
+
+        let max_egraph_nodes_per_region = match self.max_egraph_nodes_per_region {
+            Some(0) => anyhow::bail!(
+                "[eidos] max_egraph_nodes_per_region must be at least 1; to build without \
+                 Eidos, use `--mode=dev`"
+            ),
+            Some(n) if n > MAX_EGRAPH_NODES_PER_REGION => anyhow::bail!(
+                "[eidos] max_egraph_nodes_per_region is {n}, above the limit of \
+                 {MAX_EGRAPH_NODES_PER_REGION}"
+            ),
+            other => other,
+        };
+        let max_egraph_iterations = match self.max_egraph_iterations {
+            Some(n) if n > MAX_EGRAPH_ITERATIONS => anyhow::bail!(
+                "[eidos] max_egraph_iterations is {n}, above the limit of \
+                 {MAX_EGRAPH_ITERATIONS}"
+            ),
+            other => other,
+        };
+
+        // Both bounds were checked against limits far inside `u32`, so the
+        // conversions cannot fail on any platform Codira builds for.
+        let to_usize = |n: u64| usize::try_from(n).expect("bounded above by a u32 limit");
+        Ok(EidosSettings {
+            max_egraph_nodes_per_region: max_egraph_nodes_per_region.map(to_usize),
+            max_egraph_iterations: max_egraph_iterations.map(to_usize),
+            exact_extraction_budget: self.exact_extraction_budget,
+        })
+    }
 }
 
 impl TomlManifest {
@@ -39,6 +116,7 @@ impl TomlManifest {
             metadata: ManifestMetadata {
                 authors: self.package.authors.unwrap_or_default(),
             },
+            eidos: self.eidos.unwrap_or_default().into_settings()?,
         })
     }
 }

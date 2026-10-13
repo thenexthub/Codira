@@ -78,6 +78,13 @@ pub struct BuildRequest {
     /// Optimization level, 0 through 3.
     pub opt_level: u8,
 
+    /// Build mode, `dev` or `release` (see `codira build --mode`).
+    ///
+    /// Defaults to `release` when absent, which is what a client that
+    /// predates the field always built.
+    #[serde(default = "default_mode")]
+    pub mode: String,
+
     /// Target triple, or `None` for the daemon's host target.
     pub target: Option<String>,
 
@@ -89,6 +96,10 @@ pub struct BuildRequest {
     /// The client decides, because the client is what is attached to the
     /// user's terminal. The daemon has no terminal to ask.
     pub color: bool,
+}
+
+fn default_mode() -> String {
+    "release".to_owned()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -213,6 +224,7 @@ mod tests {
             request: Request::Build(BuildRequest {
                 manifest_path: "/work/project/codira.toml".into(),
                 opt_level: 2,
+                mode: "dev".to_owned(),
                 target: Some("x86_64-pc-windows-msvc".to_owned()),
                 emit_ir: false,
                 color: true,

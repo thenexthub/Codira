@@ -1373,3 +1373,43 @@ impl Diagnostic for UnsupportedByCodegen {
         self
     }
 }
+
+/// A `comptime { .. }` block that the interpreter could have evaluated ran
+/// out of its deterministic budget first.
+///
+/// An error rather than a quiet fallback to run-time evaluation: `comptime`
+/// asks for the value at compile time, and computing it at run time instead
+/// would change what the program costs without saying so. The budgets are
+/// counted in evaluation steps and call depth, never in time, so the same
+/// block fails the same way on every machine.
+pub use crate::comptime_fold::ComptimeLimit;
+
+#[derive(Debug)]
+pub struct ComptimeBudgetExhausted {
+    pub file: FileId,
+    pub block: SyntaxNodePtr,
+    pub limit: ComptimeLimit,
+}
+
+impl Diagnostic for ComptimeBudgetExhausted {
+    fn message(&self) -> String {
+        match self.limit {
+            ComptimeLimit::Fuel(fuel) => format!(
+                "comptime block did not finish within its compile-time evaluation budget of \
+                 {fuel} steps"
+            ),
+            ComptimeLimit::CallDepth(depth) => format!(
+                "comptime block exceeded the compile-time call depth limit of {depth} nested \
+                 calls"
+            ),
+        }
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.block.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}

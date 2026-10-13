@@ -45,7 +45,7 @@ use std::{
 };
 
 use anyhow::Context;
-use codira_compiler::{Config, DisplayColor, Driver, OptimizationLevel, Target};
+use codira_compiler::{BuildMode, Config, DisplayColor, Driver, OptimizationLevel, Target};
 use codira_project::{Package, MANIFEST_FILENAME};
 
 use crate::{
@@ -95,6 +95,7 @@ pub struct ServerOptions {
 struct SessionKey {
     manifest_path: PathBuf,
     opt_level: u8,
+    mode: BuildMode,
     target: Option<String>,
     emit_ir: bool,
 }
@@ -131,6 +132,7 @@ impl Session {
         let config = Config {
             target,
             optimization_lvl: optimization_level(key.opt_level)?,
+            mode: key.mode,
             out_dir: None,
             emit_ir: key.emit_ir,
         };
@@ -380,6 +382,12 @@ fn session_key(request: &BuildRequest) -> anyhow::Result<SessionKey> {
     // Checked here, not only when the session is created, so that a bad
     // level is rejected even when a session for it could never exist.
     optimization_level(request.opt_level)?;
+    let mode = BuildMode::from_name(&request.mode).with_context(|| {
+        format!(
+            "unknown build mode '{}': expected 'dev' or 'release'",
+            request.mode
+        )
+    })?;
 
     let manifest_path = std::fs::canonicalize(&request.manifest_path).map_err(|_error| {
         anyhow::anyhow!(
@@ -391,6 +399,7 @@ fn session_key(request: &BuildRequest) -> anyhow::Result<SessionKey> {
     Ok(SessionKey {
         manifest_path,
         opt_level: request.opt_level,
+        mode,
         target: request.target.clone(),
         emit_ir: request.emit_ir,
     })
