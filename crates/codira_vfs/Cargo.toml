@@ -17,5 +17,5 @@ codira_paths = { version = "0.6.0-dev", path="../codira_paths" }
 crossbeam-channel = { workspace = true }
 log = { workspace = true }
 notify = { workspace = true }
-rustc-hash = { workspace = true }
+rustc-hash = { workspace = true, features = ["std"] }
 walkdir = { workspace = true }

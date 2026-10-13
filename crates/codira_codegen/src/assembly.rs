@@ -58,7 +58,7 @@ impl<'db, 'ink, 'ctx> Assembly<'db, 'ink, 'ctx> {
     pub fn write_ir_to_file(self, output_path: &Path) -> Result<(), anyhow::Error> {
         self.module
             .print_to_file(output_path)
-            .map_err(|e| anyhow!("{}", e))
+            .map_err(|e| anyhow!("{e}"))
     }
 }
 

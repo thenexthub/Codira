@@ -224,7 +224,7 @@ impl Driver {
 
         // Determine output directory
         let output_dir = ensure_package_output_dir(&package, &config)
-            .map_err(|e| anyhow::anyhow!("could not create package output directory: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("could not create package output directory: {e}"))?;
 
         let native_output_dir = output_dir.join("native");
         let target = config.target.clone();
@@ -628,10 +628,7 @@ impl Driver {
         let mut compiler_errors: Vec<u8> = Vec::new();
         if self.emit_diagnostics(&mut Cursor::new(&mut compiler_errors), display_color)? {
             Ok(Some(String::from_utf8(compiler_errors).map_err(|e| {
-                anyhow::anyhow!(
-                    "could not convert compiler diagnostics to valid UTF8: {}",
-                    e
-                )
+                anyhow::anyhow!("could not convert compiler diagnostics to valid UTF8: {e}")
             })?))
         } else {
             Ok(None)
@@ -842,7 +839,7 @@ impl Driver {
         module: Module,
         force: bool,
     ) -> Result<bool, anyhow::Error> {
-        log::trace!("writing target assembly for {:?}", module);
+        log::trace!("writing target assembly for {module:?}");
 
         // Find the module group to which the module belongs
         let module_partition = self.db.module_partition();
@@ -884,7 +881,7 @@ impl Driver {
     /// Generates IR for the specified module and stores it in the output
     /// location.
     fn write_assembly_ir(&mut self, module: codira_hir::Module) -> Result<(), anyhow::Error> {
-        log::trace!("writing assembly IR for {:?}", module);
+        log::trace!("writing assembly IR for {module:?}");
 
         // Find the module group to which the module belongs
         let module_partition = self.db.module_partition();

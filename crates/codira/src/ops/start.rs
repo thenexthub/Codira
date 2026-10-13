@@ -137,7 +137,7 @@ pub(crate) fn start_library(
             runtime
                 .invoke(&args.entry, ())
                 .map(|_: ()| ExitStatus::Success)
-                .map_err(|e| anyhow!("{}", e))?;
+                .map_err(|e| anyhow!("{e}"))?;
             return Ok(ExitStatus::Success);
         }
 

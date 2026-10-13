@@ -13,6 +13,6 @@ pub struct Args {}
 /// `language-server` argument. A Codira language server is started ready to
 /// serve language information about one or more projects.
 pub fn language_server(_args: Args) -> Result<ExitStatus, anyhow::Error> {
-    codira_language_server::run_server().map_err(|e| anyhow::anyhow!("{}", e))?;
+    codira_language_server::run_server().map_err(|e| anyhow::anyhow!("{e}"))?;
     Ok(ExitStatus::Success)
 }
