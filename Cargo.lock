@@ -711,6 +711,7 @@ dependencies = [
  "inkwell",
  "insta",
  "itertools 0.12.1",
+ "object",
  "once_cell",
  "parking_lot 0.12.3",
  "paste",

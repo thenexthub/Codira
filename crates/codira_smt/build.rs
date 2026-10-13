@@ -40,15 +40,41 @@ fn candidate_dirs() -> Vec<PathBuf> {
         dirs.push(PathBuf::from(program_data).join("chocolatey/lib/z3/tools/bin/bin"));
     }
 
+    // Where package managers put `libz3` on Unix: distribution packages,
+    // multiarch Debian/Ubuntu directories, and Homebrew on Apple silicon and
+    // Intel. `Z3_LIB_DIR` and `Z3_ROOT` still win over all of these.
+    for dir in [
+        "/usr/lib",
+        "/usr/lib64",
+        "/usr/local/lib",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib/aarch64-linux-gnu",
+        "/usr/lib/riscv64-linux-gnu",
+        "/opt/homebrew/lib",
+        "/opt/homebrew/opt/z3/lib",
+        "/usr/local/opt/z3/lib",
+    ] {
+        dirs.push(PathBuf::from(dir));
+    }
+
     dirs
 }
 
 fn main() {
-    let lib_name = if cfg!(windows) { "libz3" } else { "z3" };
-    let lib_file = if cfg!(windows) {
-        "libz3.lib"
+    // The library linked is the target's, which is not the host's when
+    // cross-compiling, so the target's OS picks the file name. Mach-O shared
+    // libraries end in `.dylib`: looking for `libz3.so` on macOS never found
+    // anything.
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let lib_name = if target_os == "windows" {
+        "libz3"
     } else {
-        "libz3.so"
+        "z3"
+    };
+    let lib_file = match target_os.as_str() {
+        "windows" => "libz3.lib",
+        "macos" | "ios" => "libz3.dylib",
+        _ => "libz3.so",
     };
 
     let found_dir = candidate_dirs()
@@ -57,9 +83,10 @@ fn main() {
 
     let Some(dir) = found_dir else {
         panic!(
-            "could not find {lib_file} (searched Z3_LIB_DIR, Z3_ROOT, and the default \
-             Chocolatey install location). Install Z3 (e.g. `choco install z3`) or set \
-             Z3_LIB_DIR to the directory containing {lib_file}."
+            "could not find {lib_file} (searched Z3_LIB_DIR, Z3_ROOT, the default \
+             Chocolatey install location, the usual system library directories and \
+             Homebrew). Install Z3 (`choco install z3`, `apt install libz3-dev`, `brew \
+             install z3`) or set Z3_LIB_DIR to the directory containing {lib_file}."
         );
     };
 

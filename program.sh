@@ -5,7 +5,7 @@
 # (headers + static libs for the target backends you need).
 #
 # Configure via environment variables before running:
-#   LLVM_SYS_220_PREFIX         Path to the LLVM 22 install (headers/lib/bin).
+#   LLVM_SYS_221_PREFIX         Path to the LLVM 22 install (headers/lib/bin).
 #                               If unset, common system locations are probed.
 #   CODIRA_LLD_ELF              Path to a standalone ld.lld (Linux linking).
 #   CODIRA_LLD_MACHO            Path to a standalone ld64.lld (macOS linking).
@@ -13,21 +13,21 @@
 
 set -euo pipefail
 
-if [ -z "${LLVM_SYS_220_PREFIX:-}" ]; then
+if [ -z "${LLVM_SYS_221_PREFIX:-}" ]; then
     for candidate in /usr/lib/llvm-22 /usr/local/opt/llvm@22 /opt/homebrew/opt/llvm@22; do
         if [ -x "$candidate/bin/llvm-config" ]; then
-            LLVM_SYS_220_PREFIX="$candidate"
+            LLVM_SYS_221_PREFIX="$candidate"
             break
         fi
     done
 fi
 
-if [ -z "${LLVM_SYS_220_PREFIX:-}" ] || [ ! -x "$LLVM_SYS_220_PREFIX/bin/llvm-config" ]; then
+if [ -z "${LLVM_SYS_221_PREFIX:-}" ] || [ ! -x "$LLVM_SYS_221_PREFIX/bin/llvm-config" ]; then
     echo "ERROR: no LLVM 22 install found." >&2
-    echo "Set LLVM_SYS_220_PREFIX to a directory containing an LLVM 22.x dev package." >&2
+    echo "Set LLVM_SYS_221_PREFIX to a directory containing an LLVM 22.x dev package." >&2
     exit 1
 fi
-export LLVM_SYS_220_PREFIX
+export LLVM_SYS_221_PREFIX
 
 case "$(uname -s)" in
     Darwin)
@@ -46,7 +46,7 @@ esac
 
 BUILD_PROFILE="${BUILD_PROFILE:-release}"
 
-echo "Building codira with LLVM_SYS_220_PREFIX=$LLVM_SYS_220_PREFIX"
+echo "Building codira with LLVM_SYS_221_PREFIX=$LLVM_SYS_221_PREFIX"
 
 if [ "$BUILD_PROFILE" = "release" ]; then
     cargo build --release -p codira

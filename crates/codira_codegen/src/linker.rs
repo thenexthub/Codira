@@ -5,7 +5,7 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 #[cfg(all(feature = "in-process-lld", windows))]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::{
     borrow::Cow,
     env, fmt,
@@ -36,6 +36,38 @@ pub const LINK_MODE_ENV: &str = "CODIRA_LINK_MODE";
 /// later link spawns the linker instead -- see `link_in_process`.
 #[cfg(all(feature = "in-process-lld", windows))]
 static IN_PROCESS_LLD_POISONED: AtomicBool = AtomicBool::new(false);
+
+/// The one LLD driver this process links with in-process, once it has
+/// linked anything; `NO_DRIVER` until then.
+///
+/// LLD's drivers each keep global state, and `lldMain` resetting it after a
+/// link is only good enough for the *same* driver to run again. Linking a
+/// COFF DLL and then an ELF shared object in one process corrupts the heap
+/// (`STATUS_HEAP_CORRUPTION`, found by `test_targets`, which builds for
+/// every target in one test). The build daemon serves `--target` requests
+/// in one long-lived process, so a Windows build followed by a Linux
+/// cross-build could take it down. The first driver used in-process claims
+/// the process; any other driver is spawned as its own linker process.
+#[cfg(all(feature = "in-process-lld", windows))]
+static IN_PROCESS_LLD_DRIVER: AtomicU8 = AtomicU8::new(NO_DRIVER);
+
+#[cfg(all(feature = "in-process-lld", windows))]
+const NO_DRIVER: u8 = u8::MAX;
+
+/// Claims in-process linking for `driver`, unless another driver has it.
+#[cfg(all(feature = "in-process-lld", windows))]
+fn claim_in_process_driver(driver: LldDriver) -> bool {
+    let wanted = driver as u8;
+    match IN_PROCESS_LLD_DRIVER.compare_exchange(
+        NO_DRIVER,
+        wanted,
+        Ordering::SeqCst,
+        Ordering::SeqCst,
+    ) {
+        Ok(_) => true,
+        Err(current) => current == wanted,
+    }
+}
 
 /// Whether this compiler was built with LLD linked in.
 ///
@@ -157,6 +189,8 @@ impl LldDriver {
 ///   built into the compiler.
 /// * LLD reported, after an earlier in-process link, that it cannot run in this
 ///   process again.
+/// * This process already linked in-process with a different LLD driver (see
+///   `IN_PROCESS_LLD_DRIVER`).
 fn run_lld(driver: LldDriver, args: &[String]) -> Result<(), String> {
     let program_override = env::var(format!("CODIRA_LLD_{}", driver.env_suffix())).ok();
 
@@ -164,6 +198,7 @@ fn run_lld(driver: LldDriver, args: &[String]) -> Result<(), String> {
     if program_override.is_none()
         && link_mode() == LinkMode::InProcess
         && !IN_PROCESS_LLD_POISONED.load(Ordering::SeqCst)
+        && claim_in_process_driver(driver)
     {
         return link_in_process(driver, args);
     }
@@ -202,9 +237,33 @@ fn spawn_lld(
     program_override: Option<String>,
     args: &[String],
 ) -> Result<(), String> {
-    let program = program_override.unwrap_or_else(|| driver.default_program().to_owned());
+    let explicit = program_override.is_some();
+    let mut program = program_override.unwrap_or_else(|| driver.default_program().to_owned());
 
-    let output = Command::new(&program).args(args).output().map_err(|e| {
+    let mut result = Command::new(&program).args(args).output();
+    // Not on `PATH`: try the LLVM installation this compiler was built
+    // against, which ships every LLD driver. That is what makes a cross-link
+    // work without anyone having put a linker on `PATH` first. A linker
+    // named through `CODIRA_LLD_<FLAVOR>` is not second-guessed.
+    if !explicit {
+        if let (Err(error), Some(prefix)) = (&result, option_env!("LLVM_SYS_221_PREFIX")) {
+            if error.kind() == std::io::ErrorKind::NotFound {
+                // Appended, not `with_extension`: that would read `ld.lld` as
+                // the file `ld` with extension `lld` and produce `ld.exe`.
+                let bundled = Path::new(prefix).join("bin").join(format!(
+                    "{}{}",
+                    driver.default_program(),
+                    env::consts::EXE_SUFFIX
+                ));
+                if bundled.is_file() {
+                    program = bundled.display().to_string();
+                    result = Command::new(&program).args(args).output();
+                }
+            }
+        }
+    }
+
+    let output = result.map_err(|e| {
         format!(
             "failed to run linker `{program}`: {e} (set CODIRA_LLD_{} to override the linker \
              path)",

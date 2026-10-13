@@ -17,7 +17,7 @@ pub fn target() -> Target {
         llvm_target: macos_llvm_target(arch).into(),
         pointer_width: 64,
         arch: arch.target_arch()    ,
-        data_layout: "e-m:o-i64:64-i128:128-n32:64-S128".into(),
+        data_layout: "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32".into(),
         options: TargetOptions {
             cpu: "apple-a14".into(),
             .. super::apple_base::opts("macos", arch)

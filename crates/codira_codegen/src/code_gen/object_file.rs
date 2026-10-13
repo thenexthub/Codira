@@ -40,6 +40,12 @@ impl ObjectFile {
         })
     }
 
+    /// Returns where the object file was written.
+    #[cfg(test)]
+    pub fn path(&self) -> &Path {
+        self.obj_file.path()
+    }
+
     /// Links the object file into a shared object.
     ///
     /// `exported_symbols` names the `@export("C")` functions that must be

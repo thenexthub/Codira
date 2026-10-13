@@ -5,7 +5,9 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 mod apple_base;
+mod freebsd_base;
 mod linux_base;
+mod linux_musl_base;
 mod windows_msvc_base;
 
 use std::borrow::Cow;
@@ -144,9 +146,16 @@ supported_targets!(
     ("x86_64-apple-ios", x86_64_apple_ios),
     ("x86_64-pc-windows-msvc", x86_64_pc_windows_msvc),
     ("x86_64-unknown-linux-gnu", x86_64_unknown_linux_gnu),
+    ("x86_64-unknown-linux-musl", x86_64_unknown_linux_musl),
+    ("x86_64-unknown-freebsd", x86_64_unknown_freebsd),
     ("aarch64-apple-darwin", aarch64_apple_darwin),
     ("aarch64-apple-ios", aarch64_apple_ios),
     ("aarch64-apple-ios-sim", aarch64_apple_ios_sim),
+    ("aarch64-pc-windows-msvc", aarch64_pc_windows_msvc),
+    ("aarch64-unknown-linux-gnu", aarch64_unknown_linux_gnu),
+    ("aarch64-unknown-linux-musl", aarch64_unknown_linux_musl),
+    ("aarch64-unknown-freebsd", aarch64_unknown_freebsd),
+    ("riscv64gc-unknown-linux-gnu", riscv64gc_unknown_linux_gnu),
 );
 
 impl Target {

@@ -109,12 +109,14 @@ pub(crate) fn build_target_machine(
 /// the first time concurrently is safe, so a `std::sync::Once` -- not a
 /// per-call guard -- is what actually keeps that a single, ordered event
 /// regardless of how many threads reach this function.
-fn initialize_target_backends_once() {
+pub(crate) fn initialize_target_backends_once() {
     static INIT: std::sync::Once = std::sync::Once::new();
     INIT.call_once(|| {
         #[cfg(feature = "target-x86")]
         Target::initialize_x86(&InitializationConfig::default());
         #[cfg(feature = "target-aarch64")]
         Target::initialize_aarch64(&InitializationConfig::default());
+        #[cfg(feature = "target-riscv")]
+        Target::initialize_riscv(&InitializationConfig::default());
     });
 }
