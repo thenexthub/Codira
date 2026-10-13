@@ -226,9 +226,27 @@ impl Driver {
         let output_dir = ensure_package_output_dir(&package, &config)
             .map_err(|e| anyhow::anyhow!("could not create package output directory: {}", e))?;
 
+        let native_output_dir = output_dir.join("native");
+        let target = config.target.clone();
+
         // Construct the driver
         let mut driver = Driver::with_config(config, output_dir);
         driver.apply_eidos_settings(package.manifest().eidos());
+
+        // Compile the package's C, C++ and assembly, if it has any. This
+        // happens once, when the package is loaded: a watch or a daemon
+        // session does not see a change to a native source until the
+        // package is loaded again.
+        let native = package.manifest().native();
+        if !native.is_empty() {
+            let inputs = crate::native_build::compile_native_sources(
+                package.root(),
+                native,
+                &target,
+                &native_output_dir,
+            )?;
+            driver.db.set_native_inputs(Arc::new(inputs));
+        }
 
         // Iterate over all files in the source directory of the package and store their
         // information in the database

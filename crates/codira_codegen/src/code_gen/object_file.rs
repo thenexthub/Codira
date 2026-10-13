@@ -56,10 +56,14 @@ impl ObjectFile {
         self,
         output_path: &Path,
         exported_symbols: &[String],
+        native: Option<&crate::NativeInputs>,
     ) -> Result<(), anyhow::Error> {
         // Construct a linker for the target
         let mut linker = linker::create_with_target(&self.target);
         linker.add_object(self.obj_file.path())?;
+        if let Some(native) = native {
+            linker.add_native(native)?;
+        }
 
         // Link the object
         linker.build_shared_object(output_path, exported_symbols)?;

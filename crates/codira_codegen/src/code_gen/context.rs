@@ -33,6 +33,8 @@ pub struct CodeGenContext<'db, 'ink> {
     /// skips Eidos (`--mode=dev`). Read once from the salsa inputs here so
     /// every function body of the group sees the same answer.
     pub eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// The package's native code (see `crate::native`)
+    pub native: std::sync::Arc<crate::NativeInputs>,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
@@ -47,6 +49,7 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
             optimization_level: db.optimization_level(),
             target_machine,
             eidos: db.eidos_options().optimizer(&db.target()),
+            native: db.native_inputs(),
             db,
         }
     }

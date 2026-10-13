@@ -161,7 +161,7 @@ fn every_target_builds_an_object_of_its_own_kind() {
             }
             let linked = tempfile::NamedTempFile::new().expect("temp file");
             object_file
-                .into_shared_object(linked.path(), &[])
+                .into_shared_object(linked.path(), &[], None)
                 .unwrap_or_else(|e| panic!("linking for `{triple}`: {e}"));
             let bytes = std::fs::read(linked.path()).expect("library was written");
             let library =

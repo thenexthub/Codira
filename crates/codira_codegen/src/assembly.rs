@@ -33,6 +33,18 @@ impl<'db, 'ink, 'ctx> Assembly<'db, 'ink, 'ctx> {
         Self { code_gen, module }
     }
 
+    /// Whether this assembly calls or contains any of `native`'s functions,
+    /// and so has to be linked with the package's native code.
+    pub fn uses_native_code(&self, native: &crate::NativeInputs) -> bool {
+        !native.is_empty()
+            && self.module.get_functions().any(|function| {
+                function
+                    .get_name()
+                    .to_str()
+                    .is_ok_and(|name| native.symbols.contains(name))
+            })
+    }
+
     /// Tries to convert the assembly into an `ObjectFile`.
     pub fn into_object_file(self) -> Result<ObjectFile, anyhow::Error> {
         ObjectFile::new(
@@ -103,6 +115,10 @@ pub(crate) fn build_target_assembly(
     // Build an assembly for the module
     let assembly = build_assembly(db, &code_gen_context, module_group);
 
+    // The package's native code goes into every assembly that calls it.
+    let native = db.native_inputs();
+    let native = assembly.uses_native_code(&native).then_some(&*native);
+
     // Convert the assembly into an object file
     let obj_file = assembly
         .into_object_file()
@@ -123,7 +139,7 @@ pub(crate) fn build_target_assembly(
 
     // Translate the object file into a shared object
     obj_file
-        .into_shared_object(file.path(), &exported_symbols)
+        .into_shared_object(file.path(), &exported_symbols, native)
         .expect("could not link object file");
 
     let target = db.target();

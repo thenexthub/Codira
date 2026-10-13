@@ -50,6 +50,7 @@ impl Default for MockDatabase {
         db.set_optimization_level(OptimizationLevel::Default);
         db.set_eidos_options(EidosOptions::default());
         db.set_target(Target::host_target().unwrap());
+        db.set_native_inputs(std::sync::Arc::default());
         db
     }
 }

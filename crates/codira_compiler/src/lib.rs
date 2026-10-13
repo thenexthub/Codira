@@ -12,6 +12,7 @@ mod db;
 pub mod diagnostics;
 mod diagnostics_snippets;
 mod driver;
+mod native_build;
 
 use std::{
     ffi::OsStr,

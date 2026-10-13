@@ -318,8 +318,42 @@ pub fn create_with_target(target: &spec::Target) -> Box<dyn Linker> {
     }
 }
 
+/// Whether `library` names a file rather than a library for the linker to
+/// search for.
+fn is_library_path(library: &str) -> bool {
+    library.contains('/')
+        || library.contains('\\')
+        || [".so", ".a", ".lib", ".dylib", ".tbd"]
+            .iter()
+            .any(|extension| library.ends_with(extension) || library.contains(".so."))
+}
+
 pub trait Linker {
     fn add_object(&mut self, path: &Path) -> Result<(), LinkerError>;
+
+    /// Adds the package's native code: its assembled objects, its
+    /// libraries, and -- through `uses_c_runtime` -- whatever the platform
+    /// needs for C and C++ code to run. See `crate::native`.
+    fn add_native(&mut self, native: &crate::NativeInputs) -> Result<(), LinkerError> {
+        for object in &native.objects {
+            self.add_object(object)?;
+        }
+        for library in &native.libraries {
+            self.add_library(library);
+        }
+        if native.needs_c_runtime {
+            self.uses_c_runtime(native.needs_cxx_runtime);
+        }
+        Ok(())
+    }
+
+    /// Links against `library`: a path to the library file, or a name the
+    /// platform's linker resolves.
+    fn add_library(&mut self, library: &str);
+
+    /// Records that the assembly contains C (and, with `cxx`, C++) code. Only
+    /// COFF has anything to do here; see `MsvcLinker::uses_c_runtime`.
+    fn uses_c_runtime(&mut self, _cxx: bool) {}
 
     /// Links the accumulated objects into a shared object at `path`.
     ///
@@ -360,6 +394,14 @@ impl LdLinker {
 }
 
 impl Linker for LdLinker {
+    fn add_library(&mut self, library: &str) {
+        if is_library_path(library) {
+            self.args.push(library.to_owned());
+        } else {
+            self.args.push(format!("-l{library}"));
+        }
+    }
+
     fn add_object(&mut self, path: &Path) -> Result<(), LinkerError> {
         let path_str = path
             .to_str()
@@ -445,6 +487,14 @@ impl Ld64Linker {
 }
 
 impl Linker for Ld64Linker {
+    fn add_library(&mut self, library: &str) {
+        if is_library_path(library) {
+            self.args.push(library.to_owned());
+        } else {
+            self.args.push(format!("-l{library}"));
+        }
+    }
+
     fn add_object(&mut self, path: &Path) -> Result<(), LinkerError> {
         let path_str = path
             .to_str()
@@ -523,6 +573,9 @@ fn no_sysroot_arg(output_path: &Path) -> String {
 
 struct MsvcLinker {
     args: Vec<String>,
+    /// `Some(cxx)` once the assembly is known to contain C (and, if `cxx`,
+    /// C++) code.
+    c_runtime: Option<bool>,
 }
 
 impl MsvcLinker {
@@ -535,11 +588,31 @@ impl MsvcLinker {
                 .cloned()
                 .map(Cow::into_owned)
                 .collect(),
+            c_runtime: None,
         }
     }
 }
 
 impl Linker for MsvcLinker {
+    fn add_library(&mut self, library: &str) {
+        if is_library_path(library) {
+            self.args.push(library.to_owned());
+        } else {
+            self.args.push(format!("/DEFAULTLIB:{library}.lib"));
+        }
+    }
+
+    /// A Codira-only DLL links nothing and has no entry point. C and C++ code
+    /// needs the DLL-backed C runtime that Clang compiled it against
+    /// (`-fms-runtime-lib=dll`), and its entry point, `_DllMainCRTStartup`,
+    /// which runs C++ static constructors and the runtime's per-DLL setup
+    /// when the assembly is loaded. Finding the runtime's import libraries
+    /// means letting `lld-link` locate the Windows SDK and MSVC, which
+    /// `no_sysroot_arg` otherwise stops it from doing.
+    fn uses_c_runtime(&mut self, cxx: bool) {
+        self.c_runtime = Some(cxx);
+    }
+
     fn add_object(&mut self, path: &Path) -> Result<(), LinkerError> {
         let path_str = path
             .to_str()
@@ -559,8 +632,20 @@ impl Linker for MsvcLinker {
             .ok_or_else(|| LinkerError::PathError(path.to_owned()))?;
 
         self.args.push("/DLL".to_owned());
-        self.args.push("/NOENTRY".to_owned());
-        self.args.push(no_sysroot_arg(path));
+        match self.c_runtime {
+            None => {
+                self.args.push("/NOENTRY".to_owned());
+                self.args.push(no_sysroot_arg(path));
+            }
+            Some(cxx) => {
+                for library in ["msvcrt", "ucrt", "vcruntime", "kernel32"] {
+                    self.args.push(format!("/DEFAULTLIB:{library}.lib"));
+                }
+                if cxx {
+                    self.args.push("/DEFAULTLIB:msvcprt.lib".to_owned());
+                }
+            }
+        }
         self.args.push(format!("/EXPORT:{}", abi::GET_INFO_FN_NAME));
         self.args
             .push(format!("/EXPORT:{}", abi::GET_VERSION_FN_NAME));

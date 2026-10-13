@@ -142,6 +142,8 @@ pub(crate) fn gen_file_ir<'ink>(
         code_gen.gen_fn_wrapper();
     }
 
+    link_native_bitcode(code_gen, &llvm_module);
+
     // Optimize all generated function bodies in one pass now that they've
     // all been emitted (LLVM's new pass manager operates module-wide, not
     // per-function -- see `crate::code_gen::optimize_module`'s doc comment).
@@ -162,5 +164,37 @@ pub(crate) fn gen_file_ir<'ink>(
         llvm_module,
         function_definitions,
         type_definitions,
+    }
+}
+
+/// Links the package's C and C++ bitcode into `llvm_module` if it calls any
+/// of it, before the module is optimized.
+///
+/// Linking first is what makes a call into C cost nothing: once the C
+/// function is in the same module, LLVM inlines it into its Codira caller,
+/// folds constants through it and vectorizes across the boundary, exactly as
+/// it would within one C file. A module that calls no native function gets
+/// none of it. See `crate::native`.
+fn link_native_bitcode<'ink>(code_gen: &CodeGenContext<'_, 'ink>, llvm_module: &Module<'ink>) {
+    let native = &code_gen.native;
+    if native.bitcode.is_empty() {
+        return;
+    }
+    let calls_native = llvm_module.get_functions().any(|function| {
+        function.count_basic_blocks() == 0
+            && function
+                .get_name()
+                .to_str()
+                .is_ok_and(|name| native.symbols.contains(name))
+    });
+    if !calls_native {
+        return;
+    }
+    for path in &native.bitcode {
+        let native_module = Module::parse_bitcode_from_path(path, code_gen.context)
+            .unwrap_or_else(|e| panic!("could not read bitcode '{}': {e}", path.display()));
+        llvm_module
+            .link_in_module(native_module)
+            .unwrap_or_else(|e| panic!("could not link '{}': {e}", path.display()));
     }
 }

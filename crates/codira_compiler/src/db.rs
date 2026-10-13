@@ -31,6 +31,7 @@ impl CompilerDatabase {
 
         // Set the initial configuration
         db.set_config(config);
+        db.set_native_inputs(std::sync::Arc::default());
 
         db
     }

@@ -56,6 +56,9 @@ inkwell = { workspace = true, features = ["llvm22-1"], default-features = false 
 itertools = { workspace = true }
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+# Reads the symbols a package's assembled native objects define (`native`),
+# and the objects `test_targets` builds for every target.
+object = "0.36.5"
 once_cell = { workspace = true }
 parking_lot = { workspace = true }
 paste = { workspace = true }
@@ -73,8 +76,6 @@ codira_lld = { version = "220.0.0", path = "../codira_lld", optional = true }
 [dev-dependencies]
 codira_abi = { path = "../codira_abi", features = ["serde"] }
 insta = { workspace = true, features = ["ron"] }
-# Reads the objects and libraries `test_targets` builds for every target.
-object = "0.36.5"
 codira_comptime = { path = "../codira_comptime" }
 codira_libloader = { path = "../codira_libloader" }
 codira_test = { path = "../codira_test" }

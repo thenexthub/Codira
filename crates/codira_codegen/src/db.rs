@@ -40,6 +40,10 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// [`crate::EidosOptions`]).
     #[salsa::input]
     fn eidos_options(&self) -> crate::EidosOptions;
+    /// The package's native code (C, C++, assembly), linked into every module
+    /// group that calls it. See `crate::native`.
+    #[salsa::input]
+    fn native_inputs(&self) -> Arc<crate::NativeInputs>;
 
     /// Returns the current module partition
     #[salsa::invoke(crate::module_partition::build_partition)]

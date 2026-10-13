@@ -6,7 +6,7 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use serde_derive::{Deserialize, Serialize};
 
-use super::{EidosSettings, Manifest, ManifestMetadata, PackageId};
+use super::{EidosSettings, Manifest, ManifestMetadata, NativeSources, PackageId};
 
 /// A manifest as specified in a codira.toml file.
 #[derive(Debug, Deserialize, Serialize)]
@@ -14,6 +14,28 @@ use super::{EidosSettings, Manifest, ManifestMetadata, PackageId};
 pub struct TomlManifest {
     package: TomlProject,
     eidos: Option<TomlEidos>,
+    #[serde(default)]
+    native: Option<TomlNative>,
+}
+
+/// The `[native]` section: C, C++ and assembly compiled into the package.
+///
+/// Unknown keys are an error here, unlike elsewhere in the manifest: a
+/// misspelt `include` would otherwise compile every source without its
+/// headers and fail far from the cause.
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct TomlNative {
+    #[serde(default)]
+    sources: Vec<String>,
+    #[serde(default)]
+    include: Vec<String>,
+    #[serde(default)]
+    defines: Vec<String>,
+    #[serde(default)]
+    flags: Vec<String>,
+    #[serde(default)]
+    libs: Vec<String>,
 }
 
 /// Represents the `package` section of a codira.toml file.
@@ -117,6 +139,16 @@ impl TomlManifest {
                 authors: self.package.authors.unwrap_or_default(),
             },
             eidos: self.eidos.unwrap_or_default().into_settings()?,
+            native: self
+                .native
+                .map(|native| NativeSources {
+                    sources: native.sources.into_iter().map(Into::into).collect(),
+                    include: native.include.into_iter().map(Into::into).collect(),
+                    defines: native.defines,
+                    flags: native.flags,
+                    libs: native.libs,
+                })
+                .unwrap_or_default(),
         })
     }
 }

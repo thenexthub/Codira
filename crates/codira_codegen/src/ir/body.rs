@@ -1968,14 +1968,31 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 )
                 .expect("failed to build indirect call")
         } else {
-            let llvm_function = self.function_map.get(&function).unwrap_or_else(|| {
-                panic!(
+            let llvm_function = match self.function_map.get(&function) {
+                Some(function) => *function,
+                // An `extern` declaration of a function the package's native
+                // code defines: declared here, on first use, under its own
+                // name, so the linker -- or, for C and C++, the bitcode linked
+                // into this module (`ir::file::link_native_bitcode`) --
+                // resolves it. It never reaches the dispatch table.
+                None if self.module_group.links_natively(self.db, function) => {
+                    let name = function.name(self.db).to_string();
+                    self.module.get_function(&name).unwrap_or_else(|| {
+                        crate::ir::function::gen_prototype(
+                            self.db,
+                            self.hir_types,
+                            function,
+                            self.module,
+                        )
+                    })
+                }
+                None => panic!(
                     "missing function value for codira_hir function: '{}'",
                     function.name(self.db),
-                )
-            });
+                ),
+            };
             self.builder
-                .build_call(*llvm_function, args, &function.name(self.db).to_string())
+                .build_call(llvm_function, args, &function.name(self.db).to_string())
                 .expect("failed to build call")
         };
 

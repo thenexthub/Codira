@@ -14,6 +14,7 @@ pub use crate::{
     linker::{in_process_lld_available, link_mode, LinkMode, LINK_MODE_ENV},
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
+    native::NativeInputs,
 };
 
 /// This library generates machine code from HIR using inkwell which is a safe
@@ -41,4 +42,5 @@ mod linker;
 pub mod mir_codegen;
 mod module_group;
 mod module_partition;
+mod native;
 pub(crate) mod type_info;

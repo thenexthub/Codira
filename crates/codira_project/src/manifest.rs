@@ -4,7 +4,11 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use std::{fmt, path::Path, str::FromStr};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 mod toml;
 
@@ -15,6 +19,41 @@ pub struct Manifest {
     package_id: PackageId,
     metadata: ManifestMetadata,
     eidos: EidosSettings,
+    native: NativeSources,
+}
+
+/// C, C++ and assembly sources compiled into the package, from the
+/// manifest's `[native]` section:
+///
+/// ```toml
+/// [native]
+/// sources = ["c/vec.c", "c/hash.cpp", "c/crc.S"]
+/// include = ["c/include"]
+/// defines = ["FAST_PATH=1"]
+/// flags = ["-O3"]
+/// libs = []
+/// ```
+///
+/// Paths are relative to the directory holding `codira.toml`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct NativeSources {
+    /// Source files. `.c` is C, `.cc`/`.cpp`/`.cxx` is C++, and `.s`/`.S`/
+    /// `.asm` is assembly (`.S` and `.asm` go through the C preprocessor).
+    pub sources: Vec<PathBuf>,
+    /// Directories searched for `#include`.
+    pub include: Vec<PathBuf>,
+    /// Preprocessor definitions, `NAME` or `NAME=VALUE`.
+    pub defines: Vec<String>,
+    /// Extra flags passed to Clang for every source.
+    pub flags: Vec<String>,
+    /// Extra libraries to link against, by name.
+    pub libs: Vec<String>,
+}
+
+impl NativeSources {
+    pub fn is_empty(&self) -> bool {
+        self.sources.is_empty()
+    }
 }
 
 /// General metadata for a package.
@@ -79,6 +118,11 @@ impl Manifest {
     pub fn eidos(&self) -> &EidosSettings {
         &self.eidos
     }
+
+    /// Returns the native (C, C++, assembly) sources of the package
+    pub fn native(&self) -> &NativeSources {
+        &self.native
+    }
 }
 
 impl PackageId {
@@ -136,6 +180,7 @@ mod tests {
         assert_eq!(manifest.metadata().authors, vec!["Codira Team"]);
         assert_eq!(format!("{}", manifest.package_id()), "test v0.2.0");
         assert_eq!(manifest.eidos(), &crate::EidosSettings::default());
+        assert!(manifest.native().is_empty());
     }
 
     fn with_eidos(table: &str) -> Result<Manifest, anyhow::Error> {
@@ -193,5 +238,50 @@ mod tests {
             let error = with_eidos(table).unwrap_err().to_string();
             assert!(error.contains(expected), "{table}: {error}");
         }
+    }
+
+    #[test]
+    fn parse_native_sources() {
+        let manifest = Manifest::from_str(
+            r#"
+        [package]
+        name="test"
+        version="0.2.0"
+
+        [native]
+        sources = ["c/add.c", "c/crc.S"]
+        include = ["c/include"]
+        defines = ["FAST=1"]
+        flags = ["-O3"]
+        "#,
+        )
+        .unwrap();
+
+        let native = manifest.native();
+        assert_eq!(
+            native.sources,
+            vec![std::path::PathBuf::from("c/add.c"), "c/crc.S".into()]
+        );
+        assert_eq!(native.include, vec![std::path::PathBuf::from("c/include")]);
+        assert_eq!(native.defines, vec!["FAST=1"]);
+        assert_eq!(native.flags, vec!["-O3"]);
+        assert!(native.libs.is_empty());
+    }
+
+    #[test]
+    fn misspelt_native_key_is_an_error() {
+        let error = Manifest::from_str(
+            r#"
+        [package]
+        name="test"
+        version="0.2.0"
+
+        [native]
+        sources = ["c/add.c"]
+        includes = ["c/include"]
+        "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("includes"), "{error}");
     }
 }
