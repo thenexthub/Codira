@@ -702,6 +702,17 @@ impl<'ctx> Exec<'_, 'ctx> {
                 for arg in args {
                     values.push(self.eval(state, *arg)?);
                 }
+                // Builtins with a meaning the solver can see: `declassify`
+                // is the identity, `ct_select` is an `ite`.
+                match (self.frame.infer.builtin_call(expr), values.as_slice()) {
+                    (Some(crate::BuiltinFn::Declassify), [value]) => return Some(*value),
+                    (Some(crate::BuiltinFn::CtSelect), [cond, a, b]) => {
+                        let c = self.bool_of(*cond, "ct_select");
+                        return Some(merge_sym(c, *a, *b));
+                    }
+                    (Some(_), _) => return Some(Sym::Unit),
+                    (None, _) => {}
+                }
                 Some(match self.frame.callee(*callee) {
                     Some(f) => self.apply_callee(state, expr, f, None, &values),
                     None => self.fresh_for_ty(&self.frame.infer[expr].clone(), "call"),

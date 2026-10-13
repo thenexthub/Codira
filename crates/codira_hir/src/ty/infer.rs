@@ -1237,6 +1237,54 @@ impl InferenceResultBuilder<'_> {
                 }
                 Ty::unit()
             }
+            BuiltinFn::Declassify => {
+                if args.len() != 1 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`declassify` takes exactly one argument, found {}",
+                            args.len()
+                        ),
+                    });
+                }
+                let mut ty = error_type();
+                for (idx, &arg) in args.iter().enumerate() {
+                    let arg_ty = self.infer_expr(arg, &Expectation::none());
+                    if idx == 0 {
+                        ty = arg_ty;
+                    }
+                }
+                ty
+            }
+            BuiltinFn::CtSelect => {
+                if args.len() != 3 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`ct_select` takes a condition and two values, found {} argument(s)",
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                self.infer_expr(args[0], &Expectation::has_type(TyKind::Bool.intern()));
+                let ty = self.infer_expr(args[1], &Expectation::none());
+                let ty = self.infer_expr(args[2], &Expectation::has_type(ty));
+                let ty = self.normalize(&ty);
+                if !matches!(ty.interned(), TyKind::Int(_) | TyKind::Bool) && !ty.is_unknown() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`ct_select` chooses between integers or `bool`s, not `{}`",
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                ty
+            }
         }
     }
 

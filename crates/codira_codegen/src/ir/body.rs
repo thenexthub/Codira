@@ -484,7 +484,46 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 }
                 Some(self.gen_empty())
             }
+            // An identity: the qualifier it removes exists only for the
+            // information-flow checker.
+            BuiltinFn::Declassify => {
+                let arg = *args.first()?;
+                let value = self.gen_expr(arg)?;
+                Some(self.opt_deref_value(arg, value))
+            }
+            BuiltinFn::CtSelect => self.gen_ct_select(args),
         }
+    }
+
+    /// `ct_select(c, a, b)`: both operands are evaluated, then one LLVM
+    /// `select` picks the result -- no branch is emitted for the condition.
+    /// The `select` carries `!unpredictable`, which asks the optimizer and
+    /// the backend not to turn it into a branch (the x86 cmov converter and
+    /// `CodeGenPrepare`'s select-to-branch both honour it). That is a request
+    /// LLVM documents, not a proof about the final machine code; see
+    /// `codira_hir::verify::flow` for the threat model.
+    fn gen_ct_select(&mut self, args: &[ExprId]) -> Option<BasicValueEnum<'ink>> {
+        let [cond, then_value, else_value] = args else {
+            return None;
+        };
+        let condition = self.gen_expr(*cond)?;
+        let condition = self.opt_deref_value(*cond, condition).into_int_value();
+        let then_ir = self.gen_expr(*then_value)?;
+        let then_ir = self.opt_deref_value(*then_value, then_ir);
+        let else_ir = self.gen_expr(*else_value)?;
+        let else_ir = self.opt_deref_value(*else_value, else_ir);
+        let selected = self
+            .builder
+            .build_select(condition, then_ir, else_ir, "ct_select")
+            .expect("failed to build ct_select");
+        if let Some(instruction) = inkwell::values::BasicValue::as_instruction_value(&selected) {
+            let kind = self.context.get_kind_id("unpredictable");
+            let empty = self.context.metadata_node(&[]);
+            instruction
+                .set_metadata(empty, kind)
+                .expect("an empty node is valid `!unpredictable` metadata");
+        }
+        Some(selected)
     }
 
     /// Emits the runtime call that prints one already-evaluated value,

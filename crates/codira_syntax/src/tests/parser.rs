@@ -1605,3 +1605,34 @@ fn contract_clauses_parse_into_their_own_nodes() {
         .filter_map(ast::LetStmt::cast)
         .all(|l| !l.is_ghost()));
 }
+
+/// `secret` is a type qualifier only where a type follows, and `oblivious`
+/// a modifier only before `func`; both stay ordinary names elsewhere.
+#[test]
+fn secret_and_oblivious_are_contextual() {
+    let parse = SourceFile::parse(
+        r#"
+    oblivious func f(key: secret u64, n: u64) -> secret u64 {
+        let k: secret u64 = key;
+        k
+    }
+    func g(secret: u64, oblivious: u64) -> u64 { secret + oblivious }
+    "#,
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    let funcs: Vec<ast::FunctionDef> = parse
+        .tree()
+        .syntax()
+        .descendants()
+        .filter_map(ast::FunctionDef::cast)
+        .collect();
+    assert!(funcs[0].is_oblivious());
+    assert!(!funcs[1].is_oblivious());
+    let secret_types = parse
+        .tree()
+        .syntax()
+        .descendants()
+        .filter(|n| n.kind() == SyntaxKind::SECRET_TYPE)
+        .count();
+    assert_eq!(secret_types, 3);
+}

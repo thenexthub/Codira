@@ -42,17 +42,32 @@ pub enum BuiltinFn {
     /// `println(a, b, ..)` is `print` followed by a newline. With no
     /// arguments it writes just the newline.
     Println,
+    /// `declassify(e)` returns `e` unchanged and marks it public for the
+    /// information-flow checker (`verify::flow`). No code of its own.
+    Declassify,
+    /// `ct_select(c, a, b)` is `if c { a } else { b }` evaluated without a
+    /// branch: both operands are computed and code generation emits one
+    /// LLVM `select` marked `!unpredictable`. The way to choose on a
+    /// `secret` in a constant-time function.
+    CtSelect,
 }
 
 impl BuiltinFn {
     /// Every builtin, for lookup by name.
-    const ALL: &'static [BuiltinFn] = &[BuiltinFn::Print, BuiltinFn::Println];
+    const ALL: &'static [BuiltinFn] = &[
+        BuiltinFn::Print,
+        BuiltinFn::Println,
+        BuiltinFn::Declassify,
+        BuiltinFn::CtSelect,
+    ];
 
     /// The name a program calls this builtin by.
     pub fn name(self) -> &'static str {
         match self {
             BuiltinFn::Print => "print",
             BuiltinFn::Println => "println",
+            BuiltinFn::Declassify => "declassify",
+            BuiltinFn::CtSelect => "ct_select",
         }
     }
 

@@ -812,6 +812,29 @@ impl Diagnostic for UndecidedSmtCheck {
     }
 }
 
+/// A breach of the information-flow or constant-time rules for `secret`
+/// data (see `crate::verify::flow`).
+#[derive(Debug)]
+pub struct SecretFlow {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for SecretFlow {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A `@test` function the test runner could not call: see
 /// `expr::validator::test_fn` for the required shape.
 #[derive(Debug)]

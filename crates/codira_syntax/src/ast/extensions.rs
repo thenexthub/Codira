@@ -215,6 +215,16 @@ impl ast::Param {
     }
 }
 
+impl ast::FunctionDef {
+    /// Whether this is an `oblivious func`: constant-time, with every
+    /// parameter and the result secret.
+    pub fn is_oblivious(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .any(|it| it.kind() == T![oblivious])
+    }
+}
+
 impl ast::LetStmt {
     /// Whether this is a `ghost let`: a binding that exists only for
     /// verification. `codira_hir` keeps ghost bindings out of the body that

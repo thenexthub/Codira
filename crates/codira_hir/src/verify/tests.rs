@@ -749,3 +749,142 @@ fn query_rejects_a_malformed_predicate() {
     let (db, _) = MockDatabase::with_single_file("func f() {}");
     assert!(super::query::query(&db, "result <").is_err());
 }
+
+// ---- information flow (`verify::flow`) -------------------------------------
+
+#[test]
+fn secret_values_may_not_reach_public_sinks() {
+    let diags = diagnostics(
+        r#"
+    func leak(key: secret u64) -> u64 {
+        key + 1
+    }
+    func ok(key: secret u64) -> secret u64 {
+        key + 1
+    }
+    func revealed(key: secret u64) -> u64 {
+        declassify(key & 1)
+    }
+    func takes_public(x: u64) -> u64 { x }
+    func passes(key: secret u64) -> u64 {
+        takes_public(declassify(key));
+        takes_public(key)
+    }
+    func printed(key: secret u64) {
+        println(key)
+    }
+    func bound(key: secret u64) {
+        let copy = key;
+        let public_copy: u64 = copy;
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("secret value returned from a function whose result is not `secret`"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("secret value passed to a non-`secret` parameter of `takes_public`"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(count("secret value printed"), 1, "{diags}");
+    assert_eq!(
+        count("secret value bound by a `let` declared without `secret`"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(diags.lines().count(), 4, "{diags}");
+}
+
+#[test]
+fn implicit_flows_through_branches_are_tracked() {
+    let diags = diagnostics(
+        r#"
+    func implicit(key: secret bool) -> i64 {
+        var x = 0;
+        if key { x = 1; }
+        x
+    }
+    "#,
+    );
+    assert!(
+        diags.contains("secret value returned from a function whose result is not `secret`"),
+        "{diags}"
+    );
+}
+
+#[test]
+fn constant_time_functions_may_not_branch_index_or_divide_on_secrets() {
+    let diags = diagnostics(
+        r#"
+    @constant_time
+    func branches(key: secret u64) -> secret u64 {
+        if key > 5 { 1 } else { 2 }
+    }
+    @constant_time
+    func loops(n: secret u64) -> secret u64 {
+        var i: secret u64 = 0;
+        while i < n { i += 1; }
+        i
+    }
+    @constant_time
+    func divides(a: secret u64, b: u64) -> secret u64 {
+        a / b
+    }
+    @constant_time
+    func indexes(table: [u64], i: secret usize) -> secret u64 {
+        table[i]
+    }
+    @constant_time
+    func short_circuits(a: secret bool, b: bool) -> secret bool {
+        a && b
+    }
+    func not_constant_time(k: secret u64) -> secret u64 { k }
+    @constant_time
+    func calls(k: secret u64) -> secret u64 {
+        not_constant_time(k)
+    }
+    oblivious func selects(a: u64, b: u64, pick: bool) -> u64 {
+        ct_select(pick, a, b)
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("branch on a secret in a constant-time function"),
+        2,
+        "{diags}"
+    );
+    assert_eq!(
+        count("integer division takes data-dependent time"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("secret index in a constant-time function"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(count("short-circuits, which is a branch"), 1, "{diags}");
+    assert_eq!(count("which is not `@constant_time`"), 1, "{diags}");
+    assert!(!diags.contains("selects"), "{diags}");
+    assert_eq!(diags.lines().count(), 6, "{diags}");
+}
+
+#[test]
+fn ct_select_is_an_ite_to_the_verifier() {
+    let r = report(
+        r#"
+    func max(a: i64, b: i64) -> i64
+        ensures result >= a && result >= b
+    {
+        ct_select(a > b, a, b)
+    }
+    "#,
+        "max",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+}

@@ -124,7 +124,7 @@ impl TypeRefMapBuilder {
     pub fn alloc_from_node(&mut self, node: &ast::TypeRef) -> LocalTypeRefId {
         use codira_syntax::ast::TypeRefKind::{
             ArrayType, FunctionType, NeverType, OptionalType, ParenType, PathType, ReferenceType,
-            RefinementType, TupleType, VariadicType,
+            RefinementType, SecretType, TupleType, VariadicType,
         };
 
         let ptr = AstPtr::new(node);
@@ -183,6 +183,12 @@ impl TypeRefMapBuilder {
             }
             RefinementType(inner) => {
                 TypeRef::Refinement(self.alloc_from_node_opt(inner.base().as_ref()))
+            }
+            // `secret T` is `T` to the type system and to code generation;
+            // the qualifier is read back from the syntax tree by the
+            // information-flow checker (`crate::verify::flow`).
+            SecretType(inner) => {
+                return self.alloc_from_node_opt(inner.type_ref().as_ref());
             }
         };
         self.alloc_type_ref(type_ref, ptr)

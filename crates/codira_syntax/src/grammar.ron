@@ -166,6 +166,10 @@ Grammar(
         "invariant",
         "decreases",
         "ghost",
+        // Information flow (see `codira_hir`'s `verify::flow`): `secret` as a
+        // type qualifier, `oblivious` before `func`.
+        "secret",
+        "oblivious",
     ],
     literals: [
         "INT_NUMBER",
@@ -236,6 +240,7 @@ Grammar(
         "NEVER_TYPE",
         "OPTIONAL_TYPE",
         "REFINEMENT_TYPE",
+        "SECRET_TYPE",
 
         "SUPERVISOR_DEF",
         "SUPERVISOR_ITEM_LIST",
@@ -652,6 +657,9 @@ Grammar(
         "NeverType": (),
         "OptionalType": (options: ["TypeRef"]),
         "RefinementType": (options: [["base", "TypeRef"], ["binder", "NameRef"], ["predicate", "Expr"]]),
+        // `secret T` -- the information-flow qualifier. Erases to `T`
+        // everywhere except the flow checker.
+        "SecretType": (options: ["TypeRef"]),
         "TypeRef": (
             enum: [
                 "PathType",
@@ -664,6 +672,7 @@ Grammar(
                 "NeverType",
                 "OptionalType",
                 "RefinementType",
+                "SecretType",
             ]
         ),
 

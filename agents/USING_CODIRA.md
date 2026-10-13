@@ -318,6 +318,38 @@ func sum_to(n: i64) -> i64
   (a violation traps), so a call site the solver cannot *decide* is accepted.
   A call site it *refutes* is still an error.
 
+### Secrets and constant-time code
+
+```codira
+oblivious func ct_max(a: u64, b: u64) -> u64 {   // every value is secret
+    ct_select(a > b, a, b)                         // a select, never a branch
+}
+
+@constant_time
+func ct_equal(a: secret u64, b: secret u64) -> secret bool {
+    let diff: secret u64 = a ^ b
+    diff == 0
+}
+
+public func equal(a: u64, b: u64) -> bool {
+    declassify(ct_equal(a, b))                     // the only way out
+}
+```
+
+- `secret T` marks a parameter, result or `let`. A secret may not reach a
+  non-secret result, parameter, `let`, field/array store or `print` without
+  `declassify(..)`; values assigned under a secret `if`/`while` are secret too.
+- In `@constant_time` / `oblivious` functions the compiler rejects branching on
+  a secret (`if`, `while`, the left side of `&&`/`||`), indexing by a secret,
+  `/` or `%` on a secret, and passing a secret to a function that is not
+  constant-time. `ct_select(c, a, b)` chooses without a branch.
+- What is guaranteed: those source rules, and that `ct_select` becomes one
+  LLVM `select` marked `!unpredictable` with no conditional branch (checked
+  in tests at `-O0`, `-O2`, `-O3`). What is not: the LLVM backend may still
+  lower a `select` to a branch (`!unpredictable` asks it not to); multiplies,
+  shifts and loads at public addresses are assumed constant-time; speculative
+  execution is out of scope.
+
 ### Modules & imports
 
 ```codira

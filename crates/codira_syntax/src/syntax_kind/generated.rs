@@ -132,6 +132,8 @@ pub enum SyntaxKind {
     INVARIANT_KW,
     DECREASES_KW,
     GHOST_KW,
+    SECRET_KW,
+    OBLIVIOUS_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -186,6 +188,7 @@ pub enum SyntaxKind {
     NEVER_TYPE,
     OPTIONAL_TYPE,
     REFINEMENT_TYPE,
+    SECRET_TYPE,
     SUPERVISOR_DEF,
     SUPERVISOR_ITEM_LIST,
     SUPERVISOR_ENTRY,
@@ -582,6 +585,12 @@ macro_rules! T {
     (ghost) => {
         $crate::SyntaxKind::GHOST_KW
     };
+    (secret) => {
+        $crate::SyntaxKind::SECRET_KW
+    };
+    (oblivious) => {
+        $crate::SyntaxKind::OBLIVIOUS_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -659,6 +668,8 @@ impl SyntaxKind {
         | INVARIANT_KW
         | DECREASES_KW
         | GHOST_KW
+        | SECRET_KW
+        | OBLIVIOUS_KW
         )
     }
 
@@ -838,6 +849,8 @@ impl SyntaxKind {
             INVARIANT_KW => &SyntaxInfo { name: "INVARIANT_KW" },
             DECREASES_KW => &SyntaxInfo { name: "DECREASES_KW" },
             GHOST_KW => &SyntaxInfo { name: "GHOST_KW" },
+            SECRET_KW => &SyntaxInfo { name: "SECRET_KW" },
+            OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -892,6 +905,7 @@ impl SyntaxKind {
             NEVER_TYPE => &SyntaxInfo { name: "NEVER_TYPE" },
             OPTIONAL_TYPE => &SyntaxInfo { name: "OPTIONAL_TYPE" },
             REFINEMENT_TYPE => &SyntaxInfo { name: "REFINEMENT_TYPE" },
+            SECRET_TYPE => &SyntaxInfo { name: "SECRET_TYPE" },
             SUPERVISOR_DEF => &SyntaxInfo { name: "SUPERVISOR_DEF" },
             SUPERVISOR_ITEM_LIST => &SyntaxInfo { name: "SUPERVISOR_ITEM_LIST" },
             SUPERVISOR_ENTRY => &SyntaxInfo { name: "SUPERVISOR_ENTRY" },

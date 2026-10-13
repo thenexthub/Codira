@@ -83,6 +83,13 @@ pub(super) fn maybe_declaration(p: &mut Parser<'_>, m: Marker) -> Result<(), Mar
     // the HIR level); at the syntax level it's simply an optional modifier.
     p.eat(T![override]);
 
+    // `oblivious func` -- a constant-time function over secret data (see
+    // `codira_hir`'s `verify::flow`). Contextual: promoted only directly
+    // before `func`.
+    if p.at_contextual_kw("oblivious") && p.nth_at(1, T![func]) {
+        p.bump_remap(T![oblivious]);
+    }
+
     let is_comptime = p.at(T![comptime]);
     if is_comptime {
         p.bump(T![comptime]);

@@ -61,6 +61,7 @@
 //! "unknown (resource limit)", which is an error, never a pass.
 
 mod exec;
+pub(crate) mod flow;
 mod ghost;
 pub mod query;
 pub(crate) mod refinement;
@@ -386,6 +387,7 @@ pub(crate) fn contract_diagnostics(
     sink: &mut DiagnosticSink<'_>,
 ) {
     ghost::ghost_diagnostics(db, func, sink);
+    flow::flow_diagnostics(db, func, sink);
 
     let report = db.verify_function(func);
     let name = func.name(db).to_string();

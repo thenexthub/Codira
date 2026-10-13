@@ -3042,6 +3042,34 @@ impl ReturnExpr {
     }
 }
 
+// SecretType
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SecretType {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SecretType {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SECRET_TYPE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SecretType { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SecretType {
+    pub fn type_ref(&self) -> Option<TypeRef> {
+        super::child_opt(self)
+    }
+}
+
 // SelfParam
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -3668,6 +3696,7 @@ impl AstNode for TypeRef {
                 | NEVER_TYPE
                 | OPTIONAL_TYPE
                 | REFINEMENT_TYPE
+                | SECRET_TYPE
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -3693,6 +3722,7 @@ pub enum TypeRefKind {
     NeverType(NeverType),
     OptionalType(OptionalType),
     RefinementType(RefinementType),
+    SecretType(SecretType),
 }
 impl From<PathType> for TypeRef {
     fn from(n: PathType) -> TypeRef {
@@ -3744,6 +3774,11 @@ impl From<RefinementType> for TypeRef {
         TypeRef { syntax: n.syntax }
     }
 }
+impl From<SecretType> for TypeRef {
+    fn from(n: SecretType) -> TypeRef {
+        TypeRef { syntax: n.syntax }
+    }
+}
 
 impl TypeRef {
     pub fn kind(&self) -> TypeRefKind {
@@ -3768,6 +3803,7 @@ impl TypeRef {
             REFINEMENT_TYPE => {
                 TypeRefKind::RefinementType(RefinementType::cast(self.syntax.clone()).unwrap())
             }
+            SECRET_TYPE => TypeRefKind::SecretType(SecretType::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }
     }
