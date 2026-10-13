@@ -192,3 +192,30 @@ fn test_type_alias_with_private_type_alias() {
     "#,
     ), @"17..39: type alias `Foo` is private");
 }
+
+/// Constructs the front end parses but does not lower become `Expr::Missing`.
+/// Each one must surface as a diagnostic naming what was written, so that it
+/// stops the build here instead of reaching the code generator's
+/// `Expr::Missing` arm and crashing the compiler.
+#[test]
+fn test_unlowered_constructs_are_reported_not_crashed() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func with_match(x: i32) -> i32 {
+        match x { 1 -> 10, _ -> 20 }
+    }
+
+    func with_closure() {
+        let f = func(a: i32) -> i32 { a };
+    }
+
+    func with_force_unwrap(x: i32) -> i32 {
+        x!
+    }
+    "#,
+    ), @"
+    37..65: `match` is not supported by the code generator yet: pattern matching has no lowering yet; use `if`/`else` chains for now
+    103..128: a closure is not supported by the code generator yet: there is no function-value representation or capture analysis yet
+    177..179: postfix `!` (force-unwrap) is not supported by the code generator yet: `Type?` optionals have no runtime representation yet
+    ");
+}

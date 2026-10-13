@@ -19,7 +19,11 @@
 //! The string case is no longer among them: a literal lowers to
 //! `{ ptr, usize }` over constant bytes. What is left is `nil`, which still
 //! has no representation to produce, and generic instantiation, which type
-//! inference now handles but code generation does not.
+//! inference now handles but code generation does not. A sixth gap was
+//! found later: every construct that parses but lowers to `Expr::Missing`
+//! (`match`, closures, postfix `!`, the effect and channel operators) passed
+//! every check and then hit `gen_expr`'s `unimplemented!`. Those are now
+//! reported here too, named after what was written.
 //!
 //! A `panic!` reaching a user is the worst outcome available: it aborts with
 //! a Rust backtrace and an invitation to debug the compiler, gives no source
@@ -114,6 +118,10 @@ impl ExprValidator<'_> {
         }
 
         for (expr_id, expr) in self.body.exprs() {
+            if let Expr::Missing = expr {
+                self.report_missing_expr(expr_id, sink);
+                continue;
+            }
             let Expr::Literal(literal) = expr else {
                 continue;
             };
@@ -150,6 +158,76 @@ impl ExprValidator<'_> {
                 .to_string(),
             });
         }
+    }
+
+    /// Reports an `Expr::Missing` that stands in for a construct the front
+    /// end parses but does not lower.
+    ///
+    /// Several expression forms -- `match`, closures, postfix `!`, the
+    /// effect and channel operators -- are fully parsed and then lowered to
+    /// `Expr::Missing`, so that the code around them still type-checks.
+    /// `Missing` infers to the error type, which unifies with everything and
+    /// reports nothing, so without this check such a function sailed through
+    /// every diagnostic and reached `gen_expr`'s `Expr::Missing` arm: a
+    /// compiler crash with a Rust backtrace instead of a source location.
+    ///
+    /// The construct is named from the syntax node the placeholder was
+    /// allocated for, so the message says what was written. A `Missing` with
+    /// no syntax node behind it comes from a syntax error (an absent operand,
+    /// an absent body), which the parser has already reported; reporting it
+    /// again here would only repeat that error with a worse span.
+    fn report_missing_expr(&self, expr_id: crate::ExprId, sink: &mut DiagnosticSink<'_>) {
+        use codira_syntax::SyntaxKind;
+
+        let Some(node) = self.body_source_map.expr_syntax(expr_id).map(|ptr| {
+            ptr.value
+                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+        }) else {
+            return;
+        };
+
+        let (what, because) = match node.kind() {
+            SyntaxKind::MATCH_EXPR => (
+                "`match`",
+                "pattern matching has no lowering yet; use `if`/`else` chains for now",
+            ),
+            SyntaxKind::CLOSURE_EXPR => (
+                "a closure",
+                "there is no function-value representation or capture analysis yet",
+            ),
+            SyntaxKind::TRY_EXPR => (
+                "postfix `!` (force-unwrap)",
+                "`Type?` optionals have no runtime representation yet",
+            ),
+            SyntaxKind::PERFORM_EXPR => (
+                "`perform`",
+                "effect operations are type-checked but not yet lowered",
+            ),
+            SyntaxKind::HANDLE_EXPR => (
+                "`handle`",
+                "effect handlers are type-checked but not yet lowered",
+            ),
+            SyntaxKind::SPAWN_EXPR => ("`spawn`", "there is no task scheduler to lower it to yet"),
+            SyntaxKind::TRANSFER_EXPR => (
+                "postfix `^` (transfer)",
+                "there is no move/ownership model in the code generator yet",
+            ),
+            SyntaxKind::CHANNEL_RECV_EXPR | SyntaxKind::CHANNEL_SEND_EXPR => (
+                "a channel operation",
+                "there is no channel value model in the code generator yet",
+            ),
+            _ => (
+                "this expression",
+                "it is parsed, but nothing lowers it to code yet",
+            ),
+        };
+
+        sink.push(UnsupportedByCodegen {
+            file: self.func.source(self.db).file_id,
+            node,
+            what: what.to_string(),
+            because: because.to_string(),
+        });
     }
 
     /// The first type parameter appearing in this function's signature,

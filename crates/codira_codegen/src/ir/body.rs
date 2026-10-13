@@ -372,9 +372,13 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Tuple(exprs) => self.gen_tuple(expr, exprs),
             Expr::Index { base, index } => self.gen_index(expr, *base, *index),
             Expr::Cast { expr: operand, .. } => self.gen_cast(expr, *operand),
-            Expr::Missing => {
-                unimplemented!("unimplemented expr type {:?}", &body[expr])
-            }
+            // Every construct that lowers to `Missing` is reported by
+            // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
+            // syntax error comes with a parse error; either way the build
+            // stops before code generation is entered.
+            Expr::Missing => unreachable!(
+                "`Expr::Missing` reached code generation; `validate_codegen_support` should have                  reported it"
+            ),
         }
     }
 
