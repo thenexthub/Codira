@@ -650,7 +650,7 @@ fn undeclared_effect_is_a_real_diagnostic() {
     insta::assert_snapshot!(infer(
         r#"
     effect Logger {
-        func log(message: String)
+        func log(message: str)   
     }
 
     func risky() uses Logger -> i32 {
@@ -672,7 +672,7 @@ fn declared_effect_produces_no_diagnostic() {
     insta::assert_snapshot!(infer(
         r#"
     effect Logger {
-        func log(message: String)
+        func log(message: str)   
     }
 
     func risky() uses Logger -> i32 {

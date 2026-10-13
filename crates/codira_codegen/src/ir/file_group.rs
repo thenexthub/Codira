@@ -139,6 +139,7 @@ pub(crate) fn gen_file_group_ir<'ink>(
             ModuleDef::Function(_)
             | ModuleDef::PrimitiveType(_)
             | ModuleDef::TypeAlias(_)
+            | ModuleDef::Effect(_)
             | ModuleDef::Module(_) => (),
         }
     }

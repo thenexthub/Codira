@@ -125,6 +125,7 @@ struct ItemTreeData {
     type_aliases: Arena<TypeAlias>,
     consts: Arena<Const>,
     impls: Arena<Impl>,
+    effects: Arena<Effect>,
 
     visibilities: ItemVisibilities,
 }
@@ -238,6 +239,7 @@ mod_items! {
     Const in consts -> ast::ConstDef,
     Import in imports -> ast::Use,
     Impl in impls -> ast::Extend,
+    Effect in effects -> ast::EffectDef,
 }
 
 macro_rules! impl_index {
@@ -461,6 +463,24 @@ pub struct Const {
     pub ast_id: FileAstId<ast::ConstDef>,
 }
 
+/// An algebraic effect declaration: `effect Name { func op(p: T, ..) -> R }`
+/// (see `spec/LANGUAGE_SPEC.md` section 6).
+///
+/// Only the names are recorded here; operation signatures are resolved on
+/// demand by `code_model::Effect` from the source, the way `FunctionData`
+/// re-reads its own parameter types, so that their type references come with
+/// a source map for diagnostics.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Effect {
+    pub name: Name,
+    pub visibility: RawVisibilityId,
+    /// The names of the effect's operations, in declaration order. An
+    /// operation's index in this list is its slot in a handler record (see
+    /// `codira_codegen::ir::effects`).
+    pub ops: Box<[Name]>,
+    pub ast_id: FileAstId<ast::EffectDef>,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum AssociatedItem {
     Function(LocalItemTreeId<Function>),
@@ -628,6 +648,10 @@ mod diagnostics {
                         )
                     }
                     ModItem::Const(item) => InFile::new(
+                        item_tree.file_id,
+                        SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
+                    ),
+                    ModItem::Effect(item) => InFile::new(
                         item_tree.file_id,
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),

@@ -249,8 +249,14 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     }
 
     /// Returns the type of the specified function definition
+    ///
+    /// A function with a `uses` clause takes one hidden evidence pointer per
+    /// effect after its ordinary parameters (see `ir::body::effects`). Only
+    /// this internal signature has them; the host-visible one
+    /// (`get_public_function_type`) never does.
     pub fn get_function_type(&self, func: codira_hir::Function) -> FunctionType<'ink> {
         let ty = self.db.callable_sig(func.into());
+        let evidence = func.effects(self.db).len();
         let param_tys: Vec<_> = self
             .receiver_and_param_tys(func, &ty)
             .map(|p| {
@@ -258,6 +264,10 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                     .expect("could not convert function argument to basic type")
                     .into()
             })
+            .chain(std::iter::repeat_n(
+                self.context.ptr_type(AddressSpace::default()).into(),
+                evidence,
+            ))
             .collect();
 
         let return_type = ty.ret();

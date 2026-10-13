@@ -24,6 +24,7 @@ use crate::{
 
 pub(crate) mod codegen_support;
 mod effect_obligation;
+mod effects;
 mod inline_asm;
 mod literal_out_of_range;
 mod move_check;
@@ -60,6 +61,7 @@ impl<'a> ExprValidator<'a> {
         self.validate_inline_asm(sink);
         self.validate_privacy(sink);
         self.validate_effect_obligations(sink);
+        self.validate_effects(sink);
         self.validate_healing_contract(sink);
         self.validate_move_checking(sink);
         self.validate_codegen_support(sink);

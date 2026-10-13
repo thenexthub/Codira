@@ -55,6 +55,8 @@ pub trait InternDatabase: SourceDatabase {
     fn intern_type_alias(&self, loc: ids::TypeAliasLoc) -> ids::TypeAliasId;
     #[salsa::interned]
     fn intern_impl(self, loc: ids::ImplLoc) -> ids::ImplId;
+    #[salsa::interned]
+    fn intern_effect(&self, loc: ids::EffectLoc) -> ids::EffectId;
 }
 
 #[salsa::query_group(DefDatabaseStorage)]
@@ -66,6 +68,9 @@ pub trait DefDatabase: InternDatabase + AstDatabase {
 
     #[salsa::invoke(StructData::struct_data_query)]
     fn struct_data(&self, id: ids::StructId) -> Arc<StructData>;
+
+    #[salsa::invoke(crate::code_model::EffectData::effect_data_query)]
+    fn effect_data(&self, id: ids::EffectId) -> Arc<crate::code_model::EffectData>;
 
     #[salsa::invoke(TypeAliasData::type_alias_data_query)]
     fn type_alias_data(&self, id: ids::TypeAliasId) -> Arc<TypeAliasData>;
@@ -116,6 +121,9 @@ pub trait HirDatabase: DefDatabase {
 
     #[salsa::invoke(crate::ty::lower::lower_type_alias_query)]
     fn lower_type_alias(&self, def: TypeAlias) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::lower_effect_query)]
+    fn lower_effect(&self, def: crate::code_model::Effect) -> Arc<LowerTyMap>;
 
     #[salsa::invoke(crate::ty::callable_item_sig)]
     fn callable_sig(&self, def: CallableDef) -> FnSig;

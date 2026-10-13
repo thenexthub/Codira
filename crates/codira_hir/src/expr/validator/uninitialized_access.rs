@@ -214,6 +214,40 @@ impl ExprValidator<'_> {
                     self.validate_expr_access(sink, initialized_patterns, *expr, ExprKind::Normal);
                 }
             }
+            Expr::Perform { args, .. } => {
+                for arg in args {
+                    self.validate_expr_access(sink, initialized_patterns, *arg, ExprKind::Normal);
+                }
+            }
+            Expr::Resume { value } => {
+                if let Some(value) = value {
+                    self.validate_expr_access(sink, initialized_patterns, *value, ExprKind::Normal);
+                }
+            }
+            // The body may be abandoned at any `perform` by an aborting arm,
+            // so nothing it initializes is known to be initialized after the
+            // `handle`. An arm runs only when its operation is performed, and
+            // sees its own parameters, which are always bound.
+            Expr::Handle { body, arms } => {
+                self.validate_expr_access(
+                    sink,
+                    &mut initialized_patterns.clone(),
+                    *body,
+                    ExprKind::Normal,
+                );
+                for arm in arms {
+                    let mut arm_initialized = initialized_patterns.clone();
+                    for &param in &arm.params {
+                        self.mark_initialized(&mut arm_initialized, param);
+                    }
+                    self.validate_expr_access(
+                        sink,
+                        &mut arm_initialized,
+                        arm.body,
+                        ExprKind::Normal,
+                    );
+                }
+            }
             Expr::Literal(_) | Expr::Missing => {}
         }
     }

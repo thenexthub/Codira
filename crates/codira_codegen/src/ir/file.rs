@@ -62,8 +62,13 @@ pub(crate) fn gen_file_ir<'ink>(
             functions.insert(f, fun);
 
             let fn_sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
-            if f.visibility(code_gen.db).is_externally_visible()
-                && !fn_sig.marshallable(code_gen.db)
+            // A function taking hidden evidence parameters always gets a
+            // wrapper with the host-visible signature: the runtime finds a
+            // function through it, and must never call the internal one
+            // with too few arguments.
+            if (f.visibility(code_gen.db).is_externally_visible()
+                && !fn_sig.marshallable(code_gen.db))
+                || crate::ir::body::has_evidence(code_gen.db, f)
             {
                 let wrapper_fun = function::gen_public_prototype(
                     code_gen.db,

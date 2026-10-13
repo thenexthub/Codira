@@ -330,6 +330,20 @@ fn tree_for_module(
                     node.push(format!("use type {fully_qualified_name}"));
                 }
             }
+            ItemDefinitionId::EffectId(effect) => {
+                let effect: crate::Effect = (*effect).into();
+                let name = effect.name(db);
+                if is_local {
+                    node.push(format!("effect {name}"));
+                } else {
+                    let fully_qualified_name = format!(
+                        "{}::{}",
+                        fully_qualified_module_path(db, effect.module(db)),
+                        name
+                    );
+                    node.push(format!("use effect {fully_qualified_name}"));
+                }
+            }
             ItemDefinitionId::PrimitiveType(_) => {}
         }
     }

@@ -21,7 +21,7 @@
 //! has no representation to produce, and generic instantiation, which type
 //! inference now handles but code generation does not. A sixth gap was
 //! found later: every construct that parses but lowers to `Expr::Missing`
-//! (`match`, closures, postfix `!`, the effect and channel operators) passed
+//! (`match`, closures, postfix `!`, `spawn` and the channel operators) passed
 //! every check and then hit `gen_expr`'s `unimplemented!`. Those are now
 //! reported here too, named after what was written.
 //!
@@ -163,8 +163,8 @@ impl ExprValidator<'_> {
     /// Reports an `Expr::Missing` that stands in for a construct the front
     /// end parses but does not lower.
     ///
-    /// Several expression forms -- `match`, closures, postfix `!`, the
-    /// effect and channel operators -- are fully parsed and then lowered to
+    /// Several expression forms -- `match`, closures, postfix `!`, `spawn`
+    /// and the channel operators -- are fully parsed and then lowered to
     /// `Expr::Missing`, so that the code around them still type-checks.
     /// `Missing` infers to the error type, which unifies with everything and
     /// reports nothing, so without this check such a function sailed through
@@ -198,14 +198,6 @@ impl ExprValidator<'_> {
             SyntaxKind::TRY_EXPR => (
                 "postfix `!` (force-unwrap)",
                 "`Type?` optionals have no runtime representation yet",
-            ),
-            SyntaxKind::PERFORM_EXPR => (
-                "`perform`",
-                "effect operations are type-checked but not yet lowered",
-            ),
-            SyntaxKind::HANDLE_EXPR => (
-                "`handle`",
-                "effect handlers are type-checked but not yet lowered",
             ),
             SyntaxKind::SPAWN_EXPR => ("`spawn`", "there is no task scheduler to lower it to yet"),
             SyntaxKind::TRANSFER_EXPR => (

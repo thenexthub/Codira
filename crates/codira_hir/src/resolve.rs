@@ -12,8 +12,8 @@ use crate::{
     expr::{scope::LocalScopeId, PatId},
     has_module::HasModule,
     ids::{
-        DefWithBodyId, FunctionId, GenericDefId, ImplId, ItemContainerId, ItemDefinitionId, Lookup,
-        StructId, TypeAliasId, TypeParamId,
+        DefWithBodyId, EffectId, FunctionId, GenericDefId, ImplId, ItemContainerId,
+        ItemDefinitionId, Lookup, StructId, TypeAliasId, TypeParamId,
     },
     item_scope::BUILTIN_SCOPE,
     name,
@@ -202,7 +202,8 @@ impl Resolver {
                 (
                     ItemDefinitionId::ModuleId(_)
                     | ItemDefinitionId::TypeAliasId(_)
-                    | ItemDefinitionId::PrimitiveType(_),
+                    | ItemDefinitionId::PrimitiveType(_)
+                    | ItemDefinitionId::EffectId(_),
                     _,
                 ) => return None,
             };
@@ -266,7 +267,9 @@ impl Resolver {
                                     TypeNs::PrimitiveType(id)
                                 }
                                 (
-                                    ItemDefinitionId::ModuleId(_) | ItemDefinitionId::FunctionId(_),
+                                    ItemDefinitionId::ModuleId(_)
+                                    | ItemDefinitionId::FunctionId(_)
+                                    | ItemDefinitionId::EffectId(_),
                                     _,
                                 ) => return None,
                             };
@@ -307,7 +310,12 @@ impl Resolver {
                 (ItemDefinitionId::StructId(id), vis) => (TypeNs::StructId(id), vis),
                 (ItemDefinitionId::TypeAliasId(id), vis) => (TypeNs::TypeAliasId(id), vis),
                 (ItemDefinitionId::PrimitiveType(id), vis) => (TypeNs::PrimitiveType(id), vis),
-                (ItemDefinitionId::ModuleId(_) | ItemDefinitionId::FunctionId(_), _) => {
+                (
+                    ItemDefinitionId::ModuleId(_)
+                    | ItemDefinitionId::FunctionId(_)
+                    | ItemDefinitionId::EffectId(_),
+                    _,
+                ) => {
                     return None;
                 }
             };
@@ -357,6 +365,26 @@ impl Resolver {
         }
 
         None
+    }
+
+    /// Resolves the specified `path` as an effect (`uses Logger`, the
+    /// `Logger` of `perform Logger.log(..)`). Effects share the type
+    /// namespace with types but are not types, so ordinary type resolution
+    /// never returns one; this is the only way to reach them.
+    pub fn resolve_path_as_effect(
+        &self,
+        db: &dyn DefDatabase,
+        path: &Path,
+    ) -> Option<(EffectId, Visibility)> {
+        let (package_defs, module_id) = self.module_scope()?;
+        let (module_def, idx) = package_defs.resolve_path_in_module(db, module_id, path);
+        if idx.is_some() {
+            return None;
+        }
+        match module_def.take_types()? {
+            (ItemDefinitionId::EffectId(id), vis) => Some((id, vis)),
+            _ => None,
+        }
     }
 
     /// Resolves the specified `path` as a type. Returns either `None` or the
@@ -478,6 +506,12 @@ impl HasResolver for StructId {
         self.module(db)
             .resolver(db)
             .push_generic_param_scope(self.into())
+    }
+}
+
+impl HasResolver for EffectId {
+    fn resolver(self, db: &dyn DefDatabase) -> Resolver {
+        self.module(db).resolver(db)
     }
 }
 

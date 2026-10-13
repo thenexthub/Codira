@@ -11,7 +11,8 @@ use rustc_hash::FxHashMap;
 use super::PackageDefs;
 use crate::{
     ids::{
-        FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId, StructLoc, TypeAliasLoc,
+        EffectLoc, FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId, StructLoc,
+        TypeAliasLoc,
     },
     item_scope::{ImportType, ItemScope, PerNsGlobImports},
     item_tree::{
@@ -550,6 +551,7 @@ impl<'a> ModCollectorContext<'a, '_> {
                 ModItem::Function(id) => self.collect_function(id),
                 ModItem::Struct(id) => self.collect_struct(id),
                 ModItem::TypeAlias(id) => self.collect_type_alias(id),
+                ModItem::Effect(id) => self.collect_effect(id),
                 ModItem::Import(id) => {
                     self.collect_import(id);
                     continue;
@@ -641,6 +643,25 @@ impl<'a> ModCollectorContext<'a, '_> {
             name: &adt.name,
             visibility: &self.item_tree[adt.visibility],
             has_constructor: !matches!(adt.fields, Fields::Record(_)),
+        }
+    }
+
+    /// Collects the definition data from an `effect` declaration.
+    fn collect_effect(&self, id: LocalItemTreeId<item_tree::Effect>) -> DefData<'a> {
+        let effect = &self.item_tree[id];
+        DefData {
+            id: EffectLoc {
+                module: ModuleId {
+                    package: self.def_collector.package_id,
+                    local_id: self.module_id,
+                },
+                id: ItemTreeId::new(self.file_id, id),
+            }
+            .intern(self.def_collector.db)
+            .into(),
+            name: &effect.name,
+            visibility: &self.item_tree[effect.visibility],
+            has_constructor: false,
         }
     }
 

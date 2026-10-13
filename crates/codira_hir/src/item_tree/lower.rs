@@ -22,9 +22,9 @@ use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 use super::{
-    diagnostics, AssociatedItem, Const, Field, Fields, Function, FunctionFlags, GenericParamData,
-    IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities, LocalItemTreeId,
-    ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias, INTRINSIC_ABI,
+    diagnostics, AssociatedItem, Const, Effect, Field, Fields, Function, FunctionFlags,
+    GenericParamData, IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities,
+    LocalItemTreeId, ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias, INTRINSIC_ABI,
 };
 use crate::{
     item_tree::Import,
@@ -90,6 +90,7 @@ impl Context {
                 ModItem::Struct(item) => Some(&self.data.structs[item.index].name),
                 ModItem::TypeAlias(item) => Some(&self.data.type_aliases[item.index].name),
                 ModItem::Const(item) => Some(&self.data.consts[item.index].name),
+                ModItem::Effect(item) => Some(&self.data.effects[item.index].name),
                 ModItem::Import(item) => {
                     let import = &self.data.imports[item.index];
                     if import.is_glob {
@@ -142,14 +143,14 @@ impl Context {
                 self.lower_use(&ast).into_iter().map(Into::into).collect(),
             )),
             ast::ModuleItemKind::Extend(ast) => self.lower_impl(&ast).map(Into::into),
-            // `trait`, `enum`, `effect`, `macro`, and `extern "C" { .. }` blocks are
+            ast::ModuleItemKind::EffectDef(ast) => self.lower_effect(&ast).map(Into::into),
+            // `trait`, `enum`, `macro`, and `extern "C" { .. }` blocks are
             // fully parsed (see `codira_syntax`) but not yet lowered into name-resolvable
             // HIR items -- that requires their own item-tree/code-model support (akin
             // to what exists for `struct`/`func` today), which is tracked as follow-up
             // work rather than implemented here without a way to verify it end-to-end.
             ast::ModuleItemKind::TraitDef(_)
             | ast::ModuleItemKind::EnumDef(_)
-            | ast::ModuleItemKind::EffectDef(_)
             | ast::ModuleItemKind::MacroDef(_)
             | ast::ModuleItemKind::SupervisorDef(_) => None,
             ast::ModuleItemKind::ExternBlock(ast) => Some(self.lower_extern_block(&ast)),
@@ -374,6 +375,31 @@ impl Context {
             .collect();
 
         ModItems(items)
+    }
+
+    /// Lowers an `effect` declaration. Operations without a name (a syntax
+    /// error the parser has already reported) are skipped.
+    fn lower_effect(&mut self, effect: &ast::EffectDef) -> Option<LocalItemTreeId<Effect>> {
+        let name = effect.name()?.as_name();
+        let visibility = lower_visibility(effect);
+        let ops = effect
+            .effect_op_list()
+            .into_iter()
+            .flat_map(|list| list.ops())
+            .filter_map(|op| Some(op.name()?.as_name()))
+            .collect();
+        let ast_id = self.source_ast_id_map.ast_id(effect);
+        Some(
+            self.data
+                .effects
+                .alloc(Effect {
+                    name,
+                    visibility,
+                    ops,
+                    ast_id,
+                })
+                .into(),
+        )
     }
 
     /// Lowers a struct

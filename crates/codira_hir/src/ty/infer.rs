@@ -26,6 +26,7 @@ use crate::{
     BinaryOp, BuiltinFn, CallableDef, Function, HirDatabase, HirDisplay, Name, Path,
 };
 
+mod effects;
 mod place_expr;
 mod type_variable;
 mod unify;
@@ -70,6 +71,10 @@ pub struct InferenceResult {
     /// (`print`, `println`), records which one. Such a call has no
     /// `CallableDef`; its callee expression stays untyped.
     pub(crate) builtin_calls: FxHashMap<ExprId, BuiltinFn>,
+
+    /// What every `perform` and handler arm resolved to. See
+    /// [`effects::EffectResolutions`].
+    pub(crate) effects: effects::EffectResolutions,
 
     /// Interned Unknown to return references to.
     standard_types: InternedStandardTypes,
@@ -198,6 +203,13 @@ struct InferenceResultBuilder<'a> {
 
     /// Stores which call expressions invoke a compiler builtin
     builtin_calls: FxHashMap<ExprId, BuiltinFn>,
+
+    /// What every `perform` and handler arm resolved to.
+    effects: effects::EffectResolutions,
+
+    /// The return type of the effect operation whose handler arm is being
+    /// inferred: what `resume` takes. `None` outside every arm.
+    active_arm_ret: Option<Ty>,
 }
 
 impl<'a> InferenceResultBuilder<'a> {
@@ -216,6 +228,8 @@ impl<'a> InferenceResultBuilder<'a> {
             return_ty: TyKind::Unknown.intern(), // set in collect_fn_signature
             method_resolution: FxHashMap::default(),
             builtin_calls: FxHashMap::default(),
+            effects: effects::EffectResolutions::default(),
+            active_arm_ret: None,
         }
     }
 
@@ -731,6 +745,9 @@ impl InferenceResultBuilder<'_> {
                 }
             }
             Expr::Cast { expr, type_ref } => self.infer_cast(tgt_expr, *expr, *type_ref),
+            Expr::Perform { path, args } => self.infer_perform(tgt_expr, path, args),
+            Expr::Handle { body, arms } => self.infer_handle(tgt_expr, *body, arms, expected),
+            Expr::Resume { value } => self.infer_resume(tgt_expr, *value),
         };
 
         let ty = self.resolve_ty_as_far_as_possible(ty);
@@ -1479,6 +1496,7 @@ impl InferenceResultBuilder<'_> {
             standard_types: InternedStandardTypes::default(),
             method_resolutions: self.method_resolution,
             builtin_calls: self.builtin_calls,
+            effects: self.effects,
         }
     }
 

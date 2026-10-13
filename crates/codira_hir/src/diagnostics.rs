@@ -667,12 +667,9 @@ impl Diagnostic for PossiblyUninitializedVariable {
 
 /// A call to a function declaring `uses Effect, ...` (see
 /// `spec/LANGUAGE_SPEC.md` section 6) from a caller that doesn't itself
-/// declare `Effect` in its own `uses` clause. Emitted by
-/// `expr::validator::effect_obligation` -- the "declare `uses` and
-/// propagate the obligation" half of the spec's effect-obligation rule
-/// (the "or be inside a matching `handle` block" half is not checked yet,
-/// since `handle` still lowers to `Expr::Missing`; see that validator's
-/// module doc for the precise scope).
+/// declare `Effect` in its own `uses` clause and does not make the call
+/// inside a `handle` that handles `Effect`. Emitted by
+/// `expr::validator::effect_obligation`.
 #[derive(Debug)]
 pub struct UndeclaredEffect {
     pub file: FileId,
@@ -684,13 +681,39 @@ pub struct UndeclaredEffect {
 impl Diagnostic for UndeclaredEffect {
     fn message(&self) -> String {
         format!(
-            "call to `{}` requires effect `{}`, which is not declared in this function's `uses` clause",
+            "call to `{}` requires effect `{}`, which is neither declared in this function's `uses` clause nor handled by an enclosing `handle`",
             self.callee, self.effect
         )
     }
 
     fn source(&self) -> InFile<SyntaxNodePtr> {
         InFile::new(self.file, self.call.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A misuse of algebraic effects: an unknown effect or operation, a
+/// `perform` with no handler, a misplaced `resume`, a handler arm that does
+/// not fit its operation, and the version-1 restrictions on handler arms
+/// (see `expr::validator::effects`). One type with a message rather than one
+/// per rule, because every rule reads as a sentence about what was written.
+#[derive(Debug)]
+pub struct EffectError {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for EffectError {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
     }
 
     fn as_any(&self) -> &(dyn Any + Send + 'static) {

@@ -198,6 +198,19 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
         Expr::Block { statements, tail } => {
             compute_block_scopes(expr, statements, *tail, body, scopes, scope);
         }
+        // Each handler arm binds its operation's parameters in a scope of its
+        // own, visible only to that arm's body.
+        Expr::Handle {
+            body: handled,
+            arms,
+        } => {
+            compute_expr_scopes(*handled, body, scopes, scope);
+            for arm in arms {
+                let arm_scope = scopes.new_scope(scope);
+                scopes.add_params_bindings(body, arm_scope, arm.params.iter());
+                compute_expr_scopes(arm.body, body, scopes, arm_scope);
+            }
+        }
         e => e.walk_child_exprs(|e| compute_expr_scopes(e, body, scopes, scope)),
     };
     // A loop's `invariant`/`decreases` clauses are evaluated at the loop

@@ -29,6 +29,7 @@ use crate::{
     DefDatabase, HirDatabase, Name, Path,
 };
 
+pub(crate) mod effects;
 pub(crate) mod scope;
 pub(crate) mod validator;
 
@@ -441,6 +442,35 @@ pub enum Expr {
         type_ref: LocalTypeRefId,
     },
     Literal(Literal),
+    /// `perform Effect.op(args)`: invokes an operation of an algebraic
+    /// effect (see `expr::effects`). `path` is the whole `Effect.op` path as
+    /// written; its last segment names the operation.
+    Perform {
+        path: Path,
+        args: Vec<ExprId>,
+    },
+    /// `handle body { Effect.op(params) -> arm, .. }`: runs `body` with the
+    /// arms installed as the handlers of the effects they name.
+    Handle {
+        body: ExprId,
+        arms: Vec<HandlerArm>,
+    },
+    /// `resume(value)` inside a handler arm: returns `value` to the
+    /// `perform` that invoked the arm. Only valid in tail position of an arm.
+    Resume {
+        value: Option<ExprId>,
+    },
+}
+
+/// One arm of a `handle` expression: `Effect.op(a, b) -> body`.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct HandlerArm {
+    /// The `Effect.op` path as written.
+    pub path: Path,
+    /// One pattern per operation parameter; their types come from the
+    /// operation's signature.
+    pub params: Vec<PatId>,
+    pub body: ExprId,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -556,9 +586,20 @@ impl Expr {
                 f(*base);
                 f(*index);
             }
-            Expr::Array(exprs) | Expr::Tuple(exprs) => {
+            Expr::Array(exprs) | Expr::Tuple(exprs) | Expr::Perform { args: exprs, .. } => {
                 for expr in exprs {
                     f(*expr);
+                }
+            }
+            Expr::Handle { body, arms } => {
+                f(*body);
+                for arm in arms {
+                    f(arm.body);
+                }
+            }
+            Expr::Resume { value } => {
+                if let Some(value) = value {
+                    f(*value);
                 }
             }
         }
@@ -1104,6 +1145,11 @@ impl<'a> ExprCollector<'a> {
                 self.source_map.expr_map.insert(src, inner);
                 inner
             }
+            ast::ExprKind::CallExpr(e) if effects::is_resume_call(&e) => {
+                self.collect_resume(&e, syntax_ptr)
+            }
+            ast::ExprKind::PerformExpr(e) => self.collect_perform(&e, syntax_ptr),
+            ast::ExprKind::HandleExpr(e) => self.collect_handle(&e, syntax_ptr),
             ast::ExprKind::CallExpr(e) => {
                 let callee = self.collect_expr_opt(e.expr());
                 let args = if let Some(arg_list) = e.arg_list() {
@@ -1186,9 +1232,9 @@ impl<'a> ExprCollector<'a> {
                     Err(crate::comptime_fold::NotFolded::Unsupported) => block,
                 }
             }
-            // `match`, `perform`, `handle`, and postfix `!` (force-unwrap) are fully
+            // `match` and postfix `!` (force-unwrap) are fully
             // parsed (see `codira_syntax`), but HIR-level lowering -- pattern
-            // exhaustiveness checking, effect obligation checking, and optional
+            // exhaustiveness checking and optional
             // force-unwrap typing -- is follow-up work rather than implemented here
             // without a way to verify it end-to-end. They currently lower to a
             // `Missing` placeholder so surrounding code still type-checks.
@@ -1201,8 +1247,6 @@ impl<'a> ExprCollector<'a> {
             // capture analysis and no indirect-call op for it to lower to.
             ast::ExprKind::ClosureExpr(_)
             | ast::ExprKind::MatchExpr(_)
-            | ast::ExprKind::PerformExpr(_)
-            | ast::ExprKind::HandleExpr(_)
             | ast::ExprKind::SpawnExpr(_)
             | ast::ExprKind::TryExpr(_)
             // `x^` transfer, `<-ch` receive, and `ch <- x` (channel send) (see

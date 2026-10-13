@@ -240,10 +240,10 @@ impl PerNs<(ItemDefinitionId, Visibility)> {
                     PerNs::types((def, vis))
                 }
             }
-            ItemDefinitionId::TypeAliasId(_) | ItemDefinitionId::PrimitiveType(_) => {
-                PerNs::types((def, vis))
-            }
-            ItemDefinitionId::ModuleId(_) => PerNs::types((def, vis)),
+            ItemDefinitionId::TypeAliasId(_)
+            | ItemDefinitionId::PrimitiveType(_)
+            | ItemDefinitionId::ModuleId(_)
+            | ItemDefinitionId::EffectId(_) => PerNs::types((def, vis)),
         }
     }
 }

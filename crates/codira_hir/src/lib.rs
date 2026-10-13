@@ -17,8 +17,8 @@ pub use codira_hir_input::ModuleId;
 pub use salsa;
 
 pub use self::code_model::{
-    Field, Function, FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Struct,
-    StructMemoryKind, TypeAlias,
+    Effect, EffectData, EffectOpSig, Field, Function, FunctionData, HasSource, Module, ModuleDef,
+    Package, PrimitiveType, Struct, StructMemoryKind, TypeAlias,
 };
 pub use crate::{
     builtin::BuiltinFn,
@@ -29,8 +29,8 @@ pub use crate::{
     diagnostics::{Diagnostic, DiagnosticSink},
     display::HirDisplay,
     expr::{
-        ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, Literal, LogicOp,
-        LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
+        ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
+        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,

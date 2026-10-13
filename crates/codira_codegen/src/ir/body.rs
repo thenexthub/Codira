@@ -37,6 +37,10 @@ use crate::{
     value::Global,
 };
 
+mod effects;
+
+pub(crate) use effects::has_evidence;
+
 type BreakSources<'ink> = Vec<Option<(BasicValueEnum<'ink>, BasicBlock<'ink>)>>;
 
 struct LoopInfo<'ink> {
@@ -76,6 +80,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     /// The e-graph optimizer Eidos runs with; `None` skips Eidos entirely
     /// (`--mode=dev`). See `crate::EidosOptions`.
     eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// Evidence in scope, `handle` frames and the arm being generated. See
+    /// `effects`.
+    effects: effects::EffectState<'ink>,
 }
 
 impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
@@ -124,6 +131,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             hir_types,
             module_group,
             eidos,
+            effects: effects::EffectState::default(),
         }
     }
 
@@ -220,6 +228,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             }
         }
 
+        // A `uses` function's evidence follows its ordinary parameters.
+        self.bind_evidence_params(param_pats.len());
+
         if runtime_checks {
             self.gen_precondition_checks();
         }
@@ -288,6 +299,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     }
 
     pub fn gen_fn_wrapper(&mut self) {
+        // The host has no handlers to give: see `effects`.
+        self.bind_unhandled_evidence();
         let fn_sig = self.hir_function.ty(self.db).callable_sig(self.db).unwrap();
         let args: Vec<BasicMetadataValueEnum<'_>> = fn_sig
             .params()
@@ -428,6 +441,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Tuple(exprs) => self.gen_tuple(expr, exprs),
             Expr::Index { base, index } => self.gen_index(expr, *base, *index),
             Expr::Cast { expr: operand, .. } => self.gen_cast(expr, *operand),
+            Expr::Perform { args, .. } => self.gen_perform(expr, args),
+            Expr::Handle { body: handled, arms } => self.gen_handle(expr, *handled, arms),
+            Expr::Resume { value } => self.gen_resume(*value),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
             // syntax error comes with a parse error; either way the build
@@ -1935,6 +1951,22 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     ) -> Option<BasicValueEnum<'ink>> {
         let sig = function.ty(self.db).callable_sig(self.db).unwrap();
 
+        // A `uses` callee takes the innermost evidence for each of its
+        // effects after its ordinary arguments, and may then abort to a
+        // handler: checked right after the call. See `effects`.
+        let evidence = self.evidence_args(function);
+        let with_evidence;
+        let args = if evidence.is_empty() {
+            args
+        } else {
+            with_evidence = args
+                .iter()
+                .copied()
+                .chain(evidence.iter().copied())
+                .collect::<Vec<_>>();
+            &with_evidence[..]
+        };
+
         let call_site = if self.should_use_dispatch_table(function) {
             let boxed_args: Vec<BasicMetadataValueEnum<'ink>> = args
                 .iter()
@@ -1997,6 +2029,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         };
 
         let ret_value = call_site.try_as_basic_value().basic();
+        if !evidence.is_empty() {
+            self.gen_abort_check();
+        }
 
         if self.should_use_dispatch_table(function) {
             if let Some(hir_struct) = sig.ret().as_struct() {

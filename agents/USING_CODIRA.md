@@ -200,6 +200,68 @@ if let value = find(xs, 7) {
 }
 ```
 
+### Algebraic effects: `effect`, `uses`, `perform`, `handle`, `resume`
+
+An effect declares operations; a function that may perform them says so
+with `uses`; a `handle` expression supplies the implementation.
+
+```codira
+effect Fail {
+    func fail(code: i32) -> i32
+}
+
+effect Ask {
+    func ask(hint: i32) -> i32
+}
+
+func check(x: i32) uses Fail -> i32 {
+    if x < 0 { perform Fail.fail(x) } else { x }
+}
+
+func compute(x: i32) uses Ask, Fail -> i32 {
+    check(perform Ask.ask(x)) * 2
+}
+
+public func run(x: i32) -> i32 {
+    handle {
+        handle compute(x) {
+            Ask.ask(h) -> resume(h + 1)      // resumes: `perform` returns h + 1
+        }
+    } {
+        Fail.fail(code) -> code * 1000       // aborts: this is the value of the handle
+    }
+}
+```
+
+Rules (checked by the compiler):
+
+- A `perform E.op(..)`, or a call to a function with `uses E`, must be inside
+  a `handle` with an `E` arm or in a function that itself declares `uses E`.
+  An arm is not covered by its own `handle` (it runs where the `handle` is).
+- An arm `E.op(a, b) -> body` binds one name (or `_`, or a tuple pattern) per
+  parameter of `op`; their types come from the effect. A `handle` implements
+  every operation of each effect it names.
+- Handlers are one-shot: `resume(v)` returns `v` to the `perform` and must be
+  the last thing the arm does (tail position, through blocks and `if`
+  branches). An arm that finishes without resuming abandons the handled
+  computation -- through any number of call frames -- and its value becomes
+  the value of the whole `handle`. `resume()` for an operation without a
+  result.
+- Innermost handler wins.
+- Version-1 restrictions: an arm cannot use local variables or parameters of
+  the enclosing function (no closures yet -- pass values through the
+  operation's parameters), cannot `return` or `break` out of the enclosing
+  function, and a function with `uses` can only be called from its own
+  module and cannot be `@export`ed.
+- A `uses` function can still be called from the host (`Runtime::invoke`);
+  performing an effect there, with no handler, executes a trap instead of
+  continuing.
+
+Cost: evidence passing. Each `uses` effect is one hidden pointer parameter;
+`perform` is one load and one indirect call; after a `perform` or a call that
+passed evidence, one load and branch per handler in scope. Code that uses no
+effects pays nothing.
+
 ### Contracts and verification
 
 Every contract is proven at compile time by Z3; a clause that cannot be
@@ -562,6 +624,7 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 - arrays: literals, indexing, element assignment
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
+- algebraic effects (see below)
 
 Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
@@ -586,9 +649,15 @@ Runtime (hosts embedding `codira_runtime`):
   flushing (`codira_page_*`, `codira_icache_flush`), and aligned allocation.
   Addresses are `usize`; failures return 0/false. Region memory is untraced.
 
+Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
+one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts
+across call frames; see "Algebraic effects" above for the version-1
+restrictions (no captures in arms, `uses` functions callable only within
+their module).
+
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
-postfix `!`, `perform`/`handle`/`spawn`, channel operators. Not available at
+postfix `!`, `spawn`, channel operators. Not available at
 all yet: `for` loops, `enum`, `trait`, `T?`/`nil` at runtime, generic
 instantiation (generic code type-checks but does not build), `String`, and
 using the standard library from a program.

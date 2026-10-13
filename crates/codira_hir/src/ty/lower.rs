@@ -266,7 +266,7 @@ impl From<ModuleDef> for Option<TypableDef> {
             ModuleDef::PrimitiveType(t) => Some(TypableDef::PrimitiveType(t)),
             ModuleDef::Struct(t) => Some(TypableDef::Struct(t)),
             ModuleDef::TypeAlias(t) => Some(TypableDef::TypeAlias(t)),
-            ModuleDef::Module(_) => None,
+            ModuleDef::Module(_) | ModuleDef::Effect(_) => None,
         }
     }
 }

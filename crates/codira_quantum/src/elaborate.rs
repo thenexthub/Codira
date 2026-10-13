@@ -685,6 +685,12 @@ impl Elaborator<'_> {
                  supported in kernels yet"
                     .into(),
             )),
+            Expr::Perform { .. } | Expr::Handle { .. } | Expr::Resume { .. } => Err(self.error(
+                frame,
+                id,
+                "algebraic effects (`perform`, `handle`, `resume`) are not supported in quantum                  kernels: a circuit has no handler to call"
+                    .into(),
+            )),
         }
     }
 
