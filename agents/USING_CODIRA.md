@@ -299,7 +299,33 @@ and `str`s; anything else is a compile error. A program that defines its own
 function named `print` calls its own. See `examples/hello`.
 
 Useful `build` options: `-O 0..3` (default `2`), `--emit-ir`, `--watch`,
-`--target <triple>` (cross-compile), `--manifest-path <path>`.
+`--target <triple>` (cross-compile), `--manifest-path <path>`, and:
+
+- `--mode dev|release` (default `release`). `dev` skips Eidos, the
+  mid-level optimizer (inlining, unrolling, equality saturation and
+  compile-time evaluation of whole functions), for faster edit-build
+  cycles. `-O` still controls LLVM's optimizer separately.
+- `--target-cpu <name>`: an LLVM CPU name for the target (`znver4`,
+  `skylake`, `apple-m1`, ...) or `native` for the machine running the
+  compiler. An unknown name is an error that lists the CPUs the target does
+  know. `native` is resolved to the concrete host CPU and its features
+  before the build starts, and is refused when cross-compiling.
+
+Eidos's search is bounded per region by an optional `[eidos]` table in
+`codira.toml`. Every bound counts work, never time, so the same sources
+always build to the same program:
+
+```toml
+[eidos]
+max_egraph_nodes_per_region = 10000   # hard cap on e-graph nodes (1..=1000000)
+max_egraph_iterations = 8             # rewrite rounds (<= 1000)
+exact_extraction_budget = 10000       # exact-extraction search steps; 0 = greedy only
+```
+
+Unknown keys are errors. `egraph_timeout_ms` is refused because it would
+make the output depend on machine speed. `ilp_extractor_fallback` is
+refused because there is no ILP solver; use `exact_extraction_budget`
+instead.
 
 Hot reload: Codira is designed so a running application can swap function
 bodies without a manual stop/restart cycle.

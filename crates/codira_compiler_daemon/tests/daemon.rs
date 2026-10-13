@@ -126,6 +126,7 @@ impl Project {
             opt_level: 2,
             mode: "release".to_owned(),
             target: None,
+            target_cpu: None,
             emit_ir: false,
             color: false,
         }
@@ -306,6 +307,17 @@ fn different_settings_get_different_sessions() {
     assert!(ir.success);
     assert!(project.dir.path().join("target").join("mod.ll").is_file());
 
+    // So is the CPU: a native build is its own session, resolved to the
+    // concrete host CPU by the daemon.
+    let native = client
+        .build(BuildRequest {
+            target_cpu: Some("native".to_owned()),
+            ..project.request()
+        })
+        .unwrap();
+    assert!(native.success);
+    assert!(!native.session_reused);
+
     // The build mode is a salsa input too, so it gets its own session.
     let dev = client
         .build(BuildRequest {
@@ -316,7 +328,7 @@ fn different_settings_get_different_sessions() {
     assert!(dev.success);
     assert!(!dev.session_reused);
 
-    assert_eq!(client.ping().unwrap().sessions, 4);
+    assert_eq!(client.ping().unwrap().sessions, 5);
 }
 
 #[test]
@@ -423,6 +435,15 @@ fn only_manifests_can_be_built() {
         },
     );
     assert!(bad_mode.contains("unknown build mode"), "{bad_mode}");
+
+    let bad_cpu = build_error(
+        &mut client,
+        BuildRequest {
+            target_cpu: Some("pentium9000".to_owned()),
+            ..project.request()
+        },
+    );
+    assert!(bad_cpu.contains("is not a CPU LLVM knows"), "{bad_cpu}");
 
     let bad_target = build_error(
         &mut client,

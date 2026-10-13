@@ -97,6 +97,7 @@ struct SessionKey {
     opt_level: u8,
     mode: BuildMode,
     target: Option<String>,
+    target_cpu: Option<String>,
     emit_ir: bool,
 }
 
@@ -128,6 +129,10 @@ impl Session {
             Some(triple) => Target::search(triple)
                 .with_context(|| format!("could not find target for '{triple}'"))?,
             None => Target::host_target().context("unable to determine host target")?,
+        };
+        let target = match &key.target_cpu {
+            Some(cpu) => codira_compiler::resolve_target_cpu(&target, cpu)?,
+            None => target,
         };
         let config = Config {
             target,
@@ -401,6 +406,7 @@ fn session_key(request: &BuildRequest) -> anyhow::Result<SessionKey> {
         opt_level: request.opt_level,
         mode,
         target: request.target.clone(),
+        target_cpu: request.target_cpu.clone(),
         emit_ir: request.emit_ir,
     })
 }

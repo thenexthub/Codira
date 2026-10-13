@@ -88,6 +88,12 @@ pub struct BuildRequest {
     /// Target triple, or `None` for the daemon's host target.
     pub target: Option<String>,
 
+    /// `--target-cpu`, as the user wrote it; the daemon resolves it.
+    /// Absent from clients that predate it, which meant the target's
+    /// default CPU.
+    #[serde(default)]
+    pub target_cpu: Option<String>,
+
     /// Emit LLVM IR instead of a `.codiralib`.
     pub emit_ir: bool,
 
@@ -226,6 +232,7 @@ mod tests {
                 opt_level: 2,
                 mode: "dev".to_owned(),
                 target: Some("x86_64-pc-windows-msvc".to_owned()),
+                target_cpu: Some("znver4".to_owned()),
                 emit_ir: false,
                 color: true,
             }),

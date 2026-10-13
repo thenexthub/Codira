@@ -15,6 +15,7 @@ pub use crate::{
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
     native::NativeInputs,
+    target_cpu::{resolve_target_cpu, TargetCpuError},
 };
 
 /// This library generates machine code from HIR using inkwell which is a safe
@@ -43,4 +44,5 @@ pub mod mir_codegen;
 mod module_group;
 mod module_partition;
 mod native;
+mod target_cpu;
 pub(crate) mod type_info;

@@ -80,6 +80,13 @@ pub struct Args {
     /// Target for machine code
     #[clap(long, value_parser=parse_target_triple)]
     target: Option<TargetArg>,
+
+    /// CPU to generate code for: an LLVM CPU name for the target (such as
+    /// `znver4` or `apple-m1`), or `native` for the machine running the
+    /// compiler. Checked against LLVM's CPU table and recorded with the
+    /// features it implies, so the build does not depend on where it runs.
+    #[clap(long)]
+    target_cpu: Option<String>,
 }
 
 /// A `--target` value: the target it resolved to, and the triple as the
@@ -119,6 +126,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
             opt_level: args.opt_level,
             mode: args.mode.build_mode().name().to_owned(),
             target: args.target.as_ref().map(|target| target.triple.clone()),
+            target_cpu: args.target_cpu.clone(),
             emit_ir: args.emit_ir,
             // Decided here, not by the daemon: this process is the one
             // attached to the terminal the diagnostics will be shown on.
@@ -138,11 +146,22 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         }
     }
 
+    let target = args.target.map_or_else(
+        || Target::host_target().expect("unable to determine host target"),
+        |target| target.target,
+    );
+    let target = match &args.target_cpu {
+        Some(cpu) => codira_compiler::resolve_target_cpu(&target, cpu)?,
+        None => target,
+    };
+    log::info!(
+        "generating code for {} (cpu {})",
+        target.llvm_target,
+        target.options.cpu
+    );
+
     let compiler_options = Config {
-        target: args.target.map_or_else(
-            || Target::host_target().expect("unable to determine host target"),
-            |target| target.target,
-        ),
+        target,
         optimization_lvl,
         mode: args.mode.build_mode(),
         out_dir: None,
