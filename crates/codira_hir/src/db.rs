@@ -140,6 +140,12 @@ pub trait HirDatabase: DefDatabase {
     /// `FunctionId`) so this query is actually callable by downstream
     /// crates like `codira_codegen` -- an incremental query nobody outside
     /// `codira_hir` can invoke isn't wired into anything.
+    /// Every proof obligation of `func` -- its own contracts, loop
+    /// invariants and termination measures, and the contracts of everything
+    /// it calls -- and what Z3 said about each. See `crate::verify`.
+    #[salsa::invoke(crate::verify::verify_function_query)]
+    fn verify_function(&self, func: Function) -> Arc<crate::verify::VerificationReport>;
+
     #[salsa::invoke(crate::mir_lower::mir_generator_query)]
     fn mir_generator(&self, func: Function) -> Option<Arc<codira_mir::Generator>>;
 

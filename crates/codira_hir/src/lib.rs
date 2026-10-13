@@ -29,8 +29,8 @@ pub use crate::{
     diagnostics::{Diagnostic, DiagnosticSink},
     display::HirDisplay,
     expr::{
-        ArithOp, BinaryOp, Body, CmpOp, Expr, ExprId, ExprScopes, Literal, LogicOp, Ordering, Pat,
-        PatId, RecordLitField, Statement, UnaryOp,
+        ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, Literal, LogicOp,
+        LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,
@@ -74,6 +74,7 @@ mod supervisor_validator;
 mod ty;
 mod type_ref;
 mod utils;
+pub mod verify;
 
 mod has_module;
 mod heal_check;

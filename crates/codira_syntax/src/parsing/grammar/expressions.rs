@@ -8,12 +8,12 @@ use super::{
     error_block, expressions, generics, name_ref, name_ref_or_index, params, paths, patterns,
     types, BlockLike, CompletedMarker, Marker, Parser, SyntaxKind, TokenSet, ARG_LIST, ARRAY_EXPR,
     BIN_EXPR, BLOCK_EXPR, BREAK_EXPR, CALL_EXPR, CAST_EXPR, CHANNEL_RECV_EXPR, CHANNEL_SEND_EXPR,
-    CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, EOF, ERROR, EXPR_STMT, FIELD_EXPR, FLOAT_NUMBER,
-    HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR, INT_NUMBER,
-    LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, PARAM, PARAM_LIST,
-    PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR, RECORD_FIELD, RECORD_FIELD_LIST,
-    RECORD_LIT, RETURN_EXPR, RET_TYPE, SPAWN_EXPR, STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR,
-    WHILE_EXPR,
+    CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, DECREASES_CLAUSE, EOF, ERROR, EXPR_STMT, FIELD_EXPR,
+    FLOAT_NUMBER, HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR,
+    INT_NUMBER, INVARIANT_CLAUSE, LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST,
+    MATCH_EXPR, PARAM, PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR,
+    RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SPAWN_EXPR, STRING,
+    TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
 };
 use crate::{parsing::grammar::paths::PATH_FIRST, SyntaxKind::METHOD_CALL_EXPR};
 
@@ -98,6 +98,14 @@ fn block_expr(p: &mut Parser<'_>) -> CompletedMarker {
 pub(super) fn stmt(p: &mut Parser<'_>) {
     let m = p.start();
 
+    // `ghost let` -- a verification-only binding (see `codira_hir`'s
+    // `verify` module). `ghost` is contextual and promoted only directly
+    // before `let`/`var`, where an identifier could not otherwise start a
+    // statement.
+    if p.at_contextual_kw("ghost") && (p.nth_at(1, T![let]) || p.nth_at(1, T![var])) {
+        p.bump_remap(T![ghost]);
+    }
+
     // `let` (immutable) and `var` (mutable) both produce a LET_STMT; which
     // keyword was used is recorded as the leading token.
     if p.at(T![let]) || p.at(T![var]) {
@@ -156,7 +164,7 @@ pub(super) fn expr(p: &mut Parser<'_>) {
     expr_bp(p, r, 1);
 }
 
-fn expr_no_struct(p: &mut Parser<'_>) {
+pub(super) fn expr_no_struct(p: &mut Parser<'_>) {
     let r = Restrictions {
         forbid_structs: true,
     };
@@ -823,8 +831,29 @@ fn loop_expr(p: &mut Parser<'_>) -> CompletedMarker {
     assert!(p.at(T![loop]));
     let m = p.start();
     p.bump(T![loop]);
+    opt_loop_contract_clauses(p);
     block(p);
     m.complete(p, LOOP_EXPR)
+}
+
+/// Parses `invariant <expr>` and `decreases <expr>` clauses between a loop
+/// header and its body, in any order. Like the function-contract keywords
+/// these are contextual: between a `while` condition (or `loop`) and the
+/// `{` of the body an identifier has no other meaning.
+fn opt_loop_contract_clauses(p: &mut Parser<'_>) {
+    loop {
+        let kind = if p.at_contextual_kw("invariant") {
+            (T![invariant], INVARIANT_CLAUSE)
+        } else if p.at_contextual_kw("decreases") {
+            (T![decreases], DECREASES_CLAUSE)
+        } else {
+            break;
+        };
+        let m = p.start();
+        p.bump_remap(kind.0);
+        expr_no_struct(p);
+        m.complete(p, kind.1);
+    }
 }
 
 fn cond(p: &mut Parser<'_>) {
@@ -858,6 +887,7 @@ fn while_expr(p: &mut Parser<'_>) -> CompletedMarker {
     let m = p.start();
     p.bump(T![while]);
     cond(p);
+    opt_loop_contract_clauses(p);
     block(p);
     m.complete(p, WHILE_EXPR)
 }

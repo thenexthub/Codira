@@ -727,6 +727,87 @@ impl Diagnostic for UnsatisfiableRefinement {
     }
 }
 
+/// A proof obligation `crate::verify` could not discharge: a contract,
+/// refinement, loop invariant, termination measure or division-safety
+/// condition that Z3 refuted (with a counterexample in `notes`), or could
+/// not decide within its deterministic budget, or that is outside the
+/// fragment the verifier models. All three are errors: an unproven
+/// obligation is never reported as success.
+#[derive(Debug)]
+pub struct ContractViolation {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+    /// The counterexample, in Codira syntax, and the values at the failing
+    /// point.
+    pub notes: Vec<String>,
+}
+
+impl Diagnostic for ContractViolation {
+    fn message(&self) -> String {
+        if self.notes.is_empty() {
+            self.message.clone()
+        } else {
+            format!("{} ({})", self.message, self.notes.join("; "))
+        }
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A `@test` function the test runner could not call: see
+/// `expr::validator::test_fn` for the required shape.
+#[derive(Debug)]
+pub struct InvalidTestFunction {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub reason: String,
+}
+
+impl Diagnostic for InvalidTestFunction {
+    fn message(&self) -> String {
+        format!("invalid `@test` function: {}", self.reason)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A breach of the rules that make erasing ghost code sound (see
+/// `crate::verify`'s `ghost` module): an effect inside a contract clause or
+/// ghost initializer, or a ghost binding named from executable code.
+#[derive(Debug)]
+pub struct GhostRuleViolation {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for GhostRuleViolation {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A `@heal(..., postcondition: <expr>)` healing contract (see
 /// `crate::heal_check`) whose postcondition `codira_smt` has proven
 /// unsatisfiable: no return value could ever discharge it, so the contract

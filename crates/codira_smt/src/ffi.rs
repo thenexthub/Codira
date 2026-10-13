@@ -139,4 +139,52 @@ extern "C" {
     // two's-complement i64 on the Rust side).
     pub fn Z3_get_numeral_uint64(c: Z3_context, v: Z3_ast, u: *mut u64) -> bool;
     pub fn Z3_get_bool_value(c: Z3_context, a: Z3_ast) -> Z3_lbool;
+    // Decimal rendering of a numeral of any size: the only accessor that
+    // reaches past 64 bits.
+    pub fn Z3_get_numeral_string(c: Z3_context, a: Z3_ast) -> Z3_string;
+
+    // ---- arbitrary-width bitvectors -----------------------------------------
+    // Every machine integer type `codira_hir` knows (`i8` .. `u128`) is an
+    // exact bitvector of its own width; these are what make that encoding
+    // possible beyond the original 64-bit-only surface.
+    pub fn Z3_get_sort(c: Z3_context, a: Z3_ast) -> Z3_sort;
+    pub fn Z3_get_bv_sort_size(c: Z3_context, t: Z3_sort) -> std::ffi::c_uint;
+    pub fn Z3_mk_bvult(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_bvule(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_bvugt(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_bvuge(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_bvudiv(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_bvurem(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_sign_ext(c: Z3_context, i: std::ffi::c_uint, t1: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_zero_ext(c: Z3_context, i: std::ffi::c_uint, t1: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_extract(
+        c: Z3_context,
+        high: std::ffi::c_uint,
+        low: std::ffi::c_uint,
+        t1: Z3_ast,
+    ) -> Z3_ast;
+    // Overflow predicates: true when the operation does NOT overflow.
+    pub fn Z3_mk_bvadd_no_overflow(
+        c: Z3_context,
+        t1: Z3_ast,
+        t2: Z3_ast,
+        is_signed: bool,
+    ) -> Z3_ast;
+    pub fn Z3_mk_bvsub_no_underflow(
+        c: Z3_context,
+        t1: Z3_ast,
+        t2: Z3_ast,
+        is_signed: bool,
+    ) -> Z3_ast;
+    pub fn Z3_mk_bvmul_no_overflow(
+        c: Z3_context,
+        t1: Z3_ast,
+        t2: Z3_ast,
+        is_signed: bool,
+    ) -> Z3_ast;
+
+    // ---- why a check came back `unknown` ------------------------------------
+    // The only way to tell "the deterministic resource budget ran out" from
+    // "the formula is outside what Z3 decides".
+    pub fn Z3_solver_get_reason_unknown(c: Z3_context, s: Z3_solver) -> Z3_string;
 }

@@ -27,6 +27,7 @@ mod effect_obligation;
 mod inline_asm;
 mod literal_out_of_range;
 mod move_check;
+mod test_fn;
 mod uninitialized_access;
 
 #[cfg(test)]
@@ -62,6 +63,8 @@ impl<'a> ExprValidator<'a> {
         self.validate_healing_contract(sink);
         self.validate_move_checking(sink);
         self.validate_codegen_support(sink);
+        self.validate_test_function(sink);
+        crate::verify::contract_diagnostics(self.db, self.func, sink);
     }
 
     pub fn validate_privacy(&self, sink: &mut DiagnosticSink<'_>) {

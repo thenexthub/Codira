@@ -33,7 +33,26 @@ use std::ffi::{c_int, CStr, CString};
 pub struct Context {
     raw: ffi::Z3_context,
     config: ffi::Z3_config,
+    /// The deterministic resource budget (Z3 `rlimit`) every solver made
+    /// from this context starts with. See [`DEFAULT_RLIMIT`].
+    rlimit: std::cell::Cell<u32>,
 }
+
+/// The deterministic per-check budget every [`Solver`] starts with, in Z3
+/// resource units (`rlimit`).
+///
+/// Compilation decisions must not depend on wall-clock time (spec
+/// `KGEN_SUPERSET_STATUS.md` section 32.5): a timeout makes the same program
+/// verify on a fast machine and fail on a loaded one. `rlimit` counts the
+/// solver's own work instead, so a query either fits the budget everywhere
+/// or nowhere. A check that exhausts it reports [`SatResult::Unknown`] and
+/// [`Solver::check_detailed`] says why -- it is never reported as a proof.
+///
+/// The value is generous for the linear and bit-vector queries the front end
+/// issues (the slowest test query here uses well under a tenth of it); a
+/// caller that knows better sets its own with [`Context::set_rlimit`] or
+/// [`Solver::set_rlimit`].
+pub const DEFAULT_RLIMIT: u32 = 10_000_000;
 
 // Z3 contexts are safe to send between threads as long as they aren't
 // accessed concurrently, which the `&`/`&mut` borrows below already
@@ -48,7 +67,11 @@ impl Context {
         unsafe {
             let config = ffi::Z3_mk_config();
             let raw = ffi::Z3_mk_context(config);
-            Context { raw, config }
+            Context {
+                raw,
+                config,
+                rlimit: std::cell::Cell::new(DEFAULT_RLIMIT),
+            }
         }
     }
 
@@ -106,14 +129,68 @@ impl Context {
         }
     }
 
-    /// Creates a new solver bound to this context.
+    /// Creates a new solver bound to this context. It starts with this
+    /// context's resource budget (see [`Context::set_rlimit`]).
     pub fn solver(&self) -> Solver<'_> {
         let raw = unsafe {
             let solver = ffi::Z3_mk_solver(self.raw);
             ffi::Z3_solver_inc_ref(self.raw, solver);
             solver
         };
-        Solver { ctx: self, raw }
+        let solver = Solver {
+            ctx: self,
+            raw,
+            timeout_set: std::cell::Cell::new(false),
+        };
+        let rlimit = self.rlimit.get();
+        if rlimit != 0 {
+            solver.set_rlimit(rlimit);
+        }
+        solver
+    }
+
+    /// Sets the deterministic resource budget (Z3 `rlimit`) for every solver
+    /// created from this context afterwards. `0` removes the bound, which no
+    /// compiler-facing caller should do.
+    pub fn set_rlimit(&self, rlimit: u32) {
+        self.rlimit.set(rlimit);
+    }
+
+    /// The budget solvers created from this context start with.
+    pub fn rlimit(&self) -> u32 {
+        self.rlimit.get()
+    }
+
+    fn bv_sort(&self, width: u32) -> ffi::Z3_sort {
+        assert!(width > 0, "a bitvector must be at least one bit wide");
+        unsafe { ffi::Z3_mk_bv_sort(self.raw, width) }
+    }
+
+    /// Declares a free bitvector variable `width` bits wide: the exact
+    /// model of a fixed-width machine integer of that width. Signedness is
+    /// not part of the sort; it is chosen per operation (`slt` vs `ult`,
+    /// `sdiv` vs `udiv`, sign vs zero extension), exactly as in LLVM IR.
+    pub fn bv_var(&self, name: &str, width: u32) -> BvExpr<'_> {
+        let c_name = CString::new(name).expect("variable name must not contain a NUL byte");
+        let raw = unsafe {
+            let symbol = ffi::Z3_mk_string_symbol(self.raw, c_name.as_ptr());
+            ffi::Z3_mk_const(self.raw, symbol, self.bv_sort(width))
+        };
+        BvExpr { ctx: self, raw }
+    }
+
+    /// A `width`-bit literal whose bit pattern is the low `width` bits of
+    /// `bits`. Pass a two's-complement value cast to `u128` for a negative
+    /// signed literal: `bv_lit(-1i128 as u128, 8)` is `0xFF`.
+    pub fn bv_lit(&self, bits: u128, width: u32) -> BvExpr<'_> {
+        let masked = if width >= 128 {
+            bits
+        } else {
+            bits & ((1u128 << width) - 1)
+        };
+        let c_value = CString::new(masked.to_string()).unwrap();
+        let raw = unsafe { ffi::Z3_mk_numeral(self.raw, c_value.as_ptr(), self.bv_sort(width)) };
+        BvExpr { ctx: self, raw }
     }
 
     fn bv64_sort(&self) -> ffi::Z3_sort {
@@ -362,6 +439,111 @@ impl<'ctx> BvExpr<'ctx> {
             raw: unsafe { ffi::Z3_mk_eq(self.ctx.raw, self.raw, other.raw) },
         }
     }
+
+    /// Whether `self` and `other` are the same term. Z3 hash-conses its
+    /// terms, so structural equality is pointer equality; this is a cheap
+    /// syntactic test, not a semantic one.
+    pub fn is_identical(self, other: BvExpr<'ctx>) -> bool {
+        self.raw == other.raw
+    }
+
+    /// The width of this bitvector, in bits.
+    pub fn width(self) -> u32 {
+        unsafe {
+            let sort = ffi::Z3_get_sort(self.ctx.raw, self.raw);
+            ffi::Z3_get_bv_sort_size(self.ctx.raw, sort)
+        }
+    }
+
+    pub fn ult(self, other: BvExpr<'ctx>) -> BoolExpr<'ctx> {
+        self.cmp(other, ffi::Z3_mk_bvult)
+    }
+
+    pub fn ule(self, other: BvExpr<'ctx>) -> BoolExpr<'ctx> {
+        self.cmp(other, ffi::Z3_mk_bvule)
+    }
+
+    pub fn ugt(self, other: BvExpr<'ctx>) -> BoolExpr<'ctx> {
+        self.cmp(other, ffi::Z3_mk_bvugt)
+    }
+
+    pub fn uge(self, other: BvExpr<'ctx>) -> BoolExpr<'ctx> {
+        self.cmp(other, ffi::Z3_mk_bvuge)
+    }
+
+    /// Unsigned division. As with [`BvExpr::sdiv`], a zero divisor yields
+    /// Z3's total-function result, not an error.
+    pub fn udiv(self, other: BvExpr<'ctx>) -> BvExpr<'ctx> {
+        self.binop(other, ffi::Z3_mk_bvudiv)
+    }
+
+    /// Unsigned remainder.
+    pub fn urem(self, other: BvExpr<'ctx>) -> BvExpr<'ctx> {
+        self.binop(other, ffi::Z3_mk_bvurem)
+    }
+
+    /// Widens by `extra` bits, copying the sign bit.
+    pub fn sign_ext(self, extra: u32) -> BvExpr<'ctx> {
+        BvExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_sign_ext(self.ctx.raw, extra, self.raw) },
+        }
+    }
+
+    /// Widens by `extra` bits of zeros.
+    pub fn zero_ext(self, extra: u32) -> BvExpr<'ctx> {
+        BvExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_zero_ext(self.ctx.raw, extra, self.raw) },
+        }
+    }
+
+    /// Bits `high..=low` of this bitvector, as a `high - low + 1`-bit value.
+    pub fn extract(self, high: u32, low: u32) -> BvExpr<'ctx> {
+        BvExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_extract(self.ctx.raw, high, low, self.raw) },
+        }
+    }
+
+    /// Converts to `width` bits the way an integer cast does: truncation
+    /// keeps the low bits, widening sign- or zero-extends according to the
+    /// *source* type's signedness (`source_signed`).
+    pub fn resize(self, width: u32, source_signed: bool) -> BvExpr<'ctx> {
+        let current = self.width();
+        match current.cmp(&width) {
+            std::cmp::Ordering::Equal => self,
+            std::cmp::Ordering::Greater => self.extract(width - 1, 0),
+            std::cmp::Ordering::Less if source_signed => self.sign_ext(width - current),
+            std::cmp::Ordering::Less => self.zero_ext(width - current),
+        }
+    }
+
+    /// True when `self + other` does not overflow (signed or unsigned).
+    pub fn add_no_overflow(self, other: BvExpr<'ctx>, signed: bool) -> BoolExpr<'ctx> {
+        BoolExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_bvadd_no_overflow(self.ctx.raw, self.raw, other.raw, signed) },
+        }
+    }
+
+    /// True when `self - other` does not underflow (signed or unsigned).
+    pub fn sub_no_underflow(self, other: BvExpr<'ctx>, signed: bool) -> BoolExpr<'ctx> {
+        BoolExpr {
+            ctx: self.ctx,
+            raw: unsafe {
+                ffi::Z3_mk_bvsub_no_underflow(self.ctx.raw, self.raw, other.raw, signed)
+            },
+        }
+    }
+
+    /// True when `self * other` does not overflow (signed or unsigned).
+    pub fn mul_no_overflow(self, other: BvExpr<'ctx>, signed: bool) -> BoolExpr<'ctx> {
+        BoolExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_bvmul_no_overflow(self.ctx.raw, self.raw, other.raw, signed) },
+        }
+    }
 }
 
 /// A boolean-sorted Z3 expression, borrowed from the [`Context`] that
@@ -379,6 +561,12 @@ impl<'ctx> BoolExpr<'ctx> {
     // and they take `self` by value while borrowing the context. The
     // names deliberately mirror the operations they construct.
     #![allow(clippy::should_implement_trait)]
+
+    /// Whether `self` and `other` are the same term (see
+    /// [`BvExpr::is_identical`]).
+    pub fn is_identical(self, other: BoolExpr<'ctx>) -> bool {
+        self.raw == other.raw
+    }
 
     pub fn not(self) -> BoolExpr<'ctx> {
         BoolExpr {
@@ -477,11 +665,45 @@ pub enum SatResult {
     Unknown,
 }
 
+/// Why a check came back [`SatResult::Unknown`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnknownReason {
+    /// The deterministic resource budget (`rlimit`) ran out before Z3
+    /// reached an answer. The same query with the same budget gives the same
+    /// verdict on every machine.
+    ResourceLimit,
+    /// Anything else Z3 reports: incomplete theory combination, a
+    /// quantifier it gave up on, an interrupted search. Carries Z3's own
+    /// explanation.
+    Other(String),
+}
+
+impl std::fmt::Display for UnknownReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnknownReason::ResourceLimit => f.write_str("resource limit"),
+            UnknownReason::Other(reason) => f.write_str(reason),
+        }
+    }
+}
+
+/// A satisfiability verdict that, unlike [`SatResult`], says why an
+/// `unknown` happened.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckOutcome {
+    Sat,
+    Unsat,
+    Unknown(UnknownReason),
+}
+
 /// A Z3 solver: an incremental set of boolean assertions that can be
 /// checked for satisfiability.
 pub struct Solver<'ctx> {
     ctx: &'ctx Context,
     raw: ffi::Z3_solver,
+    /// Whether a wall-clock timeout was set, which makes a "canceled"
+    /// verdict ambiguous (see [`Solver::reason_unknown`]).
+    timeout_set: std::cell::Cell<bool>,
 }
 
 impl<'ctx> Solver<'ctx> {
@@ -529,6 +751,7 @@ impl<'ctx> Solver<'ctx> {
     /// check that exceeds it comes back [`SatResult::Unknown`], so callers
     /// can budget validation cost instead of risking an unbounded solve.
     pub fn set_timeout_ms(&self, ms: u32) {
+        self.timeout_set.set(true);
         let key = CString::new("timeout").unwrap();
         unsafe {
             let params = ffi::Z3_mk_params(self.ctx.raw);
@@ -537,6 +760,56 @@ impl<'ctx> Solver<'ctx> {
             ffi::Z3_params_set_uint(self.ctx.raw, params, symbol, ms);
             ffi::Z3_solver_set_params(self.ctx.raw, self.raw, params);
             ffi::Z3_params_dec_ref(self.ctx.raw, params);
+        }
+    }
+
+    /// Bounds each subsequent `check` to `rlimit` Z3 resource units -- the
+    /// deterministic budget (see [`DEFAULT_RLIMIT`]). Exhausting it yields
+    /// [`SatResult::Unknown`] with [`UnknownReason::ResourceLimit`].
+    pub fn set_rlimit(&self, rlimit: u32) {
+        let key = CString::new("rlimit").unwrap();
+        unsafe {
+            let params = ffi::Z3_mk_params(self.ctx.raw);
+            ffi::Z3_params_inc_ref(self.ctx.raw, params);
+            let symbol = ffi::Z3_mk_string_symbol(self.ctx.raw, key.as_ptr());
+            ffi::Z3_params_set_uint(self.ctx.raw, params, symbol, rlimit);
+            ffi::Z3_solver_set_params(self.ctx.raw, self.raw, params);
+            ffi::Z3_params_dec_ref(self.ctx.raw, params);
+        }
+    }
+
+    /// Z3's explanation of the last `unknown` verdict.
+    pub fn reason_unknown(&self) -> UnknownReason {
+        let text = unsafe {
+            let s = ffi::Z3_solver_get_reason_unknown(self.ctx.raw, self.raw);
+            if s.is_null() {
+                String::new()
+            } else {
+                CStr::from_ptr(s).to_string_lossy().into_owned()
+            }
+        };
+        // Z3 spells this "max. resource limit exceeded" or "(resource
+        // limits reached)" depending on which component gave up first, and
+        // plain "canceled" when the limit trips inside a tactic that only
+        // sees the cancellation. Without a wall-clock timeout (which the
+        // compiler never sets) nothing else cancels a check, so "canceled"
+        // is the budget too.
+        let budget = text.contains("resource limit")
+            || text.contains("rlimit")
+            || (text.contains("canceled") && !self.timeout_set.get());
+        if budget {
+            UnknownReason::ResourceLimit
+        } else {
+            UnknownReason::Other(text)
+        }
+    }
+
+    /// Checks the current assertions, saying why if the answer is unknown.
+    pub fn check_detailed(&self) -> CheckOutcome {
+        match self.check() {
+            SatResult::Sat => CheckOutcome::Sat,
+            SatResult::Unsat => CheckOutcome::Unsat,
+            SatResult::Unknown => CheckOutcome::Unknown(self.reason_unknown()),
         }
     }
 
@@ -592,6 +865,26 @@ impl<'ctx> Model<'ctx> {
         // set only extracts via the u64 accessor.
         let mut out: u64 = 0;
         unsafe { ffi::Z3_get_numeral_uint64(self.ctx.raw, value, &mut out) }.then_some(out as i64)
+    }
+
+    /// The model's value for a bitvector of any width up to 128 bits, as its
+    /// raw (unsigned) bit pattern. Callers reinterpret it as signed when the
+    /// source type is.
+    pub fn eval_bv_bits(&self, expr: BvExpr<'ctx>) -> Option<u128> {
+        let value = self.eval_raw(expr.raw)?;
+        let mut out: u64 = 0;
+        if unsafe { ffi::Z3_get_numeral_uint64(self.ctx.raw, value, &mut out) } {
+            return Some(u128::from(out));
+        }
+        // Wider than 64 bits: only the decimal rendering reaches it.
+        let text = unsafe {
+            let s = ffi::Z3_get_numeral_string(self.ctx.raw, value);
+            if s.is_null() {
+                return None;
+            }
+            CStr::from_ptr(s).to_string_lossy().into_owned()
+        };
+        text.parse().ok()
     }
 
     /// The model's value for a boolean expression.
@@ -801,6 +1094,107 @@ mod tests {
         solver.set_timeout_ms(10_000);
         solver.assert(ctx.bool_true());
         assert_eq!(solver.check(), SatResult::Sat);
+    }
+
+    #[test]
+    fn narrow_bitvectors_wrap_at_their_own_width() {
+        let ctx = Context::new();
+        // i8: 127 + 1 == -128.
+        let solver = ctx.solver();
+        let max = ctx.bv_lit(127, 8);
+        let min = ctx.bv_lit(-128i128 as u128, 8);
+        solver.assert(max.add(ctx.bv_lit(1, 8)).eq(min).not());
+        assert_eq!(solver.check(), SatResult::Unsat);
+        assert_eq!(max.width(), 8);
+    }
+
+    #[test]
+    fn unsigned_and_signed_comparisons_differ() {
+        let ctx = Context::new();
+        let all_ones = ctx.bv_lit(u128::MAX, 16);
+        let zero = ctx.bv_lit(0, 16);
+        // 0xFFFF is -1 signed (< 0) but 65535 unsigned (> 0).
+        assert!(implies(&ctx, ctx.bool_true(), all_ones.slt(zero)));
+        assert!(implies(&ctx, ctx.bool_true(), all_ones.ugt(zero)));
+    }
+
+    #[test]
+    fn resize_follows_source_signedness() {
+        let ctx = Context::new();
+        let minus_one = ctx.bv_lit(0xFF, 8);
+        let solver = ctx.solver();
+        assert_eq!(solver.check(), SatResult::Sat);
+        let model = solver.model().unwrap();
+        assert_eq!(
+            model.eval_bv_bits(minus_one.resize(32, true)),
+            Some(0xFFFF_FFFF)
+        );
+        assert_eq!(model.eval_bv_bits(minus_one.resize(32, false)), Some(0xFF));
+        assert_eq!(
+            model.eval_bv_bits(ctx.bv_lit(0x1234, 16).resize(8, false)),
+            Some(0x34)
+        );
+    }
+
+    #[test]
+    fn wide_bitvector_model_values_survive_extraction() {
+        let ctx = Context::new();
+        let x = ctx.bv_var("x", 128);
+        let solver = ctx.solver();
+        let big = 1u128 << 100;
+        solver.assert(x.eq(ctx.bv_lit(big, 128)));
+        assert_eq!(solver.check(), SatResult::Sat);
+        assert_eq!(solver.model().unwrap().eval_bv_bits(x), Some(big));
+    }
+
+    #[test]
+    fn overflow_predicates() {
+        let ctx = Context::new();
+        let x = ctx.bv_var("x", 32);
+        // x + 1 overflows (signed) exactly when x == i32::MAX.
+        let solver = ctx.solver();
+        solver.assert(x.add_no_overflow(ctx.bv_lit(1, 32), true).not());
+        assert_eq!(solver.check(), SatResult::Sat);
+        let model = solver.model().unwrap();
+        assert_eq!(model.eval_bv_bits(x), Some(i32::MAX as u128));
+    }
+
+    /// The deterministic budget: a query that cannot be answered inside it
+    /// is `unknown` with the resource limit named as the reason -- never a
+    /// proof -- and asking again with the same budget gives the same answer.
+    #[test]
+    fn rlimit_exhaustion_is_unknown_not_a_proof() {
+        let ctx = Context::new();
+        ctx.set_rlimit(200);
+        // Factoring a 64-bit semiprime with bit-vector multiplication is far
+        // beyond 200 resource units.
+        let x = ctx.bv_var("x", 64);
+        let y = ctx.bv_var("y", 64);
+        let n = ctx.bv_lit(4_294_967_291u128 * 4_294_967_279u128, 64);
+        let one = ctx.bv_lit(1, 64);
+        let query = x
+            .mul(y)
+            .eq(n)
+            .and(x.ugt(one))
+            .and(y.ugt(one))
+            .and(x.mul_no_overflow(y, false));
+        for _ in 0..2 {
+            let solver = ctx.solver();
+            solver.assert(query);
+            assert_eq!(
+                solver.check_detailed(),
+                CheckOutcome::Unknown(UnknownReason::ResourceLimit)
+            );
+        }
+    }
+
+    #[test]
+    fn default_budget_is_applied_to_every_solver() {
+        let ctx = Context::new();
+        assert_eq!(ctx.rlimit(), DEFAULT_RLIMIT);
+        let solver = ctx.solver();
+        solver.assert(ctx.bool_true());
+        assert_eq!(solver.check_detailed(), CheckOutcome::Sat);
     }
 
     #[test]

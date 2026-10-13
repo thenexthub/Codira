@@ -127,6 +127,11 @@ pub enum SyntaxKind {
     MUT_KW,
     DEF_KW,
     DATA_KW,
+    REQUIRES_KW,
+    ENSURES_KW,
+    INVARIANT_KW,
+    DECREASES_KW,
+    GHOST_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -143,6 +148,10 @@ pub enum SyntaxKind {
     RET_TYPE,
     VISIBILITY,
     USES_CLAUSE,
+    REQUIRES_CLAUSE,
+    ENSURES_CLAUSE,
+    INVARIANT_CLAUSE,
+    DECREASES_CLAUSE,
     PARAM_LIST,
     PARAM,
     SELF_PARAM,
@@ -558,6 +567,21 @@ macro_rules! T {
     (data) => {
         $crate::SyntaxKind::DATA_KW
     };
+    (requires) => {
+        $crate::SyntaxKind::REQUIRES_KW
+    };
+    (ensures) => {
+        $crate::SyntaxKind::ENSURES_KW
+    };
+    (invariant) => {
+        $crate::SyntaxKind::INVARIANT_KW
+    };
+    (decreases) => {
+        $crate::SyntaxKind::DECREASES_KW
+    };
+    (ghost) => {
+        $crate::SyntaxKind::GHOST_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -630,6 +654,11 @@ impl SyntaxKind {
         | MUT_KW
         | DEF_KW
         | DATA_KW
+        | REQUIRES_KW
+        | ENSURES_KW
+        | INVARIANT_KW
+        | DECREASES_KW
+        | GHOST_KW
         )
     }
 
@@ -804,6 +833,11 @@ impl SyntaxKind {
             MUT_KW => &SyntaxInfo { name: "MUT_KW" },
             DEF_KW => &SyntaxInfo { name: "DEF_KW" },
             DATA_KW => &SyntaxInfo { name: "DATA_KW" },
+            REQUIRES_KW => &SyntaxInfo { name: "REQUIRES_KW" },
+            ENSURES_KW => &SyntaxInfo { name: "ENSURES_KW" },
+            INVARIANT_KW => &SyntaxInfo { name: "INVARIANT_KW" },
+            DECREASES_KW => &SyntaxInfo { name: "DECREASES_KW" },
+            GHOST_KW => &SyntaxInfo { name: "GHOST_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -820,6 +854,10 @@ impl SyntaxKind {
             RET_TYPE => &SyntaxInfo { name: "RET_TYPE" },
             VISIBILITY => &SyntaxInfo { name: "VISIBILITY" },
             USES_CLAUSE => &SyntaxInfo { name: "USES_CLAUSE" },
+            REQUIRES_CLAUSE => &SyntaxInfo { name: "REQUIRES_CLAUSE" },
+            ENSURES_CLAUSE => &SyntaxInfo { name: "ENSURES_CLAUSE" },
+            INVARIANT_CLAUSE => &SyntaxInfo { name: "INVARIANT_CLAUSE" },
+            DECREASES_CLAUSE => &SyntaxInfo { name: "DECREASES_CLAUSE" },
             PARAM_LIST => &SyntaxInfo { name: "PARAM_LIST" },
             PARAM => &SyntaxInfo { name: "PARAM" },
             SELF_PARAM => &SyntaxInfo { name: "SELF_PARAM" },

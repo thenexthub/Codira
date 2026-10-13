@@ -276,13 +276,22 @@ impl InferenceResultBuilder<'_> {
 
         // Iterate over all the parameters and associated types of the body and infer
         // the types of the parameters.
+        // Aliases are seen through exactly as `fn_sig_for_fn` does, so a
+        // parameter's binding has the same type callers see in the
+        // signature.
+        let strip_alias = |db: &dyn HirDatabase, ty: Ty| match ty.interned() {
+            TyKind::TypeAlias(alias) => alias.target_type(db),
+            _ => ty,
+        };
         for (pat, type_ref) in self.body.params().iter() {
             let ty = self.resolve_type(*type_ref);
+            let ty = strip_alias(self.db, ty);
             self.infer_pat(*pat, ty);
         }
 
         // Resolve the return type
-        self.return_ty = self.resolve_type(self.body.ret_type());
+        let ret = self.resolve_type(self.body.ret_type());
+        self.return_ty = strip_alias(self.db, ret);
     }
 
     /// Record the type of the specified pattern and all sub-patterns.
@@ -340,6 +349,38 @@ impl InferenceResultBuilder<'_> {
             self.body.body_expr(),
             &Expectation::has_type(self.return_ty.clone()),
         );
+        self.infer_contracts();
+    }
+
+    /// Type-checks the function's `requires`/`ensures` clauses: each must be
+    /// a `bool`, and inside `ensures` the binding `result` has the function's
+    /// return type. Loop clauses and ghost lets are checked where they
+    /// appear (`infer_loop_contract`, `infer_block`).
+    fn infer_contracts(&mut self) {
+        let contracts = self.body.contracts();
+        if let Some(result) = contracts.result_pat {
+            self.set_pat_type(result, self.return_ty.clone());
+        }
+        let bool_ty = Expectation::has_type(TyKind::Bool.intern());
+        for &clause in contracts.requires.iter().chain(contracts.ensures.iter()) {
+            self.infer_expr(clause, &bool_ty);
+        }
+    }
+
+    /// Type-checks a loop's `invariant` clauses (each a `bool`) and its
+    /// `decreases` measure (any type here; the verifier reports a measure
+    /// that is not an integer).
+    fn infer_loop_contract(&mut self, loop_expr: ExprId) {
+        let Some(contract) = self.body.contracts().loops.get(&loop_expr) else {
+            return;
+        };
+        let bool_ty = Expectation::has_type(TyKind::Bool.intern());
+        for &clause in &contract.invariants {
+            self.infer_expr(clause, &bool_ty);
+        }
+        if let Some(measure) = contract.decreases {
+            self.infer_expr(measure, &Expectation::none());
+        }
     }
 
     /// Infers the type of the `tgt_expr`
@@ -413,6 +454,15 @@ impl InferenceResultBuilder<'_> {
                         _ => Expectation::none(),
                     };
                     let lhs_ty = self.infer_expr(*lhs, &lhs_expected);
+                    // An operator sees through a type alias to the type it
+                    // names: `x / 2` on `x: Positive` (`type Positive = i64
+                    // { v | v > 0 }`) is `i64` arithmetic, and its result is
+                    // a plain `i64` -- a refinement does not survive
+                    // arithmetic, so it is the base type that flows on.
+                    let lhs_ty = match lhs_ty.interned() {
+                        TyKind::TypeAlias(alias) => alias.target_type(self.db),
+                        _ => lhs_ty,
+                    };
                     if let BinaryOp::Assignment { op: _op } = op {
                         let resolver = resolver_for_expr(self.db, self.body.owner(), tgt_expr);
                         if !self.check_place_expression(&resolver, *lhs) {
@@ -436,7 +486,9 @@ impl InferenceResultBuilder<'_> {
                 }
                 _ => error_type(),
             },
-            Expr::Block { statements, tail } => self.infer_block(statements, *tail, expected),
+            Expr::Block { statements, tail } => {
+                self.infer_block(tgt_expr, statements, *tail, expected)
+            }
             Expr::Call { callee: call, args } => self.infer_call(tgt_expr, *call, args, expected),
             Expr::MethodCall {
                 receiver,
@@ -1432,12 +1484,31 @@ impl InferenceResultBuilder<'_> {
 
     fn infer_block(
         &mut self,
+        block: ExprId,
         statements: &[Statement],
         tail: Option<ExprId>,
         expected: &Expectation,
     ) -> Ty {
         let mut diverges = false;
-        for stmt in statements {
+        // Ghost lets sit outside `statements` (see `BodyContracts`), tagged
+        // with the index of the statement they precede; they are checked in
+        // that position so they see the same bindings an ordinary `let`
+        // there would.
+        let ghosts = self.body.contracts().ghost_lets.get(&block);
+        let ghosts_at = |idx: usize| {
+            ghosts
+                .into_iter()
+                .flatten()
+                .filter(move |(pos, _)| *pos == idx)
+                .map(|(_, stmt)| stmt)
+        };
+        let ordered: Vec<&Statement> = statements
+            .iter()
+            .enumerate()
+            .flat_map(|(idx, stmt)| ghosts_at(idx).chain(std::iter::once(stmt)))
+            .chain(ghosts_at(statements.len()))
+            .collect();
+        for stmt in ordered {
             match stmt {
                 Statement::Let {
                     pat,
@@ -1528,7 +1599,8 @@ impl InferenceResultBuilder<'_> {
         TyKind::Never.intern()
     }
 
-    fn infer_loop_expr(&mut self, _tgt_expr: ExprId, body: ExprId, expected: &Expectation) -> Ty {
+    fn infer_loop_expr(&mut self, tgt_expr: ExprId, body: ExprId, expected: &Expectation) -> Ty {
+        self.infer_loop_contract(tgt_expr);
         if let ActiveLoop::Loop(ty, _) = self.infer_loop_block(
             body,
             ActiveLoop::Loop(TyKind::Never.intern(), expected.clone()),
@@ -1551,12 +1623,13 @@ impl InferenceResultBuilder<'_> {
 
     fn infer_while_expr(
         &mut self,
-        _tgt_expr: ExprId,
+        tgt_expr: ExprId,
         condition: ExprId,
         body: ExprId,
         _expected: &Expectation,
     ) -> Ty {
         self.infer_expr(condition, &Expectation::has_type(TyKind::Bool.intern()));
+        self.infer_loop_contract(tgt_expr);
         self.infer_loop_block(body, ActiveLoop::While);
         Ty::unit()
     }

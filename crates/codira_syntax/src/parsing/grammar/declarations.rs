@@ -6,9 +6,9 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use super::{
     adt, error_block, expressions, generics, name, name_recovery, opt_attribute_list,
-    opt_visibility, params, paths, traits, types, Marker, Parser, TokenSet, CONST_DEF, EOF, ERROR,
-    EXTERN, FUNCTION_DEF, IDENT, MACRO_DEF, RENAME, RET_TYPE, USE, USES_CLAUSE, USE_TREE,
-    USE_TREE_LIST,
+    opt_visibility, params, paths, traits, types, Marker, Parser, TokenSet, CONST_DEF,
+    ENSURES_CLAUSE, EOF, ERROR, EXTERN, FUNCTION_DEF, IDENT, MACRO_DEF, RENAME, REQUIRES_CLAUSE,
+    RET_TYPE, USE, USES_CLAUSE, USE_TREE, USE_TREE_LIST,
 };
 use crate::parsing::grammar::paths::is_use_path_start;
 
@@ -274,11 +274,37 @@ pub(super) fn fn_def(p: &mut Parser<'_>) {
     opt_uses_clause(p);
     opt_fn_ret_type(p);
     generics::opt_where_clause(p);
+    opt_contract_clauses(p);
 
     if p.at(T![;]) {
         p.bump(T![;]);
     } else {
         expressions::block(p);
+    }
+}
+
+/// Parses any number of `requires <expr>` / `ensures <expr>` clauses
+/// between a function's signature and its body.
+///
+/// Both words are contextual keywords: the lexer emits `IDENT`, and they are
+/// promoted only here, where nothing else can appear -- a signature is over
+/// and the body has not started, so an identifier in this position has no
+/// other reading. The expression is parsed with struct literals forbidden,
+/// exactly like an `if` condition, so `requires ok {` reads `ok` as the
+/// predicate and `{` as the body.
+fn opt_contract_clauses(p: &mut Parser<'_>) {
+    loop {
+        let kind = if p.at_contextual_kw("requires") {
+            (T![requires], REQUIRES_CLAUSE)
+        } else if p.at_contextual_kw("ensures") {
+            (T![ensures], ENSURES_CLAUSE)
+        } else {
+            break;
+        };
+        let m = p.start();
+        p.bump_remap(kind.0);
+        expressions::expr_no_struct(p);
+        m.complete(p, kind.1);
     }
 }
 

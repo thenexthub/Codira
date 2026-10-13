@@ -15,7 +15,7 @@ use codira_syntax::{
 };
 use either::Either;
 use la_arena::{Arena, ArenaMap, Idx};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub use self::scope::ExprScopes;
 use crate::{
@@ -69,6 +69,60 @@ pub struct Body {
 
     /// Diagnostics encountered when parsing the ast expressions
     diagnostics: Vec<ExprDiagnostic>,
+
+    /// Verification-only parts of the body: contract clauses, loop
+    /// invariants and ghost bindings. See [`BodyContracts`].
+    contracts: BodyContracts,
+}
+
+/// The verification-only half of a [`Body`].
+///
+/// Every expression in here lives in the body's own arena -- so it is named,
+/// resolved and type-checked exactly like executable code, and diagnostics
+/// point at its real source -- but none of it is reachable from
+/// [`Body::body_expr`]. That is the whole erasure story: code generation and
+/// MIR lowering walk the tree from `body_expr`, so contracts and ghost code
+/// never reach them, and no backend has to know they exist.
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct BodyContracts {
+    /// `requires <expr>` clauses, in source order.
+    pub requires: Vec<ExprId>,
+    /// `ensures <expr>` clauses, in source order.
+    pub ensures: Vec<ExprId>,
+    /// The binding `result` resolves to inside an `ensures` clause. Present
+    /// only when the function has at least one.
+    pub result_pat: Option<PatId>,
+    /// `invariant`/`decreases` clauses, keyed by the `Loop`/`While`
+    /// expression they belong to.
+    pub loops: FxHashMap<ExprId, LoopContract>,
+    /// `ghost let` statements, keyed by the block they appear in. Each is
+    /// paired with the index of the (non-ghost) statement it precedes in that
+    /// block's `statements`, so a block of `n` statements has positions
+    /// `0..=n`, the last being "after every statement, before the tail".
+    pub ghost_lets: FxHashMap<ExprId, Vec<(usize, Statement)>>,
+    /// Every expression allocated for a contract clause or a ghost
+    /// initializer. Validators that reason about *executable* code use this
+    /// to skip them.
+    pub ghost_exprs: FxHashSet<ExprId>,
+    /// Every pattern bound by a `ghost let`.
+    pub ghost_pats: FxHashSet<PatId>,
+}
+
+/// The `invariant` and `decreases` clauses of one loop.
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct LoopContract {
+    pub invariants: Vec<ExprId>,
+    pub decreases: Option<ExprId>,
+}
+
+impl BodyContracts {
+    /// Whether the body carries anything for the verifier at all.
+    pub fn is_empty(&self) -> bool {
+        self.requires.is_empty()
+            && self.ensures.is_empty()
+            && self.loops.is_empty()
+            && self.ghost_lets.is_empty()
+    }
 }
 
 impl Body {
@@ -125,6 +179,12 @@ impl Body {
 
     pub fn ret_type(&self) -> LocalTypeRefId {
         self.ret_type
+    }
+
+    /// The verification-only half of this body (contracts, loop invariants,
+    /// ghost bindings). See [`BodyContracts`].
+    pub fn contracts(&self) -> &BodyContracts {
+        &self.contracts
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -553,6 +613,7 @@ pub(crate) struct ExprCollector<'a> {
     type_ref_builder: TypeRefMapBuilder,
     current_file_id: FileId,
     diagnostics: Vec<ExprDiagnostic>,
+    contracts: BodyContracts,
 }
 
 impl<'a> ExprCollector<'a> {
@@ -570,7 +631,25 @@ impl<'a> ExprCollector<'a> {
             type_ref_builder: TypeRefMap::builder(),
             current_file_id: file_id,
             diagnostics: Vec::new(),
+            contracts: BodyContracts::default(),
         }
+    }
+
+    /// Collects an expression that exists only for verification, recording
+    /// every expression it allocates in `contracts.ghost_exprs`. Nothing else
+    /// is allocated while it runs, so the new ids are exactly the arena
+    /// slots between the two lengths.
+    fn collect_ghost_expr(&mut self, expr: Option<ast::Expr>) -> ExprId {
+        let start = self.exprs.len();
+        let id = self.collect_expr_opt(expr);
+        let end = self.exprs.len();
+        for raw in start..end {
+            let raw = u32::try_from(raw).expect("expression arena overflow");
+            self.contracts
+                .ghost_exprs
+                .insert(Idx::from_raw(la_arena::RawIdx::from(raw)));
+        }
+        id
     }
 
     fn alloc_pat(&mut self, pat: Pat, ptr: PatPtr) -> PatId {
@@ -635,6 +714,24 @@ impl<'a> ExprCollector<'a> {
         let body = self.collect_block_opt(node.body());
         self.body_expr = Some(body);
 
+        // Contract clauses are collected after the body so that nothing in
+        // the executable tree depends on them, and into the same arena so
+        // they resolve and type-check like any other expression.
+        for clause in node.requires_clauses() {
+            let id = self.collect_ghost_expr(clause.expr());
+            self.contracts.requires.push(id);
+        }
+        let mut ensures = node.ensures_clauses().peekable();
+        if ensures.peek().is_some() {
+            self.contracts.result_pat = Some(self.pats.alloc(Pat::Bind {
+                name: Name::new("result"),
+            }));
+        }
+        for clause in ensures {
+            let id = self.collect_ghost_expr(clause.expr());
+            self.contracts.ensures.push(id);
+        }
+
         let ret_type = if let Some(type_ref) = node.ret_type().and_then(|rt| rt.type_ref()) {
             self.type_ref_builder.alloc_from_node(&type_ref)
         } else {
@@ -653,28 +750,82 @@ impl<'a> ExprCollector<'a> {
 
     fn collect_block(&mut self, block: ast::BlockExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&block.clone().into());
-        let statements = block
-            .statements()
-            .map(|s| match s.kind() {
+        let mut statements = Vec::new();
+        let mut ghost_lets = Vec::new();
+        for s in block.statements() {
+            match s.kind() {
+                ast::StmtKind::LetStmt(stmt) if stmt.is_ghost() => {
+                    // A ghost binding is kept out of `statements` entirely:
+                    // that list is what code generation walks.
+                    let pat = self.collect_pat_opt(stmt.pat());
+                    let mut bound = Vec::new();
+                    self.collect_bound_pats(pat, &mut bound);
+                    self.contracts.ghost_pats.extend(bound);
+                    let type_ref = stmt
+                        .ascribed_type()
+                        .map(|t| self.type_ref_builder.alloc_from_node(&t));
+                    let initializer = stmt.initializer().map(|e| self.collect_ghost_expr(Some(e)));
+                    ghost_lets.push((
+                        statements.len(),
+                        Statement::Let {
+                            pat,
+                            type_ref,
+                            initializer,
+                        },
+                    ));
+                }
                 ast::StmtKind::LetStmt(stmt) => {
                     let pat = self.collect_pat_opt(stmt.pat());
                     let type_ref = stmt
                         .ascribed_type()
                         .map(|t| self.type_ref_builder.alloc_from_node(&t));
                     let initializer = stmt.initializer().map(|e| self.collect_expr(e));
-                    Statement::Let {
+                    statements.push(Statement::Let {
                         pat,
                         type_ref,
                         initializer,
-                    }
+                    });
                 }
                 ast::StmtKind::ExprStmt(stmt) => {
-                    Statement::Expr(self.collect_expr_opt(stmt.expr()))
+                    statements.push(Statement::Expr(self.collect_expr_opt(stmt.expr())));
                 }
-            })
-            .collect();
+            }
+        }
         let tail = block.expr().map(|e| self.collect_expr(e));
-        self.alloc_expr(Expr::Block { statements, tail }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::Block { statements, tail }, syntax_node_ptr);
+        if !ghost_lets.is_empty() {
+            self.contracts.ghost_lets.insert(id, ghost_lets);
+        }
+        id
+    }
+
+    /// Every pattern id at or below `pat`.
+    fn collect_bound_pats(&self, pat: PatId, out: &mut Vec<PatId>) {
+        out.push(pat);
+        self.pats[pat].walk_child_pats(|child| self.collect_bound_pats(child, out));
+    }
+
+    /// Lowers a loop's `invariant`/`decreases` clauses into the contract
+    /// table, keyed by the loop expression.
+    fn collect_loop_contract(
+        &mut self,
+        loop_expr: ExprId,
+        invariants: impl Iterator<Item = ast::InvariantClause>,
+        decreases: Option<ast::DecreasesClause>,
+    ) {
+        let invariants: Vec<ExprId> = invariants
+            .map(|clause| self.collect_ghost_expr(clause.expr()))
+            .collect();
+        let decreases = decreases.map(|clause| self.collect_ghost_expr(clause.expr()));
+        if !invariants.is_empty() || decreases.is_some() {
+            self.contracts.loops.insert(
+                loop_expr,
+                LoopContract {
+                    invariants,
+                    decreases,
+                },
+            );
+        }
     }
 
     fn collect_pat_opt(&mut self, pat: Option<ast::Pat>) -> PatId {
@@ -1142,14 +1293,18 @@ impl<'a> ExprCollector<'a> {
     fn collect_loop(&mut self, expr: ast::LoopExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&expr.clone().into());
         let body = self.collect_block_opt(expr.loop_body());
-        self.alloc_expr(Expr::Loop { body }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::Loop { body }, syntax_node_ptr);
+        self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
+        id
     }
 
     fn collect_while(&mut self, expr: ast::WhileExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&expr.clone().into());
         let condition = self.collect_condition_opt(expr.condition());
         let body = self.collect_block_opt(expr.loop_body());
-        self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr);
+        self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
+        id
     }
 
     fn finish(mut self) -> (Body, BodySourceMap) {
@@ -1166,6 +1321,7 @@ impl<'a> ExprCollector<'a> {
                 .ret_type
                 .expect("A body should have return type collected"),
             diagnostics: self.diagnostics,
+            contracts: self.contracts,
         };
         self.source_map.type_refs = type_ref_source_map;
         (body, self.source_map)
@@ -1283,7 +1439,7 @@ fn filtered_float_lit(str: &str, suffix: Option<&str>, base: u32) -> (Literal, V
 }
 
 /// Parses the given string into an integer literal
-fn integer_lit(str: &str, suffix: Option<&str>) -> (Literal, Vec<LiteralError>) {
+pub(crate) fn integer_lit(str: &str, suffix: Option<&str>) -> (Literal, Vec<LiteralError>) {
     let str = strip_underscores(str);
 
     let base = match str.as_bytes() {

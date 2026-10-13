@@ -129,6 +129,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
     /// Generates IR for the body of the function.
     pub fn gen_fn_body(&mut self) {
+        // `@runtime_checked` preconditions (see `codira_hir::verify`) have to
+        // run before anything else, so a function that carries them never
+        // takes the constant-folding shortcut below, which would skip them.
+        let runtime_checks = !self.body.contracts().requires.is_empty()
+            && codira_hir::verify::is_runtime_checked(self.db, self.hir_function);
+
         // Eidos fast path: if the whole body reduces to a compile-time
         // constant (after inlining, unrolling, equality saturation and
         // interpretation -- see `crate::eidos_fold`), emit just that
@@ -136,7 +142,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // below produces correct code either way. This is the one place
         // Eidos enters a build, so `--mode=dev` (no optimizer) skips it
         // here and nowhere else.
-        if let Some(optimizer) = &self.eidos {
+        if let Some(optimizer) = self.eidos.as_ref().filter(|_| !runtime_checks) {
             if let Some(value) = crate::eidos_fold::fold_to_constant(
                 self.db,
                 self.hir_function,
@@ -214,6 +220,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             }
         }
 
+        if runtime_checks {
+            self.gen_precondition_checks();
+        }
+
         // Generate code for the body of the function
         let ret_value = self.gen_expr(self.body.body_expr());
 
@@ -238,6 +248,42 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     .build_return(Some(&value))
                     .expect("failed to build return");
             }
+        }
+    }
+
+    /// Emits a `@runtime_checked` function's `requires` clauses at its
+    /// entry: each one that evaluates to false executes `llvm.trap`. The
+    /// clauses are ordinary, already type-checked expressions of the body's
+    /// arena that the executable tree never references; the HIR ghost rules
+    /// guarantee they have no effects, so evaluating them here changes
+    /// nothing but the failure mode.
+    fn gen_precondition_checks(&mut self) {
+        let body = self.body.clone();
+        let trap = inkwell::intrinsics::Intrinsic::find("llvm.trap")
+            .and_then(|intrinsic| intrinsic.get_declaration(self.module, &[]))
+            .expect("llvm.trap is always available");
+        for &clause in &body.contracts().requires {
+            let Some(value) = self.gen_expr(clause) else {
+                continue;
+            };
+            let condition = self.opt_deref_value(clause, value).into_int_value();
+            let holds = self
+                .context
+                .append_basic_block(self.fn_value, "requires_holds");
+            let violated = self
+                .context
+                .append_basic_block(self.fn_value, "requires_violated");
+            self.builder
+                .build_conditional_branch(condition, holds, violated)
+                .expect("failed to build precondition branch");
+            self.builder.position_at_end(violated);
+            self.builder
+                .build_call(trap, &[], "")
+                .expect("failed to build precondition trap");
+            self.builder
+                .build_unreachable()
+                .expect("failed to build unreachable after trap");
+            self.builder.position_at_end(holds);
         }
     }
 

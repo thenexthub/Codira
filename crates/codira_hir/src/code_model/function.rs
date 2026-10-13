@@ -73,6 +73,10 @@ pub struct FunctionData {
     /// Whether this function carries the `@strict` attribute, opting it
     /// into `expr::validator::move_check`'s use-after-consume checking.
     is_strict: bool,
+    /// Whether this function carries the `@test` attribute: a test the
+    /// `codira test` runner calls (see `expr::validator::test_fn` for what
+    /// shape a test must have).
+    is_test: bool,
     /// The ABI named by an `@export("C")` attribute, if present.
     ///
     /// `spec/LANGUAGE_SPEC.md` section 10: "`@export(\"C\")` on a Codira
@@ -162,6 +166,14 @@ impl FunctionData {
             })
         });
 
+        let is_test = src.attribute_list().is_some_and(|attrs| {
+            attrs.attributes().any(|attr| {
+                attr.path()
+                    .and_then(|p| p.segment())
+                    .is_some_and(|s| matches!(s.kind(), Some(ast::PathSegmentKind::Name(n)) if n.text() == "test"))
+            })
+        });
+
         let ret_type = if let Some(type_ref) = src.ret_type().and_then(|rt| rt.type_ref()) {
             type_ref_builder.alloc_from_node(&type_ref)
         } else {
@@ -191,6 +203,7 @@ impl FunctionData {
             effects: func.effects.clone(),
             consuming_params,
             is_strict,
+            is_test,
             export_abi,
             asm_variants,
             self_param,
@@ -303,6 +316,11 @@ impl FunctionData {
     pub fn asm_variants(&self) -> &[crate::inline_asm::AsmVariant] {
         &self.asm_variants
     }
+
+    /// Whether this function is a `@test`.
+    pub fn is_test(&self) -> bool {
+        self.is_test
+    }
 }
 
 impl Function {
@@ -366,6 +384,11 @@ impl Function {
     /// platform already understands.
     pub fn export_abi(self, db: &dyn HirDatabase) -> Option<String> {
         self.data(db).export_abi().map(ToString::to_string)
+    }
+
+    /// Whether this function is a `@test` the `codira test` runner calls.
+    pub fn is_test(self, db: &dyn HirDatabase) -> bool {
+        self.data(db).is_test()
     }
 
     pub fn ret_type(self, db: &dyn HirDatabase) -> Ty {

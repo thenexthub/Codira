@@ -156,6 +156,16 @@ Grammar(
         "mut",
         "def",
         "data",
+        // Verification contracts (see `codira_hir`'s `verify` module):
+        // `requires`/`ensures` after a function signature, `invariant`/
+        // `decreases` after a `while` condition or `loop`, and `ghost`
+        // before a `let`. Each is promoted only in that position, so all
+        // five stay ordinary identifiers everywhere else.
+        "requires",
+        "ensures",
+        "invariant",
+        "decreases",
+        "ghost",
     ],
     literals: [
         "INT_NUMBER",
@@ -180,6 +190,10 @@ Grammar(
         "RET_TYPE",
         "VISIBILITY",
         "USES_CLAUSE",
+        "REQUIRES_CLAUSE",
+        "ENSURES_CLAUSE",
+        "INVARIANT_CLAUSE",
+        "DECREASES_CLAUSE",
 
         "PARAM_LIST",
         "PARAM",
@@ -320,7 +334,19 @@ Grammar(
                 "GenericParamsOwner",
             ],
             options: [ "ParamList", ["body", "BlockExpr"], "RetType", "UsesClause" ],
+            collections: [
+                ("requires_clauses", "RequiresClause"),
+                ("ensures_clauses", "EnsuresClause"),
+            ],
         ),
+        // `requires <expr>` / `ensures <expr>` -- a function contract clause.
+        // Inside `ensures`, `result` names the return value.
+        "RequiresClause": (options: ["Expr"]),
+        "EnsuresClause": (options: ["Expr"]),
+        // `invariant <expr>` / `decreases <expr>` -- a loop contract clause,
+        // written between a `while` condition (or `loop`) and the body.
+        "InvariantClause": (options: ["Expr"]),
+        "DecreasesClause": (options: ["Expr"]),
         "RetType": (options: ["TypeRef"]),
         "GenericParamList": (collections: [("generic_params", "GenericParam")]),
         "GenericParam": (
@@ -463,12 +489,15 @@ Grammar(
         ),
 
         "LoopExpr": (
-            traits: ["LoopBodyOwner"]
+            traits: ["LoopBodyOwner"],
+            options: [ "DecreasesClause" ],
+            collections: [ ("invariant_clauses", "InvariantClause") ],
         ),
 
         "WhileExpr": (
             traits: ["LoopBodyOwner"],
-            options: [ "Condition" ]
+            options: [ "Condition", "DecreasesClause" ],
+            collections: [ ("invariant_clauses", "InvariantClause") ],
         ),
 
         "PathExpr": (options: ["Path"]),

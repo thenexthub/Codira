@@ -66,6 +66,11 @@ impl ExprValidator<'_> {
             let Expr::Path(path) = expr else {
                 continue;
             };
+            // A mention in a contract clause or ghost code is not a use: it
+            // is erased before code generation and never moves anything.
+            if self.body.contracts().ghost_exprs.contains(&expr_id) {
+                continue;
+            }
             let resolver = resolver_for_expr(self.db, self.body.owner(), expr_id);
             let Some((crate::resolve::ValueNs::LocalBinding(pat), _)) =
                 resolver.resolve_path_as_value_fully(self.db, path)

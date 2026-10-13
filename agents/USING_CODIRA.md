@@ -200,6 +200,62 @@ if let value = find(xs, 7) {
 }
 ```
 
+### Contracts and verification
+
+Every contract is proven at compile time by Z3; a clause that cannot be
+proven is a compile error with a counterexample, never a silent pass.
+
+```codira
+type Positive = i64 { v | v > 0 }        // refinement type
+
+func div(a: i64, b: i64) -> i64
+    requires b != 0                          // proven at every call site
+    requires a != -9223372036854775807 - 1 || b != -1
+{
+    a / b
+}
+
+func half(x: Positive) -> i64
+    ensures result >= 0 && result < x        // `result` = the return value
+{
+    x / 2
+}
+
+func sum_to(n: i64) -> i64
+    requires n >= 0 && n <= 1000
+    ensures result >= 0
+{
+    ghost let limit = n                      // verification-only binding
+    var i = 0
+    var s = 0
+    while i < n
+        invariant i >= 0 && i <= limit
+        invariant s >= 0 && s <= i * 1000
+        decreases n - i                      // proves the loop terminates
+    {
+        i += 1
+        s += i
+    }
+    s
+}
+```
+
+- Integers are checked with the semantics the compiled code has: fixed
+  width, wrapping. `ensures result > x` for `x + 1` fails at `x = i64::MAX`.
+- Inside `ensures`, a parameter means its value on entry.
+- A function with any contract must also prove its divisions safe (no zero
+  divisor, no signed `MIN / -1`).
+- `ghost let` bindings and all clauses are erased before code generation;
+  executable code may not read a ghost binding, and clauses may not call,
+  assign or loop.
+- Contract clauses support integer/bool parameters, locals, literals,
+  arithmetic, comparisons, `&&`/`||`/`!`, `if`/`else` and `as`. Anything that
+  mentions a struct field, array, string, float or a call is reported as
+  uncheckable (an error).
+- `@runtime_checked` on a function makes its `requires` clauses run on entry
+  (a violation traps), so a call site the solver cannot *decide* is accepted.
+  A call site it *refutes* is still an error.
+
 ### Modules & imports
 
 ```codira
@@ -320,6 +376,11 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 - arrays: literals, indexing, element assignment
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
+
+Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
+refinement types on parameters and returns) are checked statically by Z3 in
+`codira check` and `codira build`; see "Contracts and verification" above for
+what the checker models and what it reports as uncheckable.
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,

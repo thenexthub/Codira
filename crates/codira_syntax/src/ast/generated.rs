@@ -548,6 +548,34 @@ impl ConstDef {
     }
 }
 
+// DecreasesClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DecreasesClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for DecreasesClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, DECREASES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(DecreasesClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl DecreasesClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // EffectDef
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -638,6 +666,34 @@ impl AstNode for EffectOpList {
 impl EffectOpList {
     pub fn ops(&self) -> impl Iterator<Item = EffectOp> {
         super::children(self)
+    }
+}
+
+// EnsuresClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnsuresClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for EnsuresClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, ENSURES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(EnsuresClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl EnsuresClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
     }
 }
 
@@ -1319,6 +1375,14 @@ impl ast::ExternOwner for FunctionDef {}
 impl ast::AttributeOwner for FunctionDef {}
 impl ast::GenericParamsOwner for FunctionDef {}
 impl FunctionDef {
+    pub fn requires_clauses(&self) -> impl Iterator<Item = RequiresClause> {
+        super::children(self)
+    }
+
+    pub fn ensures_clauses(&self) -> impl Iterator<Item = EnsuresClause> {
+        super::children(self)
+    }
+
     pub fn param_list(&self) -> Option<ParamList> {
         super::child_opt(self)
     }
@@ -1629,6 +1693,34 @@ impl InheritanceList {
     }
 }
 
+// InvariantClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InvariantClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for InvariantClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, INVARIANT_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(InvariantClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl InvariantClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // LetStmt
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1737,7 +1829,15 @@ impl AstNode for LoopExpr {
     }
 }
 impl ast::LoopBodyOwner for LoopExpr {}
-impl LoopExpr {}
+impl LoopExpr {
+    pub fn invariant_clauses(&self) -> impl Iterator<Item = InvariantClause> {
+        super::children(self)
+    }
+
+    pub fn decreases_clause(&self) -> Option<DecreasesClause> {
+        super::child_opt(self)
+    }
+}
 
 // MacroDef
 
@@ -2858,6 +2958,34 @@ impl AstNode for Rename {
 impl ast::NameOwner for Rename {}
 impl Rename {}
 
+// RequiresClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RequiresClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for RequiresClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, REQUIRES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(RequiresClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl RequiresClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // RetType
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -3900,7 +4028,15 @@ impl AstNode for WhileExpr {
 }
 impl ast::LoopBodyOwner for WhileExpr {}
 impl WhileExpr {
+    pub fn invariant_clauses(&self) -> impl Iterator<Item = InvariantClause> {
+        super::children(self)
+    }
+
     pub fn condition(&self) -> Option<Condition> {
+        super::child_opt(self)
+    }
+
+    pub fn decreases_clause(&self) -> Option<DecreasesClause> {
         super::child_opt(self)
     }
 }

@@ -350,12 +350,25 @@ pub(crate) fn callable_item_sig(db: &dyn HirDatabase, def: CallableDef) -> FnSig
 pub(crate) fn fn_sig_for_fn(db: &dyn HirDatabase, def: Function) -> FnSig {
     let data = def.data(db);
     let resolver = def.id.resolver(db);
+    // A type alias is a name, not a type: the signature carries what it
+    // names. Without this a parameter typed by an alias (the usual way to
+    // spell a refinement type, `x: Positive`) reached code generation as
+    // `TyKind::TypeAlias`, which no backend lowers. A refinement's
+    // predicate is not lost by this -- `crate::verify` reads it back from
+    // the declaration, not from the signature.
+    let lower = |tr: LocalTypeRefId| {
+        let ty = Ty::from_hir(db, &resolver, data.type_ref_map(), tr).0;
+        match ty.interned() {
+            TyKind::TypeAlias(alias) => alias.target_type(db),
+            _ => ty,
+        }
+    };
     let params = data
         .params()
         .iter()
-        .map(|tr| Ty::from_hir(db, &resolver, data.type_ref_map(), *tr).0)
+        .map(|tr| lower(*tr))
         .collect::<Vec<_>>();
-    let ret = Ty::from_hir(db, &resolver, data.type_ref_map(), *data.ret_type()).0;
+    let ret = lower(*data.ret_type());
     FnSig::from_params_and_return(params, ret)
 }
 

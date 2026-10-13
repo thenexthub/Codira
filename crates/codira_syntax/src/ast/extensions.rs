@@ -215,6 +215,17 @@ impl ast::Param {
     }
 }
 
+impl ast::LetStmt {
+    /// Whether this is a `ghost let`: a binding that exists only for
+    /// verification. `codira_hir` keeps ghost bindings out of the body that
+    /// code generation sees, and rejects any use of one from executable code.
+    pub fn is_ghost(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .any(|it| it.kind() == T![ghost])
+    }
+}
+
 pub enum VisibilityKind {
     Public,
     Internal,
