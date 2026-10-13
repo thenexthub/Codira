@@ -40,6 +40,13 @@ pub struct Args {
     /// Use color in output
     #[clap(long, value_enum)]
     color: Option<super::build::UseColor>,
+
+    /// Do not write `tests/generated/` from refuted contract obligations.
+    /// By default, checking a package writes one runnable `@test` per
+    /// function whose contract Z3 refuted, and removes the ones whose
+    /// obligations are now proven (see `codira test`).
+    #[clap(long)]
+    no_counterexample_tests: bool,
 }
 
 /// Type-checks sources and reports what the compiler could not accept.
@@ -64,6 +71,7 @@ pub fn check(args: Args) -> Result<ExitStatus, anyhow::Error> {
         emit_ir: false,
     };
 
+    let mut package_root = None;
     let (driver, what) = if let Some(path) = args.path {
         let label = path.display().to_string();
         (Driver::with_source_directory(&path, config)?, label)
@@ -87,6 +95,7 @@ pub fn check(args: Args) -> Result<ExitStatus, anyhow::Error> {
             })?
         };
         let (package, driver) = Driver::with_package_path(&manifest_path, config)?;
+        package_root = Some(package.root().to_path_buf());
         (driver, package.name().to_string())
     };
 
@@ -188,6 +197,25 @@ pub fn check(args: Args) -> Result<ExitStatus, anyhow::Error> {
     println!(
         "checked {what}: {clean_files} of {total_files} files clean ({syntax} syntax, {semantic} semantic)"
     );
+
+    if let (Some(root), false) = (&package_root, args.no_counterexample_tests) {
+        let report = super::counterexample::sync_generated_tests(
+            driver.db(),
+            &super::counterexample::generated_dir(root),
+        )?;
+        for path in &report.written {
+            println!(
+                "wrote counterexample test {} (run it with `codira test`)",
+                path.strip_prefix(root).unwrap_or(path).display()
+            );
+        }
+        for path in &report.removed {
+            println!(
+                "removed counterexample test {}: its obligation is proven now",
+                path.strip_prefix(root).unwrap_or(path).display()
+            );
+        }
+    }
 
     Ok(ExitStatus::from(syntax == 0 && semantic == 0))
 }

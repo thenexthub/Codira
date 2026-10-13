@@ -9,7 +9,9 @@ mod ops;
 use std::ffi::OsString;
 
 use clap::{Parser, Subcommand};
-use ops::{bindgen, build, check, daemon, init, language_server, new, quantum, run, start};
+use ops::{
+    bindgen, build, check, daemon, init, language_server, new, quantum, query, run, start, test,
+};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -51,6 +53,14 @@ enum Command {
 
     /// Quantum kernels: build to QIR/OpenQASM, simulate, import circuits
     Quantum(quantum::Args),
+
+    /// Build the package with its `tests/` and run every `@test` function,
+    /// each in its own process
+    Test(test::Args),
+
+    /// Find the functions that can satisfy a predicate over `result` and
+    /// their parameters (e.g. "result < 0"), with a witness input for each
+    Query(query::Args),
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq)]
@@ -86,5 +96,7 @@ where
         Command::Start(args) => start::start(args),
         Command::Run(args) => run::run(args),
         Command::Quantum(args) => quantum::quantum(args),
+        Command::Test(args) => test::test(args),
+        Command::Query(args) => query::query(args),
     }
 }

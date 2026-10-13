@@ -223,8 +223,12 @@ fn lower<'ctx>(
     }
 }
 
-fn binary<'ctx>(op: BinOp, lhs: Sym<'ctx>, rhs: Sym<'ctx>) -> Option<Sym<'ctx>> {
+/// One binary operator over two encoded operands, or `None` when the
+/// operator does not apply to them -- including two integers of different
+/// widths, which Z3 would reject outright.
+pub(crate) fn binary<'ctx>(op: BinOp, lhs: Sym<'ctx>, rhs: Sym<'ctx>) -> Option<Sym<'ctx>> {
     Some(match (lhs, rhs) {
+        (Sym::Int(l, _), Sym::Int(r, _)) if l.width() != r.width() => return None,
         (Sym::Int(l, ty), Sym::Int(r, _)) => {
             let signed = ty.signedness.is_signed();
             let int = |v: BvExpr<'ctx>| Sym::Int(v, ty);

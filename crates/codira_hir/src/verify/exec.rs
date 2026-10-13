@@ -218,6 +218,10 @@ struct Exec<'a, 'ctx> {
     /// time (`@runtime_checked`), so one the verifier cannot encode is not
     /// an error.
     own_requires_checked: bool,
+    /// Every return point reached: its path condition and returned value.
+    /// Read by [`return_paths`] (semantic search); verification itself
+    /// checks postconditions at each return and does not need the list.
+    returns: Vec<(BoolExpr<'ctx>, Sym<'ctx>)>,
 }
 
 /// Verifies one function. See the module docs of `crate::verify`.
@@ -259,6 +263,7 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
         breaks: Vec::new(),
         fresh: 0,
         own_requires_checked: super::is_runtime_checked(db, func),
+        returns: Vec::new(),
     };
     let mut state = exec.entry_state();
     let body_expr = exec.frame.body.body_expr();
@@ -269,6 +274,79 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
         params,
         obligations: exec.solve(),
     }
+}
+
+/// What a function can return, as symbolic values over its parameters.
+pub(crate) struct ReturnPaths<'ctx> {
+    /// The parameters, by name.
+    pub inputs: Vec<(String, Sym<'ctx>)>,
+    /// Each return point: the condition (including the function's
+    /// `requires` and parameter refinements) under which it is reached, and
+    /// the value returned there.
+    pub returns: Vec<(BoolExpr<'ctx>, Sym<'ctx>)>,
+}
+
+/// Symbolically executes `func`'s body in `ctx` and collects its return
+/// points. A function without a body to execute (an `extern` declaration)
+/// returns a fresh value constrained by its `ensures` and return refinement.
+/// No obligation is solved here.
+pub(crate) fn return_paths<'ctx>(
+    db: &dyn HirDatabase,
+    func: Function,
+    ctx: &'ctx Context,
+) -> Option<ReturnPaths<'ctx>> {
+    let frame = Frame::new(db, func);
+    if frame.body.self_param().is_some() {
+        return None;
+    }
+    let has_body =
+        !func.is_extern(db) && !matches!(frame.body[frame.body.body_expr()], Expr::Missing);
+    let mut exec = Exec {
+        db,
+        ctx,
+        ret_refinement: refinement::return_refinement(db, func),
+        frame,
+        check_own: false,
+        entry_vars: FxHashMap::default(),
+        inputs: Vec::new(),
+        pending: Vec::new(),
+        breaks: Vec::new(),
+        fresh: 0,
+        own_requires_checked: false,
+        returns: Vec::new(),
+    };
+    let mut state = exec.entry_state();
+    if has_body {
+        let body_expr = exec.frame.body.body_expr();
+        if let Some(value) = exec.eval(&mut state, body_expr) {
+            exec.check_return(&state, value);
+        }
+    } else {
+        // Summarise the declaration by its contract, exactly as a caller
+        // would see it.
+        let ret_ty = func.ret_type(db);
+        let result = exec.fresh_for_ty(&ret_ty, "result");
+        let body = Arc::clone(&exec.frame.body);
+        let mut vars = exec.entry_vars.clone();
+        if let Some(result_pat) = body.contracts().result_pat {
+            vars.insert(result_pat, result);
+        }
+        for &clause in &body.contracts().ensures {
+            if let Ok(Sym::Bool(b)) = exec.pure(&exec.frame, &vars, clause) {
+                state.pc = state.pc.and(b);
+            }
+        }
+        if let Some(refinement) = &exec.ret_refinement {
+            if let Ok(b) = refinement::encode(ctx, refinement, result) {
+                state.pc = state.pc.and(b);
+            }
+        }
+        exec.returns.push((state.pc, result));
+    }
+    Some(ReturnPaths {
+        inputs: exec.inputs,
+        returns: exec.returns,
+    })
 }
 
 fn pat_name(body: &Body, pat: PatId, idx: usize) -> String {
@@ -1174,6 +1252,7 @@ impl<'ctx> Exec<'_, 'ctx> {
 
     /// A return point: the postconditions and the return refinement.
     fn check_return(&mut self, state: &State<'ctx>, value: Sym<'ctx>) {
+        self.returns.push((state.pc, value));
         if !self.check_own {
             return;
         }

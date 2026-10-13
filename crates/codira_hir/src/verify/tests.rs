@@ -578,7 +578,7 @@ fn a_refuted_postcondition_becomes_a_checking_test() {
     assert!(test.module_path.is_empty());
     assert!(test.contents.starts_with(super::testgen::GENERATED_MARKER));
     assert!(test.contents.contains(
-        "@test\npublic func abs_counterexample() -> bool {\n    let x = (-9223372036854775807 - 1);\n    let result = super.abs(x);\n    result >= 0\n}\n"
+        "import super.abs;\n\n@test\npublic func abs_counterexample() -> bool {\n    let x = (-9223372036854775807 - 1);\n    let result = abs(x);\n    result >= 0\n}\n"
     ), "{}", test.contents);
     assert!(test
         .contents
@@ -607,9 +607,8 @@ fn a_refuted_call_site_becomes_a_call_test() {
     )
     .expect("a test is generated");
     assert!(
-        test.contents.contains(
-            "public func caller_counterexample() {\n    let x = 0;\n    super.caller(x);\n}\n"
-        ),
+        test.contents
+            .contains("public func caller_counterexample() {\n    let x = 0;\n    caller(x);\n}\n"),
         "{}",
         test.contents
     );
@@ -682,4 +681,71 @@ fn test_functions_must_have_a_callable_shape() {
     assert!(diags.contains("must be `public`"));
     assert!(diags.contains("takes parameters"));
     assert!(diags.contains("must return `()` or `bool`"));
+}
+
+fn run_query(source: &str, predicate: &str) -> super::query::QueryOutcome {
+    let (db, _) = MockDatabase::with_single_file(source);
+    super::query::query(&db, predicate).unwrap()
+}
+
+#[test]
+fn query_finds_functions_that_can_return_negatives_from_their_bodies() {
+    let source = r#"
+    func abs(x: i64) -> i64 { if x < 0 { -x } else { x } }
+    func square_ish(x: i64) -> i64
+        requires x >= 0 && x <= 1000
+    {
+        x * x
+    }
+    func clamp_low(x: i64) -> i64 { if x < 0 { 0 } else { x } }
+    func negate(x: i64) -> i64 { -x }
+    func flag(b: bool) -> bool { b }
+    "#;
+    let outcome = run_query(source, "result < 0");
+    let names: Vec<String> = outcome
+        .matches
+        .iter()
+        .map(|m| m.signature.clone())
+        .collect();
+    // `abs` can: -i64::MIN wraps to itself. `negate` obviously can.
+    // `square_ish` and `clamp_low` cannot, and `flag` returns a bool.
+    assert_eq!(
+        names,
+        ["func abs(x: i64) -> i64", "func negate(x: i64) -> i64"],
+        "{outcome:#?}"
+    );
+    let abs = &outcome.matches[0];
+    assert_eq!(abs.inputs[0].1.as_i128(), Some(i128::from(i64::MIN)));
+    assert_eq!(
+        abs.result.and_then(|v| v.as_i128()),
+        Some(i128::from(i64::MIN))
+    );
+    assert_eq!(abs.location, "mod.code:1");
+    assert_eq!(
+        outcome.not_applicable, 1,
+        "only `flag` compares a bool to 0"
+    );
+}
+
+#[test]
+fn query_can_relate_result_and_parameters() {
+    let source = r#"
+    func inc(x: i64) -> i64 { x + 1 }
+    func same(x: i64) -> i64 { x }
+    func other(y: i64) -> i64 { y }
+    "#;
+    let outcome = run_query(source, "result < x");
+    let names: Vec<&str> = outcome
+        .matches
+        .iter()
+        .map(|m| m.signature.as_str())
+        .collect();
+    assert_eq!(names, ["func inc(x: i64) -> i64"], "wrapping at i64::MAX");
+    assert_eq!(outcome.not_applicable, 1, "`other` has no `x`");
+}
+
+#[test]
+fn query_rejects_a_malformed_predicate() {
+    let (db, _) = MockDatabase::with_single_file("func f() {}");
+    assert!(super::query::query(&db, "result <").is_err());
 }

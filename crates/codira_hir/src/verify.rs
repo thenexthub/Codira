@@ -62,6 +62,7 @@
 
 mod exec;
 mod ghost;
+pub mod query;
 pub(crate) mod refinement;
 pub mod testgen;
 #[cfg(test)]

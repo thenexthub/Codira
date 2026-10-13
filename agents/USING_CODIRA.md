@@ -283,6 +283,34 @@ options as `build`. If the build reports an error, nothing is run. After the
 entry point returns, `run`/`start` print its value if it is a primitive
 (`bool`, any integer or float type); a `()` entry point prints nothing.
 
+### Tests, counterexamples and semantic search
+
+```bash
+codira test                       # build src/ + tests/, run every @test
+codira test parse                 # only tests whose name contains "parse"
+codira check                      # also writes tests/generated/ (see below)
+codira query "result < 0"         # functions that can return a negative
+codira query "x > 0 && result == 0"
+```
+
+A test is a `public` function marked `@test` with no parameters, returning
+`bool` (passes when `true`) or `()` (passes unless it traps or aborts). Tests
+can live in `src/` or in any `.code` file under `tests/`; each runs in its own
+process, so a trap or abort fails only that test.
+
+When `codira check` refutes a contract it writes
+`tests/generated/<fn>_counterexample.code`: a `@test` that calls the function
+with the counterexample Z3 found (for a postcondition it returns the clause
+evaluated on the real result, so it fails exactly while the bug exists). The
+file is removed again once the contract is proven. `codira test` runs such
+tests even while the contract is unproven -- that is what they are for.
+
+`codira query` answers from the function *bodies* (callees summarised by
+their contracts), with a witness input for each match. Values the verifier
+does not model (struct fields, arrays, loop variables without an invariant)
+are unconstrained, so a match there can be a value the program never
+produces; a function is never missed because of that.
+
 Printing is built in -- no import, no `extern` declaration:
 
 ```codira

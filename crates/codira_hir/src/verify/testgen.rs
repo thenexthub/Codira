@@ -6,8 +6,8 @@
 //! - Turns a refuted proof obligation into a runnable `@test` that calls the
 //!   function with the counterexample Z3 found.
 //!
-//! The test is a child module of the function's own module (so it can call
-//! a private function through `super`), written to
+//! The test is a child module of the function's own module (so it can
+//! import a private function from `super`), written to
 //! `tests/generated/<module path.><function>_counterexample.code`;
 //! `codira test` mounts each such file back under that module. What the test
 //! asserts depends on what was refuted:
@@ -140,7 +140,7 @@ pub fn counterexample_test(db: &dyn HirDatabase, func: Function) -> Option<Gener
         .map(|(param, value)| format!("    let {param} = {};\n", value.to_source()))
         .collect();
     let args: Vec<&str> = cex.inputs.iter().map(|(p, _)| p.as_str()).collect();
-    let call = format!("super.{name}({})", args.join(", "));
+    let call = format!("{name}({})", args.join(", "));
 
     let checked_clause = match obligation.kind {
         ObligationKind::Postcondition if !args.contains(&"result") => {
@@ -152,7 +152,11 @@ pub fn counterexample_test(db: &dyn HirDatabase, func: Function) -> Option<Gener
         _ => None,
     };
 
+    // A module-qualified call is not an expression form the language has;
+    // the function is imported from the parent module instead, which also
+    // reaches a private function (a child module sees its parent's items).
     out.push('\n');
+    out.push_str(&format!("import super.{name};\n\n"));
     if let Some((binder, clause)) = checked_clause {
         out.push_str("@test\n");
         out.push_str(&format!("public func {name}_counterexample() -> bool {{\n"));
