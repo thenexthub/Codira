@@ -87,6 +87,16 @@ pub struct Args {
     /// features it implies, so the build does not depend on where it runs.
     #[clap(long)]
     target_cpu: Option<String>,
+
+    /// Also write a standalone executable: the Codira runtime with this
+    /// package's libraries appended, runnable with nothing else installed.
+    #[clap(long, conflicts_with_all = ["watch", "daemon", "emit_ir", "target"])]
+    exe: bool,
+
+    /// Where `--exe` writes the executable. Defaults to the package name in
+    /// the package's output directory.
+    #[clap(long, short = 'o', requires = "exe")]
+    output: Option<PathBuf>,
 }
 
 /// A `--target` value: the target it resolved to, and the triple as the
@@ -169,15 +179,37 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
     };
 
     if args.watch {
-        codira_compiler_daemon::compile_and_watch_manifest(
+        return codira_compiler_daemon::compile_and_watch_manifest(
             &manifest_path,
             compiler_options,
             display_colors,
         )
-    } else {
-        codira_compiler::compile_manifest(&manifest_path, compiler_options, display_colors)
+        .map(Into::into);
     }
-    .map(Into::into)
+
+    let package = codira_project::Package::from_file(&manifest_path)?;
+    let output_dir = codira_compiler::ensure_package_output_dir(&package, &compiler_options)?;
+    if !codira_compiler::compile_manifest(&manifest_path, compiler_options, display_colors)? {
+        return Ok(ExitStatus::Error);
+    }
+
+    if args.exe {
+        let output = args.output.unwrap_or_else(|| {
+            output_dir.join(format!(
+                "{}{}",
+                package.manifest().name(),
+                std::env::consts::EXE_SUFFIX
+            ))
+        });
+        crate::ops::exe::bundle(
+            &crate::ops::exe::find_launcher()?,
+            &output_dir,
+            "main",
+            &output,
+        )?;
+        eprintln!("wrote {}", output.display());
+    }
+    Ok(ExitStatus::Success)
 }
 
 /// Decides whether diagnostics are colored: the `--color` flag if given,

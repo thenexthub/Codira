@@ -9,6 +9,9 @@ mod ops;
 use std::ffi::OsString;
 
 use clap::{Parser, Subcommand};
+/// Standalone executables: what `codira build --exe` writes and what the
+/// `codira-launcher` binary runs.
+pub use ops::exe;
 use ops::{
     bindgen, build, check, daemon, import_c, init, language_server, new, quantum, query, run,
     start, test,

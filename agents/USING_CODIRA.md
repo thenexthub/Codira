@@ -358,6 +358,19 @@ instead.
 Hot reload: Codira is designed so a running application can swap function
 bodies without a manual stop/restart cycle.
 
+### Standalone executables: `codira build --exe`
+
+```bash
+codira build --exe -o app.exe      # one file; runs with nothing else installed
+./app.exe                          # `main` returning an integer sets the exit code
+```
+
+The executable is the Codira runtime (`codira-launcher`, shipped next to
+`codira`) with the package's compiled libraries appended. On its first run it
+unpacks them once into a temporary directory named after their hash; later
+runs load them directly. `main` may return nothing (exit code 0), an integer
+(the exit code) or `bool` (true is success). Host target only for now.
+
 ### Targets
 
 `--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,
