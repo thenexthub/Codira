@@ -959,6 +959,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "codira_quantum"
+version = "0.6.0-dev"
+dependencies = [
+ "inkwell",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "codira_runtime"
 version = "0.6.0-dev"
 dependencies = [
