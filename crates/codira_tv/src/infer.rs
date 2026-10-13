@@ -28,7 +28,8 @@
 use codira_mir::{Body, Op, OpId, OpKind};
 use rustc_hash::FxHashMap;
 
-/// The two sorts `codira_smt` can express.
+/// The two sorts the encoding uses (`codira_smt` also has 64-bit
+/// bitvectors; nothing here is modeled with them).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Sort {
     Int,

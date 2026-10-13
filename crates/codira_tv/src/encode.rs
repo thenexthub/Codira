@@ -41,8 +41,9 @@ pub(crate) enum Sym<'ctx> {
     Bool(BoolExpr<'ctx>, Option<bool>),
 }
 
-/// Boolean equivalence, built from mutual implication since `codira_smt`
-/// has no `iff`/`xor` builder.
+/// Boolean equivalence, built from mutual implication. `BoolExpr::iff`
+/// denotes the same formula; this spelling is kept so the queries the
+/// existing verdicts were established on stay exactly as they were.
 pub(crate) fn iff<'ctx>(a: BoolExpr<'ctx>, b: BoolExpr<'ctx>) -> BoolExpr<'ctx> {
     a.implies(b).and(b.implies(a))
 }
@@ -293,7 +294,9 @@ impl<'a, 'ctx> Encoder<'a, 'ctx> {
                 match xc {
                     Some(v) => Ok(Sym::Int(self.ctx.int_lit(!v), Some(!v))),
                     None => Err(
-                        "bitwise complement of a non-constant operand is not expressible in                          linear integer arithmetic (codira_smt exposes no bitvector sorts here)"
+                        "bitwise complement of a non-constant operand is not expressible in \
+                         linear integer arithmetic (this validator does not use a bitvector \
+                         encoding)"
                             .to_string(),
                     ),
                 }
@@ -313,7 +316,8 @@ impl<'a, 'ctx> Encoder<'a, 'ctx> {
                     }
                     _ => Err(
                         "bitwise and/or/xor on non-constant operands is not expressible in \
-                         linear integer arithmetic (codira_smt exposes no bitvector sorts)"
+                         linear integer arithmetic (this validator does not use a bitvector \
+                         encoding)"
                             .to_string(),
                     ),
                 }
@@ -383,8 +387,8 @@ impl<'a, 'ctx> Encoder<'a, 'ctx> {
                 }
                 let then_sym = self.encode_body(&then_r.body)?;
                 let else_sym = self.encode_body(&else_r.body)?;
-                // No ite in codira_smt: define the result as a fresh
-                // variable v with cond -> v = then and !cond -> v = else.
+                // Define the result as a fresh variable v with
+                // cond -> v = then and !cond -> v = else (crate docs).
                 // Exactly one guard fires per assignment, so v is uniquely
                 // determined -- total and functional, as required.
                 match (then_sym, else_sym) {
