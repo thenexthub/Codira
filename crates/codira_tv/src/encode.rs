@@ -126,8 +126,8 @@ impl<'a, 'ctx> Encoder<'a, 'ctx> {
     ) -> Result<Sym<'ctx>, String> {
         use OpKind::{
             Add, And, Arg, BitAnd, BitNot, BitOr, BitXor, BlockArg, Call, Cast, Const, Div, Eq,
-            For, Ge, Gt, If, Le, Lt, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple,
-            TupleGet, While, Yield,
+            For, Ge, Gt, If, Le, Lt, Mem, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub,
+            Tuple, TupleGet, While, Yield,
         };
 
         let operand = |n: usize| -> Result<Sym<'ctx>, String> {
@@ -434,6 +434,8 @@ impl<'a, 'ctx> Encoder<'a, 'ctx> {
             Tuple | TupleGet(_) => {
                 Err("tuple values are outside the fragment this validator encodes".to_string())
             }
+            Mem(_) => Err("memory operations are outside the fragment this validator encodes"
+                .to_string()),
             ParamRef(name) => Err(format!(
                 "unresolved generator parameter @{name}; run elaboration before validating"
             )),

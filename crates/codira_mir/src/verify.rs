@@ -12,7 +12,7 @@
 //! only name an earlier op. What *can* go wrong -- and is checked -- is
 //! arity, region count/shape, `Yield` placement, and `BlockArg` indices.
 
-use crate::op::{Body, Op, OpId, OpKind, Region};
+use crate::op::{Body, MemOp, Op, OpId, OpKind, Region};
 
 /// A structural rule violation, with the offending op's id (within its own
 /// region's body -- ids are region-local, matching everything else in this
@@ -29,7 +29,13 @@ pub struct VerifyError {
 /// `Arg`, not `BlockArg`). Recurses into all nested regions with the
 /// correct argument counts.
 pub fn verify_body(body: &Body) -> Result<(), VerifyError> {
-    verify_in_region(body, 0, false)
+    verify_in_region(body, 0, false)?;
+    // Memory linearity and the schedule invariant (`crate::mem`). Only
+    // bodies that touch memory pay for the scan.
+    if crate::mem::uses_memory(body) {
+        crate::mem::verify_memory(body, true)?;
+    }
+    Ok(())
 }
 
 fn verify_in_region(body: &Body, num_args: u32, yield_expected: bool) -> Result<(), VerifyError> {
@@ -68,8 +74,8 @@ fn verify_in_region(body: &Body, num_args: u32, yield_expected: bool) -> Result<
 fn verify_op(id: OpId, op: &Op, num_args: u32) -> Result<(), VerifyError> {
     use OpKind::{
         Add, And, Arg, BitAnd, BitNot, BitOr, BitXor, BlockArg, Call, Cast, Const, Div, Eq, For,
-        Ge, Gt, If, Le, Lt, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple, TupleGet,
-        While, Yield,
+        Ge, Gt, If, Le, Lt, Mem, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple,
+        TupleGet, While, Yield,
     };
 
     let fail = |rule: &'static str| Err(VerifyError { op: id, rule });
@@ -128,6 +134,17 @@ fn verify_op(id: OpId, op: &Op, num_args: u32) -> Result<(), VerifyError> {
         }
 
         Tuple | Call(_) | Yield => expect_no_regions("op takes no regions"),
+
+        Mem(mem) => {
+            let arity = match mem {
+                MemOp::Entry => 0,
+                MemOp::Alloc { .. } | MemOp::Addr => 1,
+                MemOp::Load | MemOp::Offset { .. } => 2,
+                MemOp::Store => 3,
+            };
+            expect_operands(arity, "memory op has the wrong number of operands")?;
+            expect_no_regions("memory ops take no regions")
+        }
 
         If => {
             expect_operands(1, "cf.if takes exactly one operand (the condition)")?;
@@ -245,8 +262,8 @@ fn operand_ty(body: &Body, op: &Op, n: usize) -> TypeId {
 fn check_op_types(body: &Body, id: OpId, op: &Op) -> Result<(), TypeError> {
     use OpKind::{
         Add, And, Arg, BitAnd, BitNot, BitOr, BitXor, BlockArg, Call, Cast, Const, Div, Eq, For,
-        Ge, Gt, If, Le, Lt, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple, TupleGet,
-        While, Yield,
+        Ge, Gt, If, Le, Lt, Mem, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple,
+        TupleGet, While, Yield,
     };
 
     let fail = |rule: &'static str| Err(TypeError { op: id, rule });
@@ -445,6 +462,59 @@ fn check_op_types(body: &Body, id: OpId, op: &Op) -> Result<(), TypeError> {
         // there is nothing local to check them against.
         Const(_) | Arg(_) | BlockArg(_) | ParamRef(_) | Tuple | TupleGet(_) | Call(_) | Yield => {
             Ok(())
+        }
+
+        // Memory ops: states are `mem`, addresses are `ptr`, and a load
+        // produces an ordinary value. Untyped operands are skipped, as
+        // everywhere else in this phase of the migration.
+        Mem(mem) => {
+            let expect = |n: usize, want: TypeId, rule: &'static str| {
+                let found = operand_ty(body, op, n);
+                if found.is_untyped() || found == want {
+                    Ok(())
+                } else {
+                    Err(TypeError { op: id, rule })
+                }
+            };
+            let result = |want: TypeId, rule: &'static str| {
+                if ty.is_untyped() || ty == want {
+                    Ok(())
+                } else {
+                    Err(TypeError { op: id, rule })
+                }
+            };
+            match mem {
+                MemOp::Entry => result(TypeId::MEM, "mem.entry is a memory state"),
+                MemOp::Alloc { .. } => {
+                    expect(0, TypeId::MEM, "mem.alloc takes a memory state")?;
+                    result(TypeId::MEM, "mem.alloc produces a memory state")
+                }
+                MemOp::Addr => {
+                    expect(0, TypeId::MEM, "mem.addr takes a memory state")?;
+                    result(TypeId::PTR, "mem.addr produces a ptr")
+                }
+                MemOp::Load => {
+                    expect(0, TypeId::MEM, "mem.load reads a memory state")?;
+                    expect(1, TypeId::PTR, "mem.load reads through a ptr")?;
+                    if ty == TypeId::MEM || ty == TypeId::PTR {
+                        return fail("mem.load produces a value, not a memory state or ptr");
+                    }
+                    Ok(())
+                }
+                MemOp::Store => {
+                    expect(0, TypeId::MEM, "mem.store takes a memory state")?;
+                    expect(1, TypeId::PTR, "mem.store writes through a ptr")?;
+                    result(TypeId::MEM, "mem.store produces a memory state")
+                }
+                MemOp::Offset { .. } => {
+                    expect(0, TypeId::PTR, "mem.offset takes a ptr")?;
+                    let index = operand_ty(body, op, 1);
+                    if !index.is_untyped() && !index.is_int() {
+                        return fail("mem.offset takes an integer index");
+                    }
+                    result(TypeId::PTR, "mem.offset produces a ptr")
+                }
+            }
         }
     }
 }

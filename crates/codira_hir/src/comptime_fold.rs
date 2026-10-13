@@ -135,7 +135,9 @@ pub(crate) fn value_to_expr(
         }
         codira_comptime::Value::Str(_)
         | codira_comptime::Value::Tuple(_)
-        | codira_comptime::Value::Unit => None,
+        | codira_comptime::Value::Unit
+        | codira_comptime::Value::Mem(_)
+        | codira_comptime::Value::Ptr { .. } => None,
     }
 }
 

@@ -22,6 +22,9 @@
 //! * `generator` -- parametric function/struct templates (`kgen.generator`
 //!   analogs); elaboration lives in `codira_comptime`.
 //! * `verify` -- the structural verifier (KGEN's `kgen-verifier` analog).
+//! * `mem` -- Memory SSA: memory as an SSA value of type `mem`, the linearity
+//!   and schedule rules that keep it executable, and the scheduler (the design
+//!   is the module doc).
 //! * `print` -- MLIR-flavored textual form, for humans and snapshot tests.
 //! * `pass` -- the pass manager and the optimization passes that run between
 //!   elaboration and codegen (KGEN's `Transforms/` analog).
@@ -32,6 +35,7 @@
 
 pub mod fold;
 mod generator;
+pub mod mem;
 mod op;
 pub mod pass;
 pub mod print;
@@ -42,7 +46,7 @@ pub use fold::{fold_cast, fold_op, FoldError};
 pub use generator::{
     Generator, GeneratorId, GeneratorParam, GeneratorStore, StructGenerator, StructGeneratorId,
 };
-pub use op::{Attr, Body, CastKind, CastMode, Op, OpId, OpKind, Region};
+pub use op::{Attr, Body, CastKind, CastMode, MemOp, Op, OpId, OpKind, Region};
 pub use print::print_body;
 pub use ty::{Type, TypeId, TypeStore};
 pub use verify::{check_types, verify_body, TypeError, VerifyError};

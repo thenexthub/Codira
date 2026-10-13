@@ -33,6 +33,24 @@ pub enum Value {
     Str(SmolStr),
     Tuple(Vec<Value>),
     Unit,
+    /// A memory state (`mem`): the contents of every allocation made so far
+    /// in this evaluation. Persistent: a store makes a new state and leaves
+    /// the old one intact, because in the IR both are values.
+    Mem(MemState),
+    /// An address: element `index` of allocation `alloc`.
+    Ptr {
+        alloc: u32,
+        index: i64,
+    },
+}
+
+/// The interpreter's memory: each allocation's cells, `None` until
+/// written. `fresh` is the allocation this state was created by, if it was
+/// made by `mem.alloc` -- which is what `mem.addr` of it returns.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct MemState {
+    pub cells: std::sync::Arc<std::collections::BTreeMap<u32, Vec<Option<Value>>>>,
+    pub fresh: Option<u32>,
 }
 
 impl PartialEq for Value {
@@ -45,6 +63,10 @@ impl PartialEq for Value {
             (Value::Str(a), Value::Str(b)) => a == b,
             (Value::Tuple(a), Value::Tuple(b)) => a == b,
             (Value::Unit, Value::Unit) => true,
+            (Value::Mem(a), Value::Mem(b)) => a == b,
+            (Value::Ptr { alloc: a, index: i }, Value::Ptr { alloc: b, index: j }) => {
+                a == b && i == j
+            }
             _ => false,
         }
     }
@@ -64,6 +86,11 @@ impl std::hash::Hash for Value {
             Value::Str(v) => v.hash(state),
             Value::Tuple(v) => v.hash(state),
             Value::Unit => {}
+            Value::Mem(m) => m.hash(state),
+            Value::Ptr { alloc, index } => {
+                alloc.hash(state);
+                index.hash(state);
+            }
         }
     }
 }
@@ -77,6 +104,8 @@ impl Value {
             Value::Str(_) => "string",
             Value::Tuple(_) => "tuple",
             Value::Unit => "unit",
+            Value::Mem(_) => "memory state",
+            Value::Ptr { .. } => "pointer",
         }
     }
 
@@ -171,4 +200,10 @@ pub enum EvalError {
     UnknownCallee(SmolStr),
     #[error("argument #{0} is a genuine runtime value, not a compile-time constant")]
     RuntimeArgument(u32),
+    #[error("load of a memory cell that was never written")]
+    UninitializedLoad,
+    #[error("memory access at index {index} of an allocation of {len}")]
+    OutOfBounds { index: i64, len: usize },
+    #[error("pointer to an allocation that does not exist in this memory state")]
+    DanglingPointer,
 }

@@ -53,6 +53,9 @@ pub struct CostTable {
     pub mul: u64,
     /// Integer divide and remainder.
     pub div: u64,
+    /// A load or a store (`mem.load`, `mem.store`). Address arithmetic and
+    /// allocation bookkeeping cost `alu`.
+    pub memory: u64,
     /// An opaque op (control flow, a call): never chosen against an
     /// alternative, but it must cost something so extraction does not
     /// prefer duplicating work into it.
@@ -71,6 +74,7 @@ impl CostTable {
         shift: 1,
         mul: 3,
         div: 8,
+        memory: 4,
         opaque: 1,
     };
 
@@ -85,6 +89,7 @@ impl CostTable {
         shift: 1,
         mul: 3,
         div: 40,
+        memory: 4,
         opaque: 1,
     };
 
@@ -105,6 +110,7 @@ impl CostTable {
         shift: 1,
         mul: 3,
         div: 12,
+        memory: 4,
         opaque: 1,
     };
 
@@ -127,6 +133,7 @@ impl CostTable {
         shift: 1,
         mul: 4,
         div: 64,
+        memory: 32,
         opaque: 1,
     };
 

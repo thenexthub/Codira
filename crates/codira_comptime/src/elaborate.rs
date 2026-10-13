@@ -263,6 +263,7 @@ fn value_to_attr(value: &Value) -> Option<Attr> {
         Value::Float(v) => Some(Attr::float(*v)),
         Value::Str(s) => Some(Attr::Str(s.clone())),
         Value::Unit => Some(Attr::Unit),
-        Value::Tuple(_) => None,
+        // Memory states and addresses exist only during an evaluation.
+        Value::Tuple(_) | Value::Mem(_) | Value::Ptr { .. } => None,
     }
 }

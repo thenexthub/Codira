@@ -811,3 +811,156 @@ fn the_cost_table_decides_what_is_extracted() {
         "{text}"
     );
 }
+
+// ---- memory (codira_mir::mem) --------------------------------------------
+
+mod memory {
+    use codira_mir::{print_body, verify_body, Attr, Body, MemOp, OpId, OpKind, TypeId};
+
+    use crate::{EGraphOptimizer, TypeEnv};
+
+    fn int(body: &mut Body, v: i64) -> OpId {
+        body.push_typed(OpKind::Const(Attr::Int(v)), [], TypeId::I64)
+    }
+
+    fn mem(body: &mut Body, op: MemOp, operands: &[OpId], ty: TypeId) -> OpId {
+        body.push_typed(OpKind::Mem(op), operands.iter().copied(), ty)
+    }
+
+    fn slot(body: &mut Body, state: OpId, site: u32) -> (OpId, OpId) {
+        let m = mem(
+            body,
+            MemOp::Alloc {
+                site,
+                elem: TypeId::I64,
+                count: 1,
+            },
+            &[state],
+            TypeId::MEM,
+        );
+        let p = mem(body, MemOp::Addr, &[m], TypeId::PTR);
+        (m, p)
+    }
+
+    fn optimize(body: &Body) -> Body {
+        verify_body(body).expect("test input must verify");
+        let out = EGraphOptimizer::default()
+            .optimize_body_with(body, &TypeEnv::unknown())
+            .0;
+        verify_body(&out).expect("optimizer output must verify");
+        out
+    }
+
+    #[test]
+    fn a_stored_value_is_forwarded_to_the_load() {
+        let mut body = Body::new();
+        let x = body.push_typed(OpKind::Arg(0), [], TypeId::I64);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let (m1, p) = slot(&mut body, m0, 0);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, p, x], TypeId::MEM);
+        mem(&mut body, MemOp::Load, &[m2, p], TypeId::I64);
+        let text = print_body(&optimize(&body));
+        assert!(!text.contains("mem.load"), "{text}");
+        assert!(text.contains("core.arg 0"), "{text}");
+    }
+
+    #[test]
+    fn a_load_bypasses_a_store_to_another_allocation() {
+        // *p = 5; *q = 9; return *p   ==>   5
+        let mut body = Body::new();
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let (m1, p) = slot(&mut body, m0, 0);
+        let (m2, q) = slot(&mut body, m1, 1);
+        let five = int(&mut body, 5);
+        let nine = int(&mut body, 9);
+        let m3 = mem(&mut body, MemOp::Store, &[m2, p, five], TypeId::MEM);
+        let m4 = mem(&mut body, MemOp::Store, &[m3, q, nine], TypeId::MEM);
+        mem(&mut body, MemOp::Load, &[m4, p], TypeId::I64);
+        let text = print_body(&optimize(&body));
+        assert_eq!(text, "%0 = core.const 5\n", "{text}");
+    }
+
+    #[test]
+    fn an_address_of_unknown_origin_is_not_assumed_disjoint() {
+        // *a = 5; *b = 9; return *a -- a and b are arguments and may be
+        // the same address, so the load must stay.
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let b = body.push_typed(OpKind::Arg(1), [], TypeId::PTR);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let five = int(&mut body, 5);
+        let nine = int(&mut body, 9);
+        let m1 = mem(&mut body, MemOp::Store, &[m0, a, five], TypeId::MEM);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, b, nine], TypeId::MEM);
+        let v = mem(&mut body, MemOp::Load, &[m2, a], TypeId::I64);
+        body.push(OpKind::Tuple, [m2, v]);
+        let text = print_body(&optimize(&body));
+        assert!(text.contains("mem.load"), "{text}");
+        assert_eq!(text.matches("mem.store").count(), 2, "{text}");
+    }
+
+    #[test]
+    fn an_overwritten_store_is_dropped() {
+        // *a = 1; *a = 2; return memory  ==>  one store
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let one = int(&mut body, 1);
+        let two = int(&mut body, 2);
+        let m1 = mem(&mut body, MemOp::Store, &[m0, a, one], TypeId::MEM);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, a, two], TypeId::MEM);
+        let zero = int(&mut body, 0);
+        body.push(OpKind::Tuple, [m2, zero]);
+        let text = print_body(&optimize(&body));
+        assert_eq!(text.matches("mem.store").count(), 1, "{text}");
+        assert!(text.contains("core.const 2"), "{text}");
+    }
+
+    #[test]
+    fn a_differently_typed_load_is_not_forwarded() {
+        // Store an i64, load an i32 from the same address: not the same value.
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let x = body.push_typed(OpKind::Arg(1), [], TypeId::I64);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(&mut body, MemOp::Store, &[m0, a, x], TypeId::MEM);
+        let narrow = mem(&mut body, MemOp::Load, &[m1, a], TypeId::I32);
+        body.push(OpKind::Tuple, [m1, narrow]);
+        let text = print_body(&optimize(&body));
+        assert!(text.contains("mem.load"), "{text}");
+    }
+
+    #[test]
+    fn a_reread_of_an_overwritten_state_keeps_the_input_order_valid() {
+        // m1 = *a = 1; v = *a (in m1); m2 = *a = 2; return (m2, v).
+        // Forwarding makes v = 1; the dead-store rule must not leave a
+        // branching chain behind. Whatever comes out has to verify, and v
+        // must still be 1.
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let one = int(&mut body, 1);
+        let two = int(&mut body, 2);
+        let m1 = mem(&mut body, MemOp::Store, &[m0, a, one], TypeId::MEM);
+        let v = mem(&mut body, MemOp::Load, &[m1, a], TypeId::I64);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, a, two], TypeId::MEM);
+        body.push(OpKind::Tuple, [m2, v]);
+        let out = optimize(&body);
+        let text = print_body(&out);
+        assert_eq!(text.matches("mem.store").count(), 1, "{text}");
+        assert!(text.contains("core.const 1"), "{text}");
+    }
+
+    #[test]
+    fn identical_loads_of_one_state_are_one_value() {
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let x = mem(&mut body, MemOp::Load, &[m0, a], TypeId::I64);
+        let y = mem(&mut body, MemOp::Load, &[m0, a], TypeId::I64);
+        body.push_typed(OpKind::Sub, [x, y], TypeId::I64);
+        // x - x == 0 needs both to be integers; a typed load is one.
+        let text = print_body(&optimize(&body));
+        assert_eq!(text, "%0 = core.const 0\n", "{text}");
+    }
+}

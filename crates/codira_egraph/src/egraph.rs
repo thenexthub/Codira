@@ -14,7 +14,7 @@
 //! difference between an e-graph that saturates in milliseconds and one
 //! that does not finish.
 
-use codira_mir::{fold_op, Attr, Body, Op, OpId, OpKind, Region, TypeId};
+use codira_mir::{fold_op, Attr, Body, MemOp, Op, OpId, OpKind, Region, TypeId};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
@@ -74,6 +74,35 @@ pub(crate) struct Analysis {
     /// arithmetic-restructuring rule -- see the crate doc for why this is
     /// a soundness requirement, not an optimization.
     pub definitely_int: bool,
+    /// Where an address came from, when it is known to point into an
+    /// allocation made in this body. The alias facts the memory rules need
+    /// (`codira_mir::mem`) are read from this, never guessed.
+    pub provenance: Option<Provenance>,
+}
+
+/// An address derived from a `mem.alloc`: the allocation's site, its
+/// element type, and the element index when it is a constant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Provenance {
+    pub site: u32,
+    pub elem: TypeId,
+    pub index: Option<i64>,
+}
+
+impl Provenance {
+    /// Whether two addresses provably name different memory: different
+    /// allocation sites, or the same site at different known indices of the
+    /// same element type. Anything less certain may alias.
+    pub fn disjoint(a: Option<Provenance>, b: Option<Provenance>) -> bool {
+        match (a, b) {
+            (Some(a), Some(b)) if a.site != b.site => true,
+            (Some(a), Some(b)) => match (a.index, b.index) {
+                (Some(i), Some(j)) => a.elem == b.elem && i != j,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
 }
 
 impl Analysis {
@@ -95,6 +124,10 @@ impl Analysis {
         }
         if !self.definitely_int && other.definitely_int {
             self.definitely_int = true;
+            changed = true;
+        }
+        if self.provenance.is_none() && other.provenance.is_some() {
+            self.provenance = other.provenance;
             changed = true;
         }
         changed
@@ -242,6 +275,7 @@ impl EGraph {
             let mut mine = self.analyses.remove(&ra).unwrap_or(Analysis {
                 constant: None,
                 definitely_int: false,
+                provenance: None,
             });
             mine.merge(&other);
             self.analyses.insert(ra, mine);
@@ -374,6 +408,7 @@ impl EGraph {
             return Analysis {
                 constant: None,
                 definitely_int: false,
+                provenance: None,
             };
         };
 
@@ -421,12 +456,45 @@ impl EGraph {
             OpKind::Add | OpKind::Sub | OpKind::Mul | OpKind::Div | OpKind::Rem | OpKind::Neg => {
                 children_int()
             }
+            // A load's type is declared on the op, not inferred: a typed
+            // integer load is an integer.
+            OpKind::Mem(MemOp::Load) => node.ty.is_int(),
             _ => false,
+        };
+
+        let provenance = match kind {
+            OpKind::Mem(MemOp::Addr) => node.children.first().and_then(|&state| {
+                self.nodes(state).iter().find_map(|n| match n.kind {
+                    NodeKind::Pure(OpKind::Mem(MemOp::Alloc { site, elem, .. })) => {
+                        Some(Provenance {
+                            site,
+                            elem,
+                            index: Some(0),
+                        })
+                    }
+                    _ => None,
+                })
+            }),
+            OpKind::Mem(MemOp::Offset { elem }) => match node.children.as_slice() {
+                [base, index] => self.analysis(*base).and_then(|a| a.provenance).map(|p| {
+                    let step = match self.analysis(*index).and_then(|a| a.constant.clone()) {
+                        Some(Attr::Int(k)) if p.elem == *elem => Some(k),
+                        _ => None,
+                    };
+                    Provenance {
+                        index: p.index.zip(step).and_then(|(i, k)| i.checked_add(k)),
+                        ..p
+                    }
+                }),
+                _ => None,
+            },
+            _ => None,
         };
 
         Analysis {
             constant,
             definitely_int,
+            provenance,
         }
     }
 
@@ -624,5 +692,8 @@ pub(crate) fn is_pure(kind: &OpKind) -> bool {
             | OpKind::Arg(_)
             | OpKind::BlockArg(_)
             | OpKind::ParamRef(_)
+            // Memory ops are ordinary nodes: a state is a value, so equal
+            // operands really do mean an equal result (see `codira_mir::mem`).
+            | OpKind::Mem(_)
     )
 }

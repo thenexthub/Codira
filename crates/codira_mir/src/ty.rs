@@ -59,6 +59,7 @@ const TAG_MEM: u32 = 3;
 const TAG_INT: u32 = 4;
 const TAG_FLOAT: u32 = 5;
 const TAG_NEVER: u32 = 6;
+const TAG_PTR: u32 = 7;
 
 const WIDTH_SHIFT: u32 = 4;
 const SIGNED_BIT: u32 = 1 << 8;
@@ -97,6 +98,11 @@ impl TypeId {
     pub const MEM: TypeId = TypeId(TAG_MEM);
     /// The empty type: the result of a diverging computation.
     pub const NEVER: TypeId = TypeId(TAG_NEVER);
+    /// An address in address space 0, with no pointee type: what a load
+    /// reads is the load's own type (as LLVM's opaque `ptr`). Store-free,
+    /// unlike [`Type::Ptr`] with a pointee, so memory ops can be typed
+    /// without a [`TypeStore`]. Its width is the target's pointer width.
+    pub const PTR: TypeId = TypeId(TAG_PTR);
 
     pub const I8: TypeId = TypeId::int_const(1, true);
     pub const I16: TypeId = TypeId::int_const(2, true);
@@ -245,6 +251,10 @@ impl TypeStore {
             Type::Mem => return TypeId::MEM,
             Type::Int { width, signed } => return TypeId::int(*width, *signed),
             Type::Float { width } => return TypeId::float(*width),
+            Type::Ptr {
+                pointee: TypeId::UNTYPED,
+                space: 0,
+            } => return TypeId::PTR,
             _ => {}
         }
         if let Some(&id) = self.interned.get(&ty) {
@@ -289,6 +299,10 @@ impl TypeStore {
             TAG_UNIT => Type::Unit,
             TAG_MEM => Type::Mem,
             TAG_NEVER => Type::Never,
+            TAG_PTR => Type::Ptr {
+                pointee: TypeId::UNTYPED,
+                space: 0,
+            },
             TAG_INT => {
                 let (width, signed) = id.as_int().expect("tag says int");
                 Type::Int { width, signed }
@@ -324,6 +338,10 @@ impl TypeStore {
                 let inner: Vec<String> = elements.iter().map(|&e| self.display(e)).collect();
                 format!("({})", inner.join(", "))
             }
+            Type::Ptr {
+                pointee: TypeId::UNTYPED,
+                space: 0,
+            } => "ptr".to_string(),
             Type::Ptr { pointee, space } => {
                 let base = format!("*{}", self.display(pointee));
                 if space == 0 {
@@ -363,6 +381,22 @@ mod tests {
         assert_eq!(store.get(TypeId::BOOL), Type::Bool);
         assert_eq!(store.get(TypeId::MEM), Type::Mem);
         assert_eq!(store.get(TypeId::UNTYPED), Type::Untyped);
+        assert_eq!(store.display(TypeId::PTR), "ptr");
+    }
+
+    #[test]
+    fn the_opaque_pointer_is_store_free_and_round_trips() {
+        let mut store = TypeStore::new();
+        let opaque = Type::Ptr {
+            pointee: TypeId::UNTYPED,
+            space: 0,
+        };
+        assert_eq!(store.intern(opaque.clone()), TypeId::PTR);
+        assert_eq!(store.get(TypeId::PTR), opaque);
+        assert!(!TypeId::PTR.is_composite());
+        assert!(store.types.is_empty());
+        // A pointer with a pointee is still a composite.
+        assert!(store.ptr(TypeId::U8).is_composite());
     }
 
     #[test]

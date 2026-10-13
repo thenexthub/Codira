@@ -191,7 +191,9 @@ fn materialize<'ink>(
         // no constant ABI at this layer yet.
         codira_comptime::Value::Unit
         | codira_comptime::Value::Str(_)
-        | codira_comptime::Value::Tuple(_) => None,
+        | codira_comptime::Value::Tuple(_)
+        | codira_comptime::Value::Mem(_)
+        | codira_comptime::Value::Ptr { .. } => None,
     }
 }
 

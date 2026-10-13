@@ -42,10 +42,12 @@
 //! # What enters the e-graph
 //!
 //! Only **pure** ops: constants, arithmetic, comparison, logic, bitwise,
-//! shifts, tuple pack/project, and the leaf references (`core.arg`,
-//! `cf.block_arg`, `param.ref`). Everything else -- `cf.if`, `cf.while`,
-//! `cf.for`, `core.call`, `cf.yield` -- is **opaque**: it enters as a
-//! unique leaf node that can never be merged with another, carrying its
+//! shifts, tuple pack/project, the leaf references (`core.arg`,
+//! `cf.block_arg`, `param.ref`), and the memory ops (`mem.*`: a memory
+//! state is a value, so these are as pure as an add -- see
+//! `codira_mir::mem` for the rules over them). Everything else -- `cf.if`,
+//! `cf.while`, `cf.for`, `core.call`, `cf.yield` -- is **opaque**: it enters as
+//! a unique leaf node that can never be merged with another, carrying its
 //! operand e-classes so extraction can rebuild it. The bodies nested
 //! inside an opaque op's regions are optimized *recursively* in their own
 //! e-graphs, so `x + 0` inside a loop body still simplifies; what does not
@@ -287,6 +289,19 @@ impl EGraphOptimizer {
         let (extracted, extraction) =
             extract::extract(&graph, root, &self.costs, self.exact_extraction_budget);
         report.extraction = extraction;
+
+        // Extraction emits a DAG in post-order, which for memory need not be
+        // an executable order (a load can land after the store that ends the
+        // state it reads). Find one that is, or keep the input: a memory
+        // chain the scheduler cannot linearize is never handed on.
+        let extracted = if codira_mir::mem::uses_memory(&extracted) {
+            match codira_mir::mem::schedule(&extracted) {
+                Some(scheduled) => scheduled,
+                None => return (body.clone(), report),
+            }
+        } else {
+            extracted
+        };
 
         // Extraction is the one place a bug could produce malformed IR;
         // verifying here means a defect surfaces as "optimizer declined"

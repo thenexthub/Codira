@@ -67,7 +67,7 @@
 
 use std::collections::BTreeSet;
 
-use codira_mir::{Body, OpId, OpKind};
+use codira_mir::{Body, MemOp, OpId, OpKind};
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
@@ -87,6 +87,7 @@ pub(crate) fn node_cost(costs: &CostTable, node: &ENode) -> u64 {
             OpKind::Mul => costs.mul,
             OpKind::Div | OpKind::Rem => costs.div,
             OpKind::Shl | OpKind::Shr => costs.shift,
+            OpKind::Mem(MemOp::Load | MemOp::Store) => costs.memory,
             _ => costs.alu,
         },
         NodeKind::Opaque(_) => costs.opaque,

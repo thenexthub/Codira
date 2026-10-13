@@ -114,7 +114,10 @@ fn walk(body: &Body, shape: &mut CalleeShape) {
     for (_, op) in body.iter() {
         match &op.kind {
             OpKind::ParamRef(_) | OpKind::Const(Attr::ParamRef(_)) => shape.has_param_ref = true,
-            OpKind::Call(_) => shape.has_call = true,
+            // A callee that touches memory is not spliced either: its
+            // `mem.entry` would name the caller's *entry* state, not the
+            // state at the call (`core.call` threads no memory yet).
+            OpKind::Call(_) | OpKind::Mem(_) => shape.has_call = true,
             OpKind::Arg(i) => shape.arity = shape.arity.max(*i + 1),
             _ => {}
         }

@@ -97,8 +97,8 @@ fn as_bool(attr: &Attr) -> Result<bool, FoldError> {
 pub fn fold_op(kind: &OpKind, operands: &[Attr]) -> Result<Attr, FoldError> {
     use OpKind::{
         Add, And, Arg, BitAnd, BitNot, BitOr, BitXor, BlockArg, Call, Cast, Const, Div, Eq, For,
-        Ge, Gt, If, Le, Lt, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple, TupleGet,
-        While, Yield,
+        Ge, Gt, If, Le, Lt, Mem, Mul, Ne, Neg, Not, Or, ParamRef, Rem, Shl, Shr, Sub, Tuple,
+        TupleGet, While, Yield,
     };
 
     let unary = || -> Result<&Attr, FoldError> {
@@ -277,6 +277,10 @@ pub fn fold_op(kind: &OpKind, operands: &[Attr]) -> Result<Attr, FoldError> {
         // not an attribute-level computation.
         Tuple | TupleGet(_) | Call(_) | ParamRef(_) | Arg(_) | BlockArg(_) | If | While | For
         | Yield => Err(FoldError::NotFoldable),
+
+        // Memory is not an attribute: a load's value depends on a memory
+        // state, which only an interpreter holds.
+        Mem(_) => Err(FoldError::NotFoldable),
     }
 }
 

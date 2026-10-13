@@ -79,7 +79,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    types::BasicTypeEnum,
+    types::{BasicType, BasicTypeEnum},
     values::{
         AggregateValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, FunctionValue,
         IntValue, PhiValue,
@@ -135,6 +135,12 @@ pub fn lower_mir_body_with_callees<'ink>(
     args: &[BasicValueEnum<'ink>],
     callees: &FxHashMap<SmolStr, FunctionValue<'ink>>,
 ) -> Option<BasicValueEnum<'ink>> {
+    // Lowering emits ops in body order, which is only a correct execution
+    // of memory ops when the body satisfies the memory rules
+    // (`codira_mir::mem`). Refuse rather than emit a wrong order.
+    if codira_mir::mem::uses_memory(body) && codira_mir::verify_body(body).is_err() {
+        return None;
+    }
     let mut lowerer = Lowerer {
         context,
         builder,
@@ -227,7 +233,47 @@ impl<'a, 'ink> Lowerer<'a, 'ink> {
         if ty == codira_mir::TypeId::BOOL {
             return Some(self.context.bool_type().into());
         }
+        if ty == codira_mir::TypeId::PTR {
+            return Some(
+                self.context
+                    .ptr_type(inkwell::AddressSpace::default())
+                    .into(),
+            );
+        }
+        // A memory state carried by a loop needs a phi of *some* type; see
+        // `memory_token`.
+        if ty == codira_mir::TypeId::MEM {
+            return Some(self.context.bool_type().into());
+        }
         None
+    }
+
+    /// The stand-in value of a memory state: memory has no run-time value,
+    /// but a state carried through a loop still flows through a phi, so it
+    /// is an `i1 false` that LLVM deletes as dead.
+    fn memory_token(&self) -> BasicValueEnum<'ink> {
+        self.context.bool_type().const_zero().into()
+    }
+
+    /// A `mem.alloc` slot: an `alloca` of `count` elements, placed at the
+    /// top of the function's entry block, where LLVM promotes and frames
+    /// stack slots. A `mem.alloc` inside a loop therefore reuses one slot
+    /// per iteration rather than growing the stack.
+    fn build_entry_alloca(
+        &self,
+        elem: codira_mir::TypeId,
+        count: u32,
+    ) -> Option<inkwell::values::PointerValue<'ink>> {
+        let elem = self.llvm_type(elem)?;
+        let entry = self.function.get_first_basic_block()?;
+        let builder = self.context.create_builder();
+        match entry.get_first_instruction() {
+            Some(first) => builder.position_before(&first),
+            None => builder.position_at_end(entry),
+        }
+        builder
+            .build_alloca(elem.array_type(count), "mir_alloc")
+            .ok()
     }
 
     /// Emits a saturating float-to-integer conversion via LLVM's
@@ -350,8 +396,12 @@ impl<'a, 'ink> Lowerer<'a, 'ink> {
         values: &mut FxHashMap<codira_mir::OpId, BasicValueEnum<'ink>>,
         expect_trailing_yield: bool,
     ) -> Option<()> {
-        use codira_mir::{Attr, OpKind};
+        use codira_mir::{Attr, MemOp, OpKind};
 
+        // `mem.alloc` slots of this body, for `mem.addr` (which names the
+        // allocation's state, always in the same body).
+        let mut allocations: FxHashMap<codira_mir::OpId, inkwell::values::PointerValue<'ink>> =
+            FxHashMap::default();
         for (id, op) in body.iter() {
             let operand = |i: usize| -> Option<BasicValueEnum<'ink>> {
                 values.get(op.operands.get(i)?).copied()
@@ -634,6 +684,55 @@ impl<'a, 'ink> Lowerer<'a, 'ink> {
 
                 OpKind::While => self.lower_while(op, values)?,
                 OpKind::For => self.lower_for(op, values)?,
+
+                OpKind::Mem(mem) => {
+                    let ptr = |value: BasicValueEnum<'ink>| match value {
+                        BasicValueEnum::PointerValue(p) => Some(p),
+                        _ => None,
+                    };
+                    match mem {
+                        // A memory state has no run-time representation:
+                        // the chain only fixes the order the ops below are
+                        // emitted in, which the schedule invariant
+                        // (`codira_mir::mem`) makes the body order.
+                        MemOp::Entry => self.memory_token(),
+                        MemOp::Alloc { elem, count, .. } => {
+                            let slot = self.build_entry_alloca(*elem, *count)?;
+                            allocations.insert(id, slot);
+                            self.memory_token()
+                        }
+                        MemOp::Addr => (*allocations.get(op.operands.first()?)?).into(),
+                        MemOp::Load => {
+                            let ty = self.llvm_type(op.ty)?;
+                            self.builder
+                                .build_load(ty, ptr(operand(1)?)?, "mir_load")
+                                .ok()?
+                        }
+                        MemOp::Store => {
+                            self.builder
+                                .build_store(ptr(operand(1)?)?, operand(2)?)
+                                .ok()?;
+                            self.memory_token()
+                        }
+                        MemOp::Offset { elem } => {
+                            let elem = self.llvm_type(*elem)?;
+                            let index = int_value(operand(1)?)?;
+                            // SAFETY (LLVM's, not Rust's): a GEP outside the
+                            // allocation is not undefined until it is
+                            // dereferenced; no `inbounds` is claimed.
+                            unsafe {
+                                self.builder.build_gep(
+                                    elem,
+                                    ptr(operand(0)?)?,
+                                    &[index],
+                                    "mir_offset",
+                                )
+                            }
+                            .ok()?
+                            .into()
+                        }
+                    }
+                }
 
                 OpKind::Yield => {
                     // The trailing yield of a loop body is a terminator
