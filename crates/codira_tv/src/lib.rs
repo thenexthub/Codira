@@ -137,7 +137,7 @@ mod eval;
 mod infer;
 
 use codira_mir::{verify_body, Attr, Body};
-use codira_smt::{BoolExpr, Context, SatResult, Solver};
+use codira_smt::{BoolExpr, CheckOutcome, Context, SatResult, Solver};
 
 use crate::encode::{iff, Encoder, Sym};
 
@@ -169,8 +169,9 @@ pub enum Verdict {
     /// The bodies fall outside the encodable fragment; `reason` says
     /// exactly which construct was the obstacle.
     Unsupported { reason: String },
-    /// Z3 could not decide the query.
-    Unknown,
+    /// Z3 could not decide the query; `reason` says why (`resource limit`
+    /// when the deterministic budget ran out). Never a proof.
+    Unknown { reason: String },
 }
 
 /// A configurable validator.
@@ -257,11 +258,11 @@ impl Validator {
         }
         solver.assert(disagree);
 
-        match solver.check() {
-            SatResult::Unsat => Verdict::Proven {
+        match solver.check_detailed() {
+            CheckOutcome::Unsat => Verdict::Proven {
                 modulo_overflow: enc.overflow_possible,
             },
-            SatResult::Sat => Verdict::Refuted {
+            CheckOutcome::Sat => Verdict::Refuted {
                 args: if self.search_witness {
                     find_witness(&ctx, &enc, &solver, disagree, before, after)
                 } else {
@@ -270,7 +271,9 @@ impl Validator {
             },
             // "Could not decide" is its own answer: neither a proof nor a
             // refutation may be read into it.
-            SatResult::Unknown => Verdict::Unknown,
+            CheckOutcome::Unknown(reason) => Verdict::Unknown {
+                reason: reason.to_string(),
+            },
         }
     }
 }

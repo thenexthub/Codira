@@ -918,6 +918,33 @@ pub fn is_satisfiable<'ctx>(ctx: &'ctx Context, predicate: BoolExpr<'ctx>) -> Sa
     solver.check()
 }
 
+/// The verdict of [`implies_detailed`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Implication {
+    /// Every assignment satisfying the premise satisfies the conclusion.
+    Proven,
+    /// Some assignment satisfies the premise but not the conclusion.
+    Refuted,
+    /// Z3 could not decide (see [`UnknownReason`]).
+    Unknown(UnknownReason),
+}
+
+/// [`implies`], keeping "could not decide" apart from "refuted".
+pub fn implies_detailed<'ctx>(
+    ctx: &'ctx Context,
+    premise: BoolExpr<'ctx>,
+    conclusion: BoolExpr<'ctx>,
+) -> Implication {
+    let solver = ctx.solver();
+    solver.assert(premise);
+    solver.assert(conclusion.not());
+    match solver.check_detailed() {
+        CheckOutcome::Unsat => Implication::Proven,
+        CheckOutcome::Sat => Implication::Refuted,
+        CheckOutcome::Unknown(reason) => Implication::Unknown(reason),
+    }
+}
+
 /// Checks whether `premise` *implies* `conclusion`: whether every
 /// assignment satisfying `premise` also satisfies `conclusion`.
 ///
@@ -927,6 +954,10 @@ pub fn is_satisfiable<'ctx>(ctx: &'ctx Context, predicate: BoolExpr<'ctx>) -> Sa
 /// Implication is checked the standard way for a decision procedure that
 /// only directly answers satisfiability queries: `premise => conclusion`
 /// is valid exactly when `premise && !conclusion` is unsatisfiable.
+///
+/// Returns `false` when Z3 cannot decide within the budget: "not proven",
+/// never "proven". Callers that must tell the two apart use
+/// [`implies_detailed`].
 pub fn implies<'ctx>(
     ctx: &'ctx Context,
     premise: BoolExpr<'ctx>,

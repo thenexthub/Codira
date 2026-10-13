@@ -43,14 +43,17 @@
 //! `NotChecked`, not silently treated as satisfiable.
 
 use ast::BinOp;
-use codira_smt::{Context, SatResult};
+use codira_smt::{CheckOutcome, Context};
 use codira_syntax::ast;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RefinementCheckResult {
-    /// The predicate is satisfiable (or Z3 couldn't decide -- `Unknown` is
-    /// treated as "don't false-positive", not as an error).
+    /// The predicate is satisfiable.
     Ok,
+    /// Z3 could not decide within its deterministic budget (or gave up for
+    /// another reason, which the string names). Reported as its own
+    /// diagnostic: an undecided check is not a pass.
+    Unknown(String),
     /// The predicate is provably unsatisfiable: this refinement type has no
     /// inhabitants.
     Unsatisfiable,
@@ -144,12 +147,27 @@ fn lower_expr<'ctx>(
 /// variable) is satisfiable. See the module doc for exactly which
 /// predicates this can check.
 pub(crate) fn check_satisfiable(binder_name: &str, predicate: &ast::Expr) -> RefinementCheckResult {
+    check_satisfiable_within(binder_name, predicate, codira_smt::DEFAULT_RLIMIT)
+}
+
+/// [`check_satisfiable`] with an explicit deterministic budget.
+fn check_satisfiable_within(
+    binder_name: &str,
+    predicate: &ast::Expr,
+    rlimit: u32,
+) -> RefinementCheckResult {
     let ctx = Context::new();
+    ctx.set_rlimit(rlimit);
     match lower_expr(&ctx, binder_name, predicate) {
-        Some(SmtValue::Bool(b)) => match codira_smt::is_satisfiable(&ctx, b) {
-            SatResult::Unsat => RefinementCheckResult::Unsatisfiable,
-            SatResult::Sat | SatResult::Unknown => RefinementCheckResult::Ok,
-        },
+        Some(SmtValue::Bool(b)) => {
+            let solver = ctx.solver();
+            solver.assert(b);
+            match solver.check_detailed() {
+                CheckOutcome::Unsat => RefinementCheckResult::Unsatisfiable,
+                CheckOutcome::Sat => RefinementCheckResult::Ok,
+                CheckOutcome::Unknown(reason) => RefinementCheckResult::Unknown(reason.to_string()),
+            }
+        }
         _ => RefinementCheckResult::NotChecked,
     }
 }
@@ -204,6 +222,17 @@ mod tests {
     fn negation_and_or_are_understood() {
         let pred = predicate_of("type NonZero = i32 { x | x > 0 || x < 0 };");
         assert_eq!(check_satisfiable("x", &pred), RefinementCheckResult::Ok);
+    }
+
+    /// An exhausted budget is its own verdict, naming the budget -- never
+    /// the "satisfiable, no diagnostic" answer it used to fall into.
+    #[test]
+    fn exhausted_budget_is_unknown_not_ok() {
+        let pred = predicate_of("type T = i64 { x | x * x * x * x == 7777777777777 * x + 3 };");
+        assert_eq!(
+            check_satisfiable_within("x", &pred, 1),
+            RefinementCheckResult::Unknown("resource limit".to_string())
+        );
     }
 
     #[test]

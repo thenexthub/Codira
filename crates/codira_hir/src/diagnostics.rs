@@ -761,6 +761,34 @@ impl Diagnostic for ContractViolation {
     }
 }
 
+/// An SMT well-formedness check (the satisfiability of a refinement or of a
+/// healing postcondition) that Z3 could not decide -- typically because its
+/// deterministic `rlimit` budget ran out. Reported rather than read as a
+/// pass: nobody has shown the check succeeds.
+#[derive(Debug)]
+pub struct UndecidedSmtCheck {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    /// What was being decided, as a phrase ("whether the refinement ...").
+    pub what: String,
+    /// Why Z3 gave up (`resource limit` for the budget).
+    pub reason: String,
+}
+
+impl Diagnostic for UndecidedSmtCheck {
+    fn message(&self) -> String {
+        format!("could not decide {}: unknown ({})", self.what, self.reason)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A `@test` function the test runner could not call: see
 /// `expr::validator::test_fn` for the required shape.
 #[derive(Debug)]
