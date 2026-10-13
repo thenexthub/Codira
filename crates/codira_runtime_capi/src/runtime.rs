@@ -200,6 +200,7 @@ pub unsafe extern "C" fn codira_runtime_create(
         library_path: library_path.into(),
         user_functions,
         type_table,
+        heap_limit: None,
     };
 
     let runtime = match codira_runtime::Runtime::new(runtime_options) {

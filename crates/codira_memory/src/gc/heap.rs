@@ -336,17 +336,117 @@ impl HeapInner {
     }
 
     /// Checks that `requested` more bytes can be committed.
-    fn reserve(&self, requested: usize) -> Result<(), AllocError> {
-        match self.limit {
-            Some(limit) if self.committed.saturating_add(requested) > limit => {
-                Err(AllocError::LimitExceeded {
-                    limit,
-                    committed: self.committed,
-                    requested,
-                })
+    fn reserve(&mut self, requested: usize) -> Result<(), AllocError> {
+        let Some(limit) = self.limit else {
+            return Ok(());
+        };
+        if self.committed.saturating_add(requested) > limit {
+            // Cached empty blocks count towards the limit but cannot serve
+            // this request (they would have been used already if they could),
+            // so give them back first.
+            while self.committed.saturating_add(requested) > limit {
+                let Some(base) = self.empty_blocks.pop() else {
+                    break;
+                };
+                unsafe { std::alloc::dealloc(base.as_ptr(), block_layout()) };
+                self.committed -= BLOCK_SIZE;
             }
-            _ => Ok(()),
         }
+        if self.committed.saturating_add(requested) > limit {
+            Err(AllocError::LimitExceeded {
+                limit,
+                committed: self.committed,
+                requested,
+            })
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns every allocated object that one of `words` points into: at its
+    /// header, anywhere inside its cell or payload (including an out-of-line
+    /// payload), or one byte past its end. Used as conservative roots when
+    /// the collector runs during an allocation.
+    pub(crate) fn objects_referenced_by(&self, words: &mut [usize]) -> Vec<NonNull<ObjectHeader>> {
+        #[derive(Clone, Copy)]
+        enum Kind {
+            Cells(usize),
+            Large,
+            OutOfLine(usize),
+        }
+        let mut ranges: Vec<(usize, usize, Kind)> = self
+            .blocks
+            .iter()
+            .map(|b| (b.base.as_ptr() as usize, b.end(), Kind::Cells(b.cell_size)))
+            .chain(
+                self.large
+                    .iter()
+                    .map(|(&address, layout)| (address, address + layout.size(), Kind::Large)),
+            )
+            .chain(self.out_of_line.iter().map(|(&header, (buffer, layout))| {
+                let start = buffer.as_ptr() as usize;
+                (start, start + layout.size(), Kind::OutOfLine(header))
+            }))
+            .collect();
+        if ranges.is_empty() {
+            return Vec::new();
+        }
+        ranges.sort_unstable_by_key(|r| r.0);
+        let lowest = ranges[0].0;
+        let highest = ranges.iter().map(|r| r.1).max().unwrap_or(0);
+
+        words.sort_unstable();
+        let mut found = Vec::new();
+        let mut previous = None;
+        for &word in words.iter() {
+            if previous == Some(word) || word < lowest || word > highest {
+                continue;
+            }
+            previous = Some(word);
+            // `word - 1` catches pointers one past the end of an object, which
+            // optimized loops over arrays can hold.
+            for candidate in [word, word.wrapping_sub(1)] {
+                let index = ranges.partition_point(|r| r.0 <= candidate);
+                if index == 0 {
+                    continue;
+                }
+                let (start, end, kind) = ranges[index - 1];
+                if candidate >= end {
+                    continue;
+                }
+                let header = match kind {
+                    Kind::Cells(cell_size) => {
+                        let cell = start + (candidate - start) / cell_size * cell_size;
+                        let state = unsafe {
+                            (*(cell as *const ObjectHeader))
+                                .state
+                                .load(Ordering::Acquire)
+                        };
+                        if state != STATE_ALLOCATED {
+                            continue;
+                        }
+                        cell
+                    }
+                    Kind::Large => start,
+                    Kind::OutOfLine(header) => header,
+                };
+                found.push(unsafe { NonNull::new_unchecked(header as *mut ObjectHeader) });
+            }
+        }
+        found.sort_unstable();
+        found.dedup();
+        found
+    }
+
+    /// Returns the configured limit on committed bytes.
+    pub(crate) fn limit(&self) -> Option<usize> {
+        self.limit
+    }
+
+    /// Sets the limit on committed bytes. Memory already committed beyond a
+    /// lower limit is not released; further growth fails until it is.
+    pub(crate) fn set_limit(&mut self, limit: Option<usize>) {
+        self.limit = limit;
     }
 
     /// Ensures the type is owned by the registry.
@@ -916,6 +1016,25 @@ impl Heap {
     /// Returns the bytes currently committed by the heap.
     pub(crate) fn committed(&self) -> usize {
         self.inner.read().committed()
+    }
+
+    /// Returns true if no thread other than the current one has allocated in
+    /// this heap (more precisely: holds a thread cache of it). Only then can
+    /// a conservative scan of the current thread's stack find every
+    /// unrooted reference that generated code holds.
+    pub(crate) fn only_current_thread_allocates(&self) -> bool {
+        let caches = self.inner.read().thread_counters.len();
+        match caches {
+            0 => true,
+            1 => THREAD_CACHES
+                .try_with(|caches| {
+                    caches
+                        .try_borrow()
+                        .is_ok_and(|caches| caches.entries.iter().any(|c| c.heap_id == self.id))
+                })
+                .unwrap_or(false),
+            _ => false,
+        }
     }
 }
 

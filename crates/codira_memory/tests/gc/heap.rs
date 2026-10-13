@@ -10,7 +10,9 @@ use std::sync::Arc;
 
 use codira_abi::StructMemoryKind;
 use codira_memory::{
-    gc::{Array, GcPtr, GcRootPtr, GcRuntime, HasIndirectionPtr, MarkSweep, NoopObserver},
+    gc::{
+        AllocError, Array, GcPtr, GcRootPtr, GcRuntime, HasIndirectionPtr, MarkSweep, NoopObserver,
+    },
     HasStaticType, StructTypeBuilder, Type,
 };
 
@@ -323,4 +325,110 @@ fn heap_outlives_thread_caches_and_vice_versa() {
     });
     assert!(gc.collect());
     assert_eq!(gc.stats().allocated_memory, 0);
+}
+
+const BLOCK: usize = 64 * 1024;
+
+#[test]
+fn heap_limit_collects_then_retries_with_stack_roots() {
+    let (node, leaf) = node_type();
+    let gc = Arc::new(Gc::default());
+    gc.set_heap_limit(Some(4 * BLOCK));
+    assert_eq!(gc.heap_limit(), Some(4 * BLOCK));
+
+    let rooted = GcRootPtr::new(&gc, gc.alloc(&leaf));
+    // Referenced only from this stack frame, like a handle in generated code.
+    let on_stack = gc.alloc(&leaf);
+    unsafe {
+        write(rooted.handle(), 0, 11i64);
+        write(on_stack, 0, 22i64);
+    }
+
+    // Leaves and nodes share a size class, so a wrongly freed `on_stack`
+    // would be reused and overwritten here.
+    for i in 0..100_000i64 {
+        let n = gc.alloc(&node);
+        unsafe { write(n, 0, i) };
+    }
+
+    assert!(gc.emergency_collections() > 0);
+    assert!(gc.committed_bytes() <= 4 * BLOCK);
+    assert_eq!(
+        unsafe { read::<i64>(std::hint::black_box(on_stack), 0) },
+        22
+    );
+    assert_eq!(unsafe { read::<i64>(rooted.handle(), 0) }, 11);
+}
+
+#[test]
+fn heap_limit_exhaustion_is_an_error() {
+    let (_, leaf) = node_type();
+    let gc = Arc::new(Gc::default());
+    gc.set_heap_limit(Some(2 * BLOCK));
+
+    let mut kept = Vec::new();
+    let err = loop {
+        match gc.try_alloc(&leaf) {
+            Ok(handle) => kept.push(GcRootPtr::new(&gc, handle)),
+            Err(err) => break err,
+        }
+    };
+    assert!(matches!(err, AllocError::LimitExceeded { limit, .. } if limit == 2 * BLOCK));
+    assert!(kept.len() > 2 * BLOCK / 64);
+
+    // A single object larger than the limit fails the same way
+    let big = gc.try_alloc_array(&i64::type_info().array_type(), 1_000_000);
+    assert!(matches!(big, Err(AllocError::LimitExceeded { .. })));
+
+    // Releasing the roots makes room again
+    drop(kept);
+    assert!(gc.collect());
+    gc.try_alloc(&leaf)
+        .expect("memory is available after a collection");
+
+    // Removing the limit lets the heap grow again
+    gc.set_heap_limit(None);
+    gc.try_alloc_array(&i64::type_info().array_type(), 1_000_000)
+        .expect("no limit");
+}
+
+#[test]
+fn no_emergency_collection_while_another_thread_allocates() {
+    let (_, leaf) = node_type();
+    let gc = Arc::new(Gc::default());
+    gc.set_heap_limit(Some(2 * BLOCK));
+
+    let ready = Arc::new(std::sync::Barrier::new(2));
+    let done = Arc::new(std::sync::Barrier::new(2));
+    let other = {
+        let (gc, leaf, ready, done) = (gc.clone(), leaf.clone(), ready.clone(), done.clone());
+        std::thread::spawn(move || {
+            gc.alloc(&leaf);
+            ready.wait();
+            // Keep this thread (and its cache of the heap) alive.
+            done.wait();
+        })
+    };
+    ready.wait();
+
+    // Only garbage, but another thread may hold unrooted references the
+    // collector cannot see, so the limit is a hard error.
+    let err = loop {
+        if let Err(err) = gc.try_alloc(&leaf) {
+            break err;
+        }
+    };
+    assert!(matches!(err, AllocError::LimitExceeded { .. }));
+    assert_eq!(gc.emergency_collections(), 0);
+    done.wait();
+    // `join` returns once the thread has fully exited, thread-local
+    // destructors (which hand its cache back to the heap) included.
+    other.join().unwrap();
+
+    // With the other thread gone, allocations collect and succeed.
+    for _ in 0..10_000 {
+        gc.try_alloc(&leaf)
+            .expect("emergency collection reclaims garbage");
+    }
+    assert!(gc.emergency_collections() >= 1);
 }

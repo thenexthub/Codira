@@ -72,6 +72,9 @@ pub struct RuntimeOptions {
     pub type_table: TypeTable,
     /// Custom user injected functions
     pub user_functions: Vec<FunctionDefinition>,
+    /// The most bytes the garbage-collected heap may hold from the system, or
+    /// `None` for no limit. See [`RuntimeBuilder::heap_limit`].
+    pub heap_limit: Option<usize>,
 }
 
 /// Retrieve the allocator using the provided handle.
@@ -110,9 +113,25 @@ extern "C" fn new(
 
     // Safety: the Codira Compiler guarantees that `new` is never called with
     // `ptr::null()`.
-    let handle = allocator.as_ref().alloc(&type_info);
+    match allocator.as_ref().try_alloc(&type_info) {
+        Ok(handle) => handle.into(),
+        Err(err) => out_of_memory(&type_info, &err),
+    }
+}
 
-    handle.into()
+/// Ends the process when generated code cannot get memory for an object.
+///
+/// Generated code has no way to observe a failed allocation (it would
+/// dereference the null handle), and unwinding out of an `extern "C"`
+/// function through Codira frames is not defined, so exhaustion of a capped
+/// heap is a deterministic abort with a message that says why.
+#[cold]
+fn out_of_memory(ty: &Type, err: &gc::AllocError) -> ! {
+    eprintln!(
+        "codira runtime: cannot allocate `{}`: {err}. Aborting.",
+        ty.name()
+    );
+    std::process::abort()
 }
 
 extern "C" fn new_array(
@@ -130,9 +149,10 @@ extern "C" fn new_array(
     // of this function.
     let allocator = ManuallyDrop::new(unsafe { get_allocator(alloc_handle) });
 
-    let handle = allocator.as_ref().alloc_array(&type_info, length);
-
-    handle.as_raw().into()
+    match allocator.as_ref().try_alloc_array(&type_info, length) {
+        Ok(handle) => handle.as_raw().into(),
+        Err(err) => out_of_memory(&type_info, &err),
+    }
 }
 
 /// A builder for the [`Runtime`].
@@ -149,8 +169,26 @@ impl RuntimeBuilder {
                 library_path: library_path.into(),
                 type_table: TypeTable::default(),
                 user_functions: Vec::default(),
+                heap_limit: None,
             },
         }
+    }
+
+    /// Caps the bytes the garbage-collected heap may hold from the system.
+    ///
+    /// When an allocation would exceed the cap, the collector runs first
+    /// (treating the allocating thread's stack conservatively as roots, since
+    /// generated code has no stack maps) and the allocation is retried. That
+    /// emergency collection only happens while a single thread allocates in
+    /// the runtime. If the memory still is not there, the process aborts with
+    /// a message naming the type and the limit.
+    ///
+    /// This is a cap on the GC heap only, not a memory quota for the program:
+    /// raw allocations (`codira_alloc`, region arenas, OS pages) and the
+    /// runtime's own bookkeeping are not counted.
+    pub fn heap_limit(mut self, bytes: usize) -> Self {
+        self.options.heap_limit = Some(bytes);
+        self
     }
 
     /// Adds a custom user function to the dispatch table.
@@ -293,6 +331,7 @@ impl Runtime {
             renamed_files: HashMap::new(),
             gc: Arc::new(self::garbage_collector::GarbageCollector::default()),
         };
+        runtime.gc.set_heap_limit(options.heap_limit);
 
         runtime.add_assembly(&options.library_path)?;
         Ok(runtime)

@@ -6,7 +6,15 @@
 //! - Mark-sweep garbage collector over the segregated size-class heap
 //!   (`gc::heap`): host-rooted tracing, sweeping, and hot-reload memory
 //!   migration.
-use std::{alloc::Layout, collections::HashMap, ptr::NonNull, sync::Arc};
+use std::{
+    alloc::Layout,
+    collections::HashMap,
+    ptr::NonNull,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -18,7 +26,7 @@ use crate::{
             array_payload_layout, handle_of, header_of, AllocError, Heap, HeapInner, ObjectHeader,
             PayloadMigration, COLOR_BLACK, COLOR_WHITE,
         },
-        Array as GcArray, Event, GcPtr, GcRuntime, Observer, Stats, TypeTrace,
+        stack_scan, Array as GcArray, Event, GcPtr, GcRuntime, Observer, Stats, TypeTrace,
     },
     mapping::{self, resolve_struct_to_struct_edit, Action, FieldMapping, Mapping, MemoryMapper},
     r#type::{Type, TypeData},
@@ -120,6 +128,8 @@ where
 {
     heap: Arc<Heap>,
     observer: O,
+    /// Collections started because an allocation hit the heap limit.
+    emergency_collections: AtomicUsize,
 }
 
 impl<O> Default for MarkSweep<O>
@@ -140,6 +150,7 @@ where
         Self {
             heap: Heap::new(None),
             observer,
+            emergency_collections: AtomicUsize::new(0),
         }
     }
 
@@ -156,18 +167,102 @@ where
         self.heap.committed()
     }
 
-    /// Allocates an object with a payload of `layout`, panicking with a
-    /// descriptive message if the heap cannot provide the memory.
-    fn alloc_payload(&self, ty: &Type, layout: Layout) -> NonNull<ObjectHeader> {
+    /// Limits the bytes the heap may hold from the system (size-class blocks,
+    /// large objects and out-of-line payloads; see
+    /// [`MarkSweep::committed_bytes`]). `None` removes the limit. Lowering
+    /// the limit below the current size releases nothing; the heap simply
+    /// stops growing.
+    ///
+    /// This caps the garbage-collected heap only: raw allocations a program
+    /// makes outside the GC (arenas, `codira_alloc`, pages) are not counted.
+    pub fn set_heap_limit(&self, limit: Option<usize>) {
+        self.heap.inner.write().set_limit(limit);
+    }
+
+    /// Returns the heap limit, if any.
+    pub fn heap_limit(&self) -> Option<usize> {
+        self.heap.inner.read().limit()
+    }
+
+    /// Returns how many collections were started because an allocation hit
+    /// the heap limit.
+    pub fn emergency_collections(&self) -> usize {
+        self.emergency_collections.load(Ordering::Relaxed)
+    }
+
+    /// Allocates an object of type `ty`, or returns why the heap could not
+    /// provide the memory.
+    ///
+    /// When the allocation would exceed the heap limit, the collector runs
+    /// first and the allocation is retried once. Because generated code has
+    /// no stack maps, that collection treats every word on the current
+    /// thread's stack and in its callee-saved registers that points into an
+    /// object as a root (a conservative scan). It only happens when no other
+    /// thread has allocated in this heap, because other threads' stacks
+    /// cannot be scanned; otherwise the allocation fails with
+    /// [`AllocError::LimitExceeded`] without collecting.
+    pub fn try_alloc(&self, ty: &Type) -> Result<GcPtr, AllocError> {
+        assert!(ty.is_concrete());
+
+        let header = self.alloc_payload(ty, ty.value_layout())?;
+        let handle = handle_of(header);
+        self.observer.event(Event::Allocation(handle));
+        Ok(handle)
+    }
+
+    /// Allocates an array of type `ty` with `n` elements, or returns why the
+    /// heap could not provide the memory. See [`MarkSweep::try_alloc`].
+    pub fn try_alloc_array(&self, ty: &Type, n: usize) -> Result<ArrayHandle, AllocError> {
+        let element = unsafe { ty.data_ptr().as_ref() }
+            .array_element()
+            .expect("array type doesnt have an element type");
+        let layout = array_payload_layout(element, n).ok_or(AllocError::TooLarge)?;
+        let header = self.alloc_payload(ty, layout)?;
+        unsafe { init_array_header(header.as_ref().data, n) };
+        self.observer.event(Event::Allocation(handle_of(header)));
+        Ok(ArrayHandle { obj: header })
+    }
+
+    /// Allocates an object with a payload of `layout`, collecting once if
+    /// the heap limit is hit and that is safe.
+    fn alloc_payload(
+        &self,
+        ty: &Type,
+        layout: Layout,
+    ) -> Result<NonNull<ObjectHeader>, AllocError> {
         match self.heap.alloc(ty, layout) {
-            Ok(header) => header,
-            Err(err) => panic!("GC allocation of `{}` failed: {err}", ty.name()),
+            Err(err @ AllocError::LimitExceeded { .. }) => {
+                if self.heap.only_current_thread_allocates() && self.collect_with_stack_roots() {
+                    self.emergency_collections.fetch_add(1, Ordering::Relaxed);
+                    self.heap.alloc(ty, layout)
+                } else {
+                    Err(err)
+                }
+            }
+            result => result,
         }
+    }
+
+    /// Collects with the current thread's stack and registers as additional,
+    /// conservative roots. Returns `false` without collecting when the
+    /// platform's stack cannot be scanned.
+    #[inline(never)]
+    fn collect_with_stack_roots(&self) -> bool {
+        let mut words = Vec::with_capacity(4096);
+        if !stack_scan::scan_current_thread(&mut |word| words.push(word)) {
+            return false;
+        }
+        self.collect_impl(Some(&mut words));
+        true
     }
 
     /// Collects all memory that is no longer referenced by rooted objects.
     /// Returns `true` if memory was reclaimed, `false` otherwise.
     pub fn collect(&self) -> bool {
+        self.collect_impl(None)
+    }
+
+    fn collect_impl(&self, stack_words: Option<&mut Vec<usize>>) -> bool {
         self.observer.event(Event::Start);
 
         let mut inner = self.heap.inner.write();
@@ -195,6 +290,19 @@ where
                 }
             }
         });
+
+        // Objects the scanned stack may refer to are roots too
+        if let Some(words) = stack_words {
+            for object in inner.objects_referenced_by(words) {
+                let header = object.as_ptr();
+                unsafe {
+                    if (*header).color == COLOR_WHITE {
+                        (*header).color = COLOR_BLACK;
+                        stack.push(object);
+                    }
+                }
+            }
+        }
 
         // Trace everything reachable from the roots
         while let Some(object) = stack.pop() {
@@ -380,19 +488,13 @@ where
     type Array = ArrayHandle;
 
     fn alloc(&self, ty: &Type) -> GcPtr {
-        assert!(ty.is_concrete());
-
-        let header = self.alloc_payload(ty, ty.value_layout());
-        let handle = handle_of(header);
-        self.observer.event(Event::Allocation(handle));
-        handle
+        self.try_alloc(ty)
+            .unwrap_or_else(|err| panic!("GC allocation of `{}` failed: {err}", ty.name()))
     }
 
     fn alloc_array(&self, ty: &Type, n: usize) -> Self::Array {
-        let header = self.alloc_payload(ty, array_layout(ty, n));
-        unsafe { init_array_header(header.as_ref().data, n) };
-        self.observer.event(Event::Allocation(handle_of(header)));
-        ArrayHandle { obj: header }
+        self.try_alloc_array(ty, n)
+            .unwrap_or_else(|err| panic!("GC allocation of `{}` failed: {err}", ty.name()))
     }
 
     fn ptr_type(&self, handle: GcPtr) -> Type {

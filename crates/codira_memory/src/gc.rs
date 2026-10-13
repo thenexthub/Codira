@@ -9,6 +9,7 @@ mod heap;
 mod mark_sweep;
 mod ptr;
 mod root_ptr;
+mod stack_scan;
 
 use std::{marker::PhantomData, ptr::NonNull};
 

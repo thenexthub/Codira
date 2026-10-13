@@ -487,6 +487,18 @@ refinement types on parameters and returns) are checked statically by Z3 in
 `codira check` and `codira build`; see "Contracts and verification" above for
 what the checker models and what it reports as uncheckable.
 
+Runtime (hosts embedding `codira_runtime`):
+
+- The GC heap is a segregated size-class allocator with per-thread bump
+  allocation; `Runtime::gc_collect()` collects objects not reachable from
+  host-rooted handles. There are no stack maps: never collect while another
+  thread runs Codira code.
+- `Runtime::builder(lib).heap_limit(bytes)` caps the GC heap. An allocation
+  that would exceed it first collects (scanning the allocating thread's stack
+  conservatively; only while one thread allocates) and retries; if memory is
+  still short the process aborts with a message naming the type and limit.
+  It caps the GC heap only, not raw allocations.
+
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
 postfix `!`, `perform`/`handle`/`spawn`, channel operators. Not available at
