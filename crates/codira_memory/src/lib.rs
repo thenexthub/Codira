@@ -13,10 +13,12 @@ pub mod ffi {
     pub use super::r#type::ffi::*;
 }
 
+pub mod arena;
 mod cast;
 pub mod diff;
 pub mod gc;
 pub mod mapping;
+pub mod pages;
 mod r#type;
 pub mod type_table;
 use codira_abi as abi;

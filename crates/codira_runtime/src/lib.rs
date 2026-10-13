@@ -20,6 +20,7 @@ mod builtins;
 mod dispatch_table;
 mod function_info;
 mod marshal;
+pub mod native_memory;
 mod reflection;
 mod utils;
 
@@ -305,6 +306,9 @@ impl Runtime {
 
         // The functions compiled `print`/`println` calls lower to.
         options.user_functions.extend(builtins::definitions());
+
+        // Raw memory services for `std/memory/{region,page}.code`
+        options.user_functions.extend(native_memory::functions());
 
         options.user_functions.into_iter().for_each(|fn_def| {
             dispatch_table.insert_fn(fn_def.prototype.name.clone(), Arc::new(fn_def));

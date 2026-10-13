@@ -579,6 +579,12 @@ Runtime (hosts embedding `codira_runtime`):
   conservatively; only while one thread allocates) and retries; if memory is
   still short the process aborts with a message naming the type and limit.
   It caps the GC heap only, not raw allocations.
+- The runtime provides raw memory services a program reaches with
+  `extern "C"` declarations (wrapped in `std/memory/region.code` and
+  `std/memory/page.code`): region arenas with byte quotas and bulk reset
+  (`codira_region_*`), OS pages with W^X protection, huge pages and icache
+  flushing (`codira_page_*`, `codira_icache_flush`), and aligned allocation.
+  Addresses are `usize`; failures return 0/false. Region memory is untraced.
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,

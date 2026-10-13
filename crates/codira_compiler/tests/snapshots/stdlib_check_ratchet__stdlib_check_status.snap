@@ -1,10 +1,9 @@
 ---
 source: crates/codira_compiler/tests/stdlib_check_ratchet.rs
-assertion_line: 87
 expression: summary
 snapshot_kind: text
 ---
-6 of 77 std files check clean
+8 of 79 std files check clean
 0 syntax, 3349 semantic
 
    0 syntax     0 semantic  ai/algorithm/functional.code
@@ -68,7 +67,9 @@ snapshot_kind: text
    0 syntax    62 semantic  memory/arc_pointer.code
    0 syntax    27 semantic  memory/memory.code
    0 syntax    45 semantic  memory/owned_pointer.code
+   0 syntax     0 semantic  memory/page.code
    0 syntax    39 semantic  memory/pointer.code
+   0 syntax     0 semantic  memory/region.code
    0 syntax    56 semantic  memory/unsafe_pointer.code
    0 syntax    13 semantic  os/env.code
    0 syntax    42 semantic  os/os.code
