@@ -13,7 +13,13 @@ repository.workspace = true
 license.workspace = true
 
 [features]
-default = ["target-x86", "target-aarch64", "target-riscv", "in-process-lld"]
+default = [
+    "target-x86",
+    "target-aarch64",
+    "target-riscv",
+    "target-webassembly",
+    "in-process-lld",
+]
 # Each `target-*` feature forwards to the matching inkwell/LLVM target
 # backend and gates that target's `Target::initialize_*` call in `db.rs`.
 # Compiling standalone LLVM target-backend static libraries (e.g. an
@@ -25,6 +31,7 @@ default = ["target-x86", "target-aarch64", "target-riscv", "in-process-lld"]
 target-x86 = ["inkwell/target-x86"]
 target-aarch64 = ["inkwell/target-aarch64"]
 target-riscv = ["inkwell/target-riscv"]
+target-webassembly = ["inkwell/target-webassembly"]
 # Links LLD into the compiler so the final link is a function call instead of
 # a spawned `lld-link` -- see `linker::run_lld` for what that is worth. This
 # needs LLD's headers and static libraries next to the LLVM build, which a
@@ -86,3 +93,4 @@ codira_comptime = { path = "../codira_comptime" }
 codira_libloader = { path = "../codira_libloader" }
 codira_test = { path = "../codira_test" }
 codira_runtime = { path = "../codira_runtime" }
+wasmi = { version = "2", default-features = false, features = ["std", "validate", "stable", "auto-dispatch"] }

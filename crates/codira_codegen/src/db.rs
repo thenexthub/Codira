@@ -95,7 +95,14 @@ pub(crate) fn build_target_machine(
             &target.options.cpu,
             &target.options.features,
             db.optimization_level(),
-            RelocMode::PIC,
+            // A WebAssembly module is linked statically: position-independent
+            // wasm code addresses memory through imported `__memory_base`/GOT
+            // globals, which a freestanding module has no host to provide.
+            if crate::wasm::is_wasm_target(&target) {
+                RelocMode::Static
+            } else {
+                RelocMode::PIC
+            },
             CodeModel::Default,
         )
         .expect("could not create llvm target machine");
@@ -122,5 +129,7 @@ pub(crate) fn initialize_target_backends_once() {
         Target::initialize_aarch64(&InitializationConfig::default());
         #[cfg(feature = "target-riscv")]
         Target::initialize_riscv(&InitializationConfig::default());
+        #[cfg(feature = "target-webassembly")]
+        Target::initialize_webassembly(&InitializationConfig::default());
     });
 }

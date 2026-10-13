@@ -8,6 +8,7 @@ mod apple_base;
 mod freebsd_base;
 mod linux_base;
 mod linux_musl_base;
+mod wasm_base;
 mod windows_msvc_base;
 
 use std::borrow::Cow;
@@ -19,6 +20,8 @@ pub enum LinkerFlavor {
     Ld,
     Ld64,
     Msvc,
+    /// LLD's WebAssembly driver, `wasm-ld`.
+    WasmLld,
 }
 
 /// Everything Codira knows about a target.
@@ -156,6 +159,8 @@ supported_targets!(
     ("aarch64-unknown-linux-musl", aarch64_unknown_linux_musl),
     ("aarch64-unknown-freebsd", aarch64_unknown_freebsd),
     ("riscv64gc-unknown-linux-gnu", riscv64gc_unknown_linux_gnu),
+    ("wasm32-unknown-unknown", wasm32_unknown_unknown),
+    ("wasm32-wasip1", wasm32_wasip1),
 );
 
 impl Target {

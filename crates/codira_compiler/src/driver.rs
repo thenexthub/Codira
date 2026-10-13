@@ -850,11 +850,17 @@ impl Driver {
 
         // Get the compiled assembly
         let assembly = self.db.target_assembly(module_group_id);
+        // A target can refuse code it cannot hold (WebAssembly refuses code
+        // that needs the Codira runtime); that is the build's error.
+        if let Some(reason) = assembly.error() {
+            anyhow::bail!("{reason}");
+        }
 
-        // Determine the filename of the group
+        // Determine the filename of the group (`.codiralib`, or `.wasm` for
+        // a WebAssembly target)
         let assembly_path = self
             .path_for_module_group(module_group)
-            .with_extension(TargetAssembly::EXTENSION);
+            .with_extension(assembly.extension());
 
         // Did the assembly change since last time?
         if !force

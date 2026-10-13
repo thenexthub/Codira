@@ -134,6 +134,14 @@ fn every_target_builds_an_object_of_its_own_kind() {
                 .unwrap_or_else(|e| panic!("`{triple}`: {e}"));
 
             let bytes = std::fs::read(object_file.path()).expect("object file was written");
+            // The `object` crate is built without its WebAssembly reader
+            // (it would pull in a second `wasmparser`); a wasm object is
+            // checked by its magic and version instead, and run end to end
+            // in `wasm::tests`.
+            if crate::wasm::is_wasm_target(&target) {
+                assert_eq!(&bytes[..8], b"\0asm\x01\0\0\0", "`{triple}`");
+                continue;
+            }
             let object = object::File::parse(&*bytes).unwrap_or_else(|e| panic!("`{triple}`: {e}"));
             assert_eq!(
                 object.format(),

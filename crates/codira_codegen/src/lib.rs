@@ -16,6 +16,7 @@ pub use crate::{
     module_partition::{ModuleGroupId, ModulePartition},
     native::NativeInputs,
     target_cpu::{resolve_target_cpu, TargetCpuError},
+    wasm::is_wasm_target,
 };
 
 /// This library generates machine code from HIR using inkwell which is a safe
@@ -46,3 +47,4 @@ mod module_partition;
 mod native;
 mod target_cpu;
 pub(crate) mod type_info;
+mod wasm;

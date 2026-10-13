@@ -490,6 +490,26 @@ non-Apple target is tested to link into a library from a Windows host; Apple
 targets need the platform SDK to link. Running the output is tested on the
 host only.
 
+`wasm32-unknown-unknown` and `wasm32-wasip1` build `target/<module>.wasm`, a
+freestanding WebAssembly module that imports nothing and exports the
+module's `@export("C")` functions (and its linear memory):
+
+```codira
+@export("C")
+public func add(a: i32, b: i32) -> i32 { a + b }
+```
+
+```bash
+codira build --target wasm32-unknown-unknown   # -> target/mod.wasm
+```
+
+There is no Codira runtime inside a WebAssembly host, so only functions over
+integers, floats and booleans that need nothing from it can be built: no
+classes or other garbage-collected values, no calls into other modules, no
+`extern` functions. A package that needs any of those fails the build with
+the reason. Modules are tested by running them in an independent engine
+(wasmi) with no imports.
+
 ### Inline assembly: `@asm`
 
 Declare a body-less `extern func` with one `@asm` variant per architecture.

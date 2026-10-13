@@ -116,6 +116,7 @@ enum LldDriver {
     Coff,
     Elf,
     MachO,
+    Wasm,
 }
 
 impl LldDriver {
@@ -125,6 +126,7 @@ impl LldDriver {
             LldDriver::Coff => "COFF",
             LldDriver::Elf => "ELF",
             LldDriver::MachO => "MACHO",
+            LldDriver::Wasm => "WASM",
         }
     }
 
@@ -134,6 +136,7 @@ impl LldDriver {
             LldDriver::Coff => "lld-link",
             LldDriver::Elf => "ld.lld",
             LldDriver::MachO => "ld64.lld",
+            LldDriver::Wasm => "wasm-ld",
         }
     }
 }
@@ -217,6 +220,7 @@ fn link_in_process(driver: LldDriver, args: &[String]) -> Result<(), String> {
         LldDriver::Coff => codira_lld::LldFlavor::Coff,
         LldDriver::Elf => codira_lld::LldFlavor::Elf,
         LldDriver::MachO => codira_lld::LldFlavor::MachO,
+        LldDriver::Wasm => codira_lld::LldFlavor::Wasm,
     };
 
     let result = codira_lld::link(flavor, args);
@@ -315,6 +319,7 @@ pub fn create_with_target(target: &spec::Target) -> Box<dyn Linker> {
         LinkerFlavor::Ld => Box::new(LdLinker::new(target)),
         LinkerFlavor::Ld64 => Box::new(Ld64Linker::new(target)),
         LinkerFlavor::Msvc => Box::new(MsvcLinker::new(target)),
+        LinkerFlavor::WasmLld => Box::new(WasmLinker::default()),
     }
 }
 
@@ -373,6 +378,54 @@ pub trait Linker {
     ) -> Result<(), LinkerError>;
 
     fn finalize(&mut self) -> Result<(), LinkerError>;
+}
+
+/// Links a freestanding WebAssembly module with LLD's `wasm-ld` driver.
+///
+/// A module is not a shared library: it has no entry point (`--no-entry`)
+/// and exports exactly the `@export("C")` functions, plus the linear memory
+/// LLD creates. Everything else is garbage-collected by the linker. An
+/// undefined symbol stays an error rather than becoming an import: the
+/// module is meant to need nothing from its host.
+#[derive(Default)]
+struct WasmLinker {
+    args: Vec<String>,
+}
+
+impl Linker for WasmLinker {
+    fn add_object(&mut self, path: &Path) -> Result<(), LinkerError> {
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| LinkerError::PathError(path.to_owned()))?
+            .to_owned();
+        self.args.push(path_str);
+        Ok(())
+    }
+
+    fn add_library(&mut self, library: &str) {
+        self.args.push(library.to_owned());
+    }
+
+    fn build_shared_object(
+        &mut self,
+        path: &Path,
+        exported_symbols: &[String],
+    ) -> Result<(), LinkerError> {
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| LinkerError::PathError(path.to_owned()))?;
+        self.args.push("--no-entry".to_owned());
+        for symbol in exported_symbols {
+            self.args.push(format!("--export={symbol}"));
+        }
+        self.args.push("-o".to_owned());
+        self.args.push(path_str.to_owned());
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), LinkerError> {
+        run_lld(LldDriver::Wasm, &self.args).map_err(LinkerError::LinkError)
+    }
 }
 
 struct LdLinker {
