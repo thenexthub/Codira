@@ -33,7 +33,7 @@
 //!   `crate::value`), so a parameter bound to a tuple also leaves its
 //!   `param.ref` in place for the interpreter's `Env` to resolve instead.
 
-use codira_mir::{fold_op, Attr, Body, Generator, Op, OpId, OpKind, Region};
+use codira_mir::{fold_typed_op, Attr, Body, Generator, Op, OpId, OpKind, Region, TypeId};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
@@ -96,7 +96,7 @@ fn compact(body: &Body) -> Body {
             .iter()
             .map(|r| Region::with_args(r.num_args, compact(&r.body)))
             .collect();
-        let new_id = new_body.push_with_regions(op.kind.clone(), operands, regions);
+        let new_id = new_body.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty);
         map.insert(old_id, new_id);
     }
     new_body
@@ -124,16 +124,16 @@ impl Elaborator<'_> {
                 // *tuple* parameter has no `Attr` form (see module doc)
                 // and stays a `param.ref` for the interpreter to resolve.
                 Ok(value) => match value_to_attr(&value) {
-                    Some(attr) => new_body.push(OpKind::Const(attr), []),
-                    None => new_body.push(OpKind::ParamRef(name.clone()), []),
+                    Some(attr) => new_body.push_typed(OpKind::Const(attr), [], op.ty),
+                    None => new_body.push_typed(OpKind::ParamRef(name.clone()), [], op.ty),
                 },
                 // Not bound (partial specialization): pass the reference
                 // through unresolved, exactly as written.
-                Err(_) => new_body.push(OpKind::ParamRef(name.clone()), []),
+                Err(_) => new_body.push_typed(OpKind::ParamRef(name.clone()), [], op.ty),
             },
 
             OpKind::Const(_) | OpKind::Arg(_) | OpKind::BlockArg(_) => {
-                new_body.push(op.kind.clone(), [])
+                new_body.push_typed(op.kind.clone(), [], op.ty)
             }
 
             OpKind::If => {
@@ -146,10 +146,11 @@ impl Elaborator<'_> {
                         let chosen = if cond { then_region } else { else_region };
                         splice(&chosen.body, new_body)
                     }
-                    _ => new_body.push_with_regions(
+                    _ => new_body.push_with_regions_typed(
                         OpKind::If,
                         [cond_new],
                         [then_region, else_region],
+                        op.ty,
                     ),
                 }
             }
@@ -171,7 +172,7 @@ impl Elaborator<'_> {
                     .map(|r| Region::with_args(r.num_args, self.elaborate_body(&r.body)))
                     .collect();
                 let operands: Vec<OpId> = op.operands.iter().map(|id| map[id]).collect();
-                new_body.push_with_regions(op.kind.clone(), operands, regions)
+                new_body.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty)
             }
 
             // Every other op kind is region-free: remap operands and, if
@@ -182,10 +183,10 @@ impl Elaborator<'_> {
             // the module doc.
             other_kind => {
                 let operands: Vec<OpId> = op.operands.iter().map(|id| map[id]).collect();
-                if let Some(folded) = try_fold(new_body, other_kind, &operands) {
-                    new_body.push(OpKind::Const(folded), [])
+                if let Some(folded) = try_fold(new_body, other_kind, &operands, op.ty) {
+                    new_body.push_typed(OpKind::Const(folded), [], op.ty)
                 } else {
-                    new_body.push(other_kind.clone(), operands)
+                    new_body.push_typed(other_kind.clone(), operands, op.ty)
                 }
             }
         }
@@ -206,7 +207,7 @@ fn const_attr(body: &Body, id: OpId) -> Option<Attr> {
 /// "some operand isn't constant yet", "this kind isn't a pure fold"
 /// (`NotFoldable`), and "the fold is a genuine evaluation error" alike --
 /// in every case the right elaboration move is the same: keep the op.
-fn try_fold(body: &Body, kind: &OpKind, operands: &[OpId]) -> Option<Attr> {
+fn try_fold(body: &Body, kind: &OpKind, operands: &[OpId], ty: TypeId) -> Option<Attr> {
     let attrs: Vec<Attr> = operands
         .iter()
         .map(|id| const_attr(body, *id))
@@ -219,7 +220,8 @@ fn try_fold(body: &Body, kind: &OpKind, operands: &[OpId]) -> Option<Attr> {
     if attrs.iter().any(|attr| matches!(attr, Attr::ParamRef(_))) {
         return None;
     }
-    fold_op(kind, &attrs).ok()
+    let operand_tys: Vec<TypeId> = operands.iter().map(|id| body.get(*id).ty).collect();
+    fold_typed_op(kind, &attrs, &operand_tys, ty).ok()
 }
 
 /// Copies every op in `src` into `dst`, remapping operand references and
@@ -242,7 +244,7 @@ fn splice(src: &Body, dst: &mut Body) -> OpId {
                 Region::with_args(r.num_args, sub)
             })
             .collect();
-        let new_id = dst.push_with_regions(op.kind.clone(), operands, regions);
+        let new_id = dst.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty);
         map.insert(old_id, new_id);
         last = Some(new_id);
     }

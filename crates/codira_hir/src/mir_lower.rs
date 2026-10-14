@@ -197,7 +197,12 @@ impl Lowerer<'_> {
                 Some(body.push_typed(OpKind::Const(Attr::Int(v)), [], self.ty_of(id)))
             }
             Expr::Literal(Literal::Float(crate::expr::LiteralFloat { value, .. })) => {
-                Some(body.push_typed(OpKind::Const(Attr::float(*value)), [], self.ty_of(id)))
+                // An `f32` literal holds the nearest `f32`, not the `f64` it
+                // was parsed as; `normalize` rounds it so a later widening
+                // cast folds to the value the program actually has.
+                let ty = self.ty_of(id);
+                let attr = codira_mir::normalize(Attr::float(*value), ty);
+                Some(body.push_typed(OpKind::Const(attr), [], ty))
             }
 
             Expr::Path(path) => {

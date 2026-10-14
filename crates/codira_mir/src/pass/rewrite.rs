@@ -237,7 +237,7 @@ pub(crate) fn splice(dst: &mut Body, src: &Body, subst: &Substitution<'_>) -> Sp
                     .collect();
                 map.insert(
                     id,
-                    dst.push_with_regions(op.kind.clone(), operands, regions),
+                    dst.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
                 );
             }
         }
@@ -307,7 +307,7 @@ fn rebuild_region(
                     .collect();
                 map.insert(
                     id,
-                    new.push_with_regions(op.kind.clone(), operands, regions),
+                    new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
                 );
             }
         }

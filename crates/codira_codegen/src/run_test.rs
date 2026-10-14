@@ -224,3 +224,262 @@ fn folded_float_not_equal_on_nan_is_true() {
         });
     }
 }
+
+// ---- `as` casts folded at compile time ------------------------------------
+//
+// Every function below has no parameters, so its body is answered by the
+// Eidos folder (`crate::eidos_fold`) when the folder can, and by ordinary
+// lowering when it declines. Either way the answer must be Rust's: integer
+// conversions wrap (truncate, zero- or sign-extend by the *source* type),
+// float-to-integer saturates with NaN mapping to zero.
+
+/// Runs each zero-argument function named in the list and compares its
+/// result with the expected value, at both optimisation levels.
+macro_rules! assert_nullary {
+    ($src:expr, $ret:ty, [$(($name:literal, $expected:expr)),+ $(,)?]) => {
+        for opt in LEVELS {
+            with_jit($src, opt, |engine| {
+                $(
+                    let f = get::<unsafe extern "C" fn() -> $ret>(engine, $name);
+                    let got = unsafe { f.call() };
+                    let expected: $ret = $expected;
+                    assert!(
+                        got == expected,
+                        "{} at {opt:?}: got {got:?}, expected {expected:?}",
+                        $name
+                    );
+                )+
+            });
+        }
+    };
+}
+
+#[test]
+fn folded_widening_casts_extend_by_the_source_type() {
+    assert_nullary!(
+        r"
+        public func u32_to_u64() -> u64 { let a: u32 = 1000; a as u64 }
+        public func u32_max_to_u64() -> u64 { let a: u32 = 4294967295; a as u64 }
+        public func u32_to_u64_ret() -> u64 { let a: u32 = 1000; return a as u64; }
+        public func u8_to_u64() -> u64 { let a: u8 = 200; a as u64 }
+        public func i32_neg_to_u64() -> u64 { let a: i32 = -5; a as u64 }
+        ",
+        u64,
+        [
+            ("u32_to_u64", 1000),
+            ("u32_max_to_u64", 4_294_967_295),
+            ("u32_to_u64_ret", 1000),
+            ("u8_to_u64", 200),
+            ("i32_neg_to_u64", (-5i64).cast_unsigned()),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func i32_to_i64() -> i64 { let a: i32 = -5; a as i64 }
+        public func u32_to_i64() -> i64 { let a: u32 = 4294967295; a as i64 }
+        public func i8_to_i64() -> i64 { let a: i8 = -100; a as i64 }
+        public func u16_to_i64() -> i64 { let a: u16 = 65535; a as i64 }
+        ",
+        i64,
+        [
+            ("i32_to_i64", -5),
+            ("u32_to_i64", 4_294_967_295),
+            ("i8_to_i64", -100),
+            ("u16_to_i64", 65535),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func u8_to_i32() -> i32 { let a: u8 = 200; a as i32 }
+        public func i8_to_i32() -> i32 { let a: i8 = -100; a as i32 }
+        ",
+        i32,
+        [("u8_to_i32", 200), ("i8_to_i32", -100)]
+    );
+}
+
+#[test]
+fn folded_narrowing_casts_keep_the_low_bits() {
+    assert_nullary!(
+        r"
+        public func i64_300_to_u8() -> u8 { let a: i64 = 300; a as u8 }
+        public func i64_neg1_to_u8() -> u8 { let a: i64 = -1; a as u8 }
+        public func u32_to_u8() -> u8 { let a: u32 = 4294967295; a as u8 }
+        ",
+        u8,
+        [
+            ("i64_300_to_u8", 44),
+            ("i64_neg1_to_u8", 255),
+            ("u32_to_u8", 255)
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func i64_200_to_i8() -> i8 { let a: i64 = 200; a as i8 }
+        public func u16_to_i8() -> i8 { let a: u16 = 65408; a as i8 }
+        ",
+        i8,
+        [("i64_200_to_i8", -56), ("u16_to_i8", -128)]
+    );
+    assert_nullary!(
+        r"
+        public func i64_neg1_to_u32() -> u32 { let a: i64 = -1; a as u32 }
+        public func i64_big_to_u32() -> u32 { let a: i64 = 4294967396; a as u32 }
+        ",
+        u32,
+        [("i64_neg1_to_u32", u32::MAX), ("i64_big_to_u32", 100)]
+    );
+    assert_nullary!(
+        r"
+        public func i64_to_i32_wraps() -> i32 { let a: i64 = 2147483648; a as i32 }
+        public func u64_to_i32() -> i32 { let a: u64 = 4294967295; a as i32 }
+        ",
+        i32,
+        [("i64_to_i32_wraps", i32::MIN), ("u64_to_i32", -1)]
+    );
+}
+
+#[test]
+fn folded_int_to_float_casts_read_the_source_signedness() {
+    assert_nullary!(
+        r"
+        public func u32_max_to_f64() -> f64 { let a: u32 = 4294967295; a as f64 }
+        public func i32_neg_to_f64() -> f64 { let a: i32 = -7; a as f64 }
+        public func u8_to_f64() -> f64 { let a: u8 = 255; a as f64 }
+        public func i8_to_f64() -> f64 { let a: i8 = -128; a as f64 }
+        ",
+        f64,
+        [
+            ("u32_max_to_f64", 4_294_967_295.0),
+            ("i32_neg_to_f64", -7.0),
+            ("u8_to_f64", 255.0),
+            ("i8_to_f64", -128.0),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func i64_to_f32_rounds() -> f32 { let a: i64 = 16777217; a as f32 }
+        public func u16_to_f32() -> f32 { let a: u16 = 65535; a as f32 }
+        ",
+        f32,
+        [("i64_to_f32_rounds", 16_777_216.0), ("u16_to_f32", 65535.0)]
+    );
+}
+
+#[test]
+fn folded_float_to_int_casts_saturate() {
+    assert_nullary!(
+        r"
+        public func f_300_7_to_u8() -> u8 { let a: f64 = 300.7; a as u8 }
+        public func f_neg_to_u8() -> u8 { let a: f64 = -1.5; a as u8 }
+        public func f_nan_to_u8() -> u8 { let a: f64 = 0.0 / 0.0; a as u8 }
+        public func f_200_9_to_u8() -> u8 { let a: f64 = 200.9; a as u8 }
+        ",
+        u8,
+        [
+            ("f_300_7_to_u8", 255),
+            ("f_neg_to_u8", 0),
+            ("f_nan_to_u8", 0),
+            ("f_200_9_to_u8", 200)
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func f_big_to_i32() -> i32 { let a: f64 = 1000000000000.0; a as i32 }
+        public func f_small_to_i32() -> i32 { let a: f64 = -1000000000000.0; a as i32 }
+        public func f_nan_to_i32() -> i32 { let a: f64 = 0.0 / 0.0; a as i32 }
+        public func f_neg_trunc_to_i32() -> i32 { let a: f64 = -3.99; a as i32 }
+        public func f32_to_i32() -> i32 { let a: f32 = 2.5; a as i32 }
+        ",
+        i32,
+        [
+            ("f_big_to_i32", i32::MAX),
+            ("f_small_to_i32", i32::MIN),
+            ("f_nan_to_i32", 0),
+            ("f_neg_trunc_to_i32", -3),
+            ("f32_to_i32", 2),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func f_inf_to_u64() -> u64 { let a: f64 = 1.0 / 0.0; a as u64 }
+        public func f_to_u64() -> u64 { let a: f64 = 18446744073709549568.0; a as u64 }
+        ",
+        u64,
+        [
+            ("f_inf_to_u64", u64::MAX),
+            ("f_to_u64", 18_446_744_073_709_549_568)
+        ]
+    );
+}
+
+#[test]
+fn folded_float_width_casts_round_through_f32() {
+    assert_nullary!(
+        r"
+        public func f64_to_f32() -> f32 { let a: f64 = 0.1; a as f32 }
+        public func f64_big_to_f32() -> f32 { let a: f64 = 1e300; a as f32 }
+        ",
+        f32,
+        [("f64_to_f32", 0.1f32), ("f64_big_to_f32", f32::INFINITY)]
+    );
+    assert_nullary!(
+        r"
+        public func f32_to_f64() -> f64 { let a: f32 = 0.1; a as f64 }
+        public func roundtrip() -> f64 { let a: f64 = 0.1; (a as f32) as f64 }
+        ",
+        f64,
+        [
+            ("f32_to_f64", f64::from(0.1f32)),
+            ("roundtrip", f64::from(0.1f32))
+        ]
+    );
+}
+
+#[test]
+fn folded_narrow_arithmetic_wraps_at_the_declared_width() {
+    // The folder evaluates integers in an `i64` domain. Arithmetic on a
+    // narrower or unsigned type must still wrap at that type's width
+    // before it is compared, divided or converted.
+    assert_nullary!(
+        r"
+        public func u8_sum_wraps() -> bool { let a: u8 = 200; let b: u8 = 100; (a + b) == 44 }
+        public func u64_underflow_is_large() -> bool { let a: u64 = 0; (a - 1) > 1 }
+        public func u32_underflow_is_large() -> bool { let a: u32 = 0; (a - 1) > 1 }
+        public func i8_overflow_is_negative() -> bool { let a: i8 = 127; (a + 1) < 0 }
+        ",
+        bool,
+        [
+            ("u8_sum_wraps", true),
+            ("u64_underflow_is_large", true),
+            ("u32_underflow_is_large", true),
+            ("i8_overflow_is_negative", true),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func i32_overflow_widened() -> i64 { let a: i32 = 2147483647; (a + 1) as i64 }
+        public func u8_product_widened() -> i64 { let a: u8 = 16; (a * a) as i64 }
+        public func u32_div_large() -> i64 { let a: u32 = 0; ((a - 2) / 2) as i64 }
+        ",
+        i64,
+        [
+            ("i32_overflow_widened", -2_147_483_648),
+            ("u8_product_widened", 0),
+            ("u32_div_large", 2_147_483_647),
+        ]
+    );
+    assert_nullary!(
+        r"
+        public func u64_div_large() -> u64 { let a: u64 = 0; (a - 2) / 2 }
+        public func u64_shr_large() -> u64 { let a: u64 = 0; (a - 1) >> 60 }
+        public func u64_rem_large() -> u64 { let a: u64 = 0; (a - 1) % 10 }
+        ",
+        u64,
+        [
+            ("u64_div_large", u64::MAX / 2),
+            ("u64_shr_large", 15),
+            ("u64_rem_large", u64::MAX % 10),
+        ]
+    );
+}

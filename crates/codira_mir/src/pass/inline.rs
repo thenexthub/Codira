@@ -191,7 +191,7 @@ fn rewrite_body(src: &Body, ctx: &PassContext<'_>) -> (Body, bool) {
             .collect();
         map.insert(
             id,
-            new.push_with_regions(op.kind.clone(), operands, regions),
+            new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
         );
     }
 

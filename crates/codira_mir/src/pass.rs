@@ -275,4 +275,100 @@ mod tests {
         );
         assert_eq!(print_body(&body), before);
     }
+
+    /// Every pass rebuilds the body; each must carry every op's type
+    /// across. `cse` and `dce` used to rebuild untyped, so on the second
+    /// round `const_fold` saw a `u32` constant with no type and a `zext`
+    /// with nothing to read the width from -- and folded `1000 as u64` to
+    /// `0`. Runs each pass alone, then the whole pipeline.
+    #[test]
+    fn every_pass_preserves_op_types() {
+        use crate::{op::CastMode, CastKind, TypeId};
+
+        let build = || {
+            let mut body = Body::new();
+            let a = body.push_typed(OpKind::Arg(0), [], TypeId::U32);
+            let c = body.push_typed(OpKind::Const(Attr::Int(7)), [], TypeId::U32);
+            let sum = body.push_typed(OpKind::Add, [a, c], TypeId::U32);
+            body.push_typed(
+                OpKind::Cast(CastKind::Zext, CastMode::Wrapping),
+                [sum],
+                TypeId::U64,
+            );
+            body
+        };
+        let types = |body: &Body| body.iter().map(|(_, op)| op.ty).collect::<Vec<_>>();
+        let expected = vec![TypeId::U32, TypeId::U32, TypeId::U32, TypeId::U64];
+
+        let passes: Vec<Box<dyn Pass>> = vec![
+            Box::new(InlinePass),
+            Box::new(UnrollPass),
+            Box::new(ConstFoldPass),
+            Box::new(SimplifyPass),
+            Box::new(CsePass),
+            Box::new(DcePass),
+        ];
+        for pass in passes {
+            // Force a rebuild: a no-op pass that keeps the input proves
+            // nothing, so prefix an unused constant every pass removes or
+            // copies.
+            let mut body = Body::new();
+            body.push(OpKind::Const(Attr::Int(99)), []);
+            let original = build();
+            let mut map = rustc_hash::FxHashMap::default();
+            for (id, op) in original.iter() {
+                let operands: Vec<_> = op.operands.iter().map(|o| map[o]).collect();
+                map.insert(id, body.push_typed(op.kind.clone(), operands, op.ty));
+            }
+            pass.run(&mut body, &PassContext::default());
+            let kept: Vec<_> = types(&body)
+                .into_iter()
+                .filter(|t| !t.is_untyped())
+                .collect();
+            assert_eq!(
+                kept,
+                expected,
+                "`{}` dropped a type:
+{}",
+                pass.name(),
+                print_body(&body)
+            );
+        }
+
+        let mut body = build();
+        full_pipeline()
+            .run_to_fixpoint(&mut body, &PassContext::default(), 8)
+            .unwrap();
+        assert_eq!(types(&body), expected, "{}", print_body(&body));
+    }
+
+    #[test]
+    fn widening_cast_of_a_constant_folds_after_any_rebuild() {
+        use crate::{op::CastMode, CastKind, TypeId};
+
+        // `let a: u32 = 1000; a as u64` -- with `cse` and `dce` ahead of
+        // `const_fold`, exactly the order the fixpoint loop reaches on its
+        // second round.
+        let mut body = Body::new();
+        let a = body.push_typed(OpKind::Const(Attr::Int(1000)), [], TypeId::U32);
+        body.push_typed(
+            OpKind::Cast(CastKind::Zext, CastMode::Wrapping),
+            [a],
+            TypeId::U64,
+        );
+        PassManager::new()
+            .add(CsePass)
+            .add(DcePass)
+            .add(ConstFoldPass)
+            .add(DcePass)
+            .run_to_fixpoint(&mut body, &PassContext::default(), 8)
+            .unwrap();
+        assert_eq!(
+            print_body(&body),
+            "%0 = core.const 1000
+"
+        );
+        let (_, folded) = body.iter().next().unwrap();
+        assert_eq!(folded.ty, TypeId::U64);
+    }
 }

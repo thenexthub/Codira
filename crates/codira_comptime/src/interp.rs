@@ -45,7 +45,10 @@
 //! module-level comptime bindings, while per-call data travels exclusively
 //! through `core.arg` values.
 
-use codira_mir::{fold_op, Attr, Body, GeneratorStore, MemOp, Op, OpId, OpKind};
+use codira_mir::{
+    fold_cast, fold_typed_op, normalize, Attr, Body, CastMode, FoldError, GeneratorStore, MemOp,
+    Op, OpId, OpKind,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -213,7 +216,7 @@ impl Interp<'_> {
                 ));
             }
 
-            let value = self.eval_op(op, &values, env, args, frames)?;
+            let value = self.eval_op(body, op, &values, env, args, frames)?;
             last_value = Some(value.clone());
             values.insert(id, value);
         }
@@ -230,6 +233,7 @@ impl Interp<'_> {
 
     fn eval_op(
         &mut self,
+        body: &Body,
         op: &Op,
         values: &FxHashMap<OpId, Value>,
         env: &Env,
@@ -237,7 +241,9 @@ impl Interp<'_> {
         frames: &mut Vec<Vec<Value>>,
     ) -> Result<Value, EvalError> {
         match &op.kind {
-            OpKind::Const(attr) => attr_to_value(attr, env),
+            // In the representation the op's type has at run time: an `f32`
+            // literal is an `f32`, not the `f64` it was parsed as.
+            OpKind::Const(attr) => attr_to_value(&normalize(attr.clone(), op.ty), env),
 
             OpKind::ParamRef(name) => env.lookup(name),
 
@@ -467,13 +473,27 @@ impl Interp<'_> {
             // delegate to the shared fold hook. Scalar `Value`s convert to
             // `Attr`s losslessly; `Tuple` has no `Attr` form, so using a
             // tuple as a pure-op operand is a type mismatch.
+            // A conversion's meaning depends on both its source and target
+            // types, so it is folded by `fold_cast` with both. An operand
+            // whose type is unknown makes it decline (an error here), never
+            // guess.
+            OpKind::Cast(kind, CastMode::Wrapping) => {
+                let [operand] = op.operands.as_slice() else {
+                    return Err(EvalError::Fold(FoldError::WrongOperandCount));
+                };
+                let attr = value_to_attr(&operand_value(values, *operand)?)?;
+                let folded = fold_cast(*kind, &attr, body.get(*operand).ty, op.ty)?;
+                attr_to_value(&folded, env)
+            }
+
             pure => {
                 let attrs = op
                     .operands
                     .iter()
                     .map(|operand| value_to_attr(&operand_value(values, *operand)?))
                     .collect::<Result<Vec<_>, _>>()?;
-                let folded = fold_op(pure, &attrs)?;
+                let operand_tys: Vec<_> = op.operands.iter().map(|o| body.get(*o).ty).collect();
+                let folded = fold_typed_op(pure, &attrs, &operand_tys, op.ty)?;
                 attr_to_value(&folded, env)
             }
         }

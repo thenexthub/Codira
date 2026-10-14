@@ -252,13 +252,14 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
                     continue;
                 }
                 Some(Rw::Out(attr)) => {
-                    map.insert(id, new.push(OpKind::Const(attr), []));
+                    let attr = crate::fold::normalize(attr, op.ty);
+                    map.insert(id, new.push_typed(OpKind::Const(attr), [], op.ty));
                     changed = true;
                     continue;
                 }
                 Some(Rw::ShlBy(x, amount)) => {
                     let amount = new.push(OpKind::Const(Attr::Int(amount)), []);
-                    map.insert(id, new.push(OpKind::Shl, [x, amount]));
+                    map.insert(id, new.push_typed(OpKind::Shl, [x, amount], op.ty));
                     changed = true;
                     continue;
                 }
@@ -277,7 +278,7 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
             .collect();
         map.insert(
             id,
-            new.push_with_regions(op.kind.clone(), operands, regions),
+            new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
         );
     }
 

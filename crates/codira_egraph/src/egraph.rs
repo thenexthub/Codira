@@ -14,7 +14,7 @@
 //! difference between an e-graph that saturates in milliseconds and one
 //! that does not finish.
 
-use codira_mir::{fold_op, Attr, Body, MemOp, Op, OpId, OpKind, Region, TypeId};
+use codira_mir::{fold_typed_op, Attr, Body, MemOp, Op, OpId, OpKind, Region, TypeId};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
@@ -430,7 +430,11 @@ impl EGraph {
                 // there, and folding it away would erase the failure.
                 // `NotFoldable` is simply "not a pure computation". Both
                 // outcomes are therefore "no constant".
-                Some(attrs) => fold_op(kind, &attrs).ok(),
+                Some(attrs) => {
+                    let child_tys: Vec<TypeId> =
+                        node.children.iter().map(|&c| self.class_ty(c)).collect();
+                    fold_typed_op(kind, &attrs, &child_tys, node.ty).ok()
+                }
                 None => None,
             },
         };

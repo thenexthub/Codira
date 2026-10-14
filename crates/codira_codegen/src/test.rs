@@ -1601,6 +1601,49 @@ fn eidos_declines_when_a_parameter_is_involved() {
     );
 }
 
+#[test]
+fn eidos_folds_casts_by_source_and_target_type() {
+    // Each body is a constant, so each must fold to a single `ret` of the
+    // value the run-time conversion would produce: zero-extended by the
+    // u32 source (1000, not its low bit), sign-extended from i32, wrapped
+    // to u8, saturated from f64, and rounded through f32. The values
+    // themselves are checked by running them in `crate::run_test`.
+    test_snapshot_unoptimized(
+        "eidos_folds_casts_by_source_and_target_type",
+        r#"
+    public func widen_unsigned() -> u64 {
+        let a: u32 = 1000;
+        a as u64
+    }
+
+    public func widen_signed() -> i64 {
+        let a: i32 = -5;
+        a as i64
+    }
+
+    public func narrow() -> u8 {
+        let a: i64 = 300;
+        a as u8
+    }
+
+    public func saturate() -> u8 {
+        let a: f64 = 300.7;
+        a as u8
+    }
+
+    public func narrow_sum_wraps() -> bool {
+        let a: u8 = 200;
+        let b: u8 = 100;
+        (a + b) == 44
+    }
+
+    public func f32_widens_exactly() -> f64 {
+        let a: f32 = 0.5;
+        a as f64
+    }"#,
+    );
+}
+
 // ---- `as` casts through the PRODUCTION path -----------------------------
 //
 // These go through `gen_file_ir` -> `BodyIrGenerator::gen_expr`, the path a

@@ -42,7 +42,7 @@ pub mod print;
 pub mod ty;
 pub mod verify;
 
-pub use fold::{fold_cast, fold_op, FoldError};
+pub use fold::{fold_cast, fold_op, fold_typed_op, normalize, FoldError};
 pub use generator::{
     Generator, GeneratorId, GeneratorParam, GeneratorStore, StructGenerator, StructGeneratorId,
 };
