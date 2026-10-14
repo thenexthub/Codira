@@ -1009,3 +1009,55 @@ fn an_impossible_contract_is_not_synthesized() {
     .unwrap_err();
     assert!(err.contains("no candidate"), "{err}");
 }
+
+// ---- units of measure (`verify::units`)
+// --------------------------------------
+
+#[test]
+fn dimensions_are_checked_and_erased() {
+    let diags = diagnostics(
+        r#"
+    type Speed = f64 unit(m / s);
+    func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed {
+        d / t
+    }
+    func travel(v: Speed, t: f64 unit(s)) -> f64 unit(m) {
+        var total = 0.0;
+        total += v * t;
+        total
+    }
+    func wrong_sum(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+        d + t
+    }
+    func wrong_result(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+        d * t
+    }
+    func wrong_call(t: f64 unit(s)) -> Speed {
+        speed(t, t)
+    }
+    func scaled(d: f64 unit(m)) -> f64 unit(m) {
+        2.0 * d + 1.0
+    }
+    func area(w: f64 unit(m), h: f64 unit(m)) -> f64 unit(m * m) {
+        w * h
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("dimension mismatch: added or subtracted `s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("dimension mismatch: returned `m*s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("dimension mismatch: argument of `speed` is `s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(diags.lines().count(), 3, "{diags}");
+}

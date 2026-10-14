@@ -137,6 +137,7 @@ pub enum SyntaxKind {
     SCOPE_KW,
     CHOOSE_KW,
     CONTINUE_KW,
+    UNIT_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -192,6 +193,7 @@ pub enum SyntaxKind {
     OPTIONAL_TYPE,
     REFINEMENT_TYPE,
     SECRET_TYPE,
+    UNIT_TYPE,
     SUPERVISOR_DEF,
     SUPERVISOR_ITEM_LIST,
     SUPERVISOR_ENTRY,
@@ -609,6 +611,9 @@ macro_rules! T {
     (continue) => {
         $crate::SyntaxKind::CONTINUE_KW
     };
+    (unit) => {
+        $crate::SyntaxKind::UNIT_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -691,6 +696,7 @@ impl SyntaxKind {
         | SCOPE_KW
         | CHOOSE_KW
         | CONTINUE_KW
+        | UNIT_KW
         )
     }
 
@@ -875,6 +881,7 @@ impl SyntaxKind {
             SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
             CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
             CONTINUE_KW => &SyntaxInfo { name: "CONTINUE_KW" },
+            UNIT_KW => &SyntaxInfo { name: "UNIT_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -930,6 +937,7 @@ impl SyntaxKind {
             OPTIONAL_TYPE => &SyntaxInfo { name: "OPTIONAL_TYPE" },
             REFINEMENT_TYPE => &SyntaxInfo { name: "REFINEMENT_TYPE" },
             SECRET_TYPE => &SyntaxInfo { name: "SECRET_TYPE" },
+            UNIT_TYPE => &SyntaxInfo { name: "UNIT_TYPE" },
             SUPERVISOR_DEF => &SyntaxInfo { name: "SUPERVISOR_DEF" },
             SUPERVISOR_ITEM_LIST => &SyntaxInfo { name: "SUPERVISOR_ITEM_LIST" },
             SUPERVISOR_ENTRY => &SyntaxInfo { name: "SUPERVISOR_ENTRY" },

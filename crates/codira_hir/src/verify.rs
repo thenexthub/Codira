@@ -69,6 +69,7 @@ pub mod synth;
 pub mod testgen;
 #[cfg(test)]
 mod tests;
+pub(crate) mod units;
 
 use std::{fmt, sync::Arc};
 
@@ -394,6 +395,7 @@ pub(crate) fn contract_diagnostics(
 ) {
     ghost::ghost_diagnostics(db, func, sink);
     flow::flow_diagnostics(db, func, sink);
+    units::unit_diagnostics(db, func, sink);
 
     // A function with an unfilled synthesis hole has no meaning to verify
     // yet: report the holes and nothing else.

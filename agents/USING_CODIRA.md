@@ -456,6 +456,36 @@ public func equal(a: u64, b: u64) -> bool {
   shifts and loads at public addresses are assumed constant-time; speculative
   execution is out of scope.
 
+### Units of measure
+
+```codira
+type Speed = f64 unit(m / s);
+
+func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed { d / t }
+
+func area(w: f64 unit(m), h: f64 unit(m)) -> f64 unit(m * m) { w * h }
+
+func wrong(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+    d + t      // error: dimension mismatch: added or subtracted `s` where `m` is required
+}
+```
+
+- `T unit(<dimension>)` gives a number a dimension: a product of base units
+  with integer exponents, written with `*`, `/`, parentheses and `1`
+  (`kg * m / (s * s)`). Any identifier is a base unit; units are not declared.
+  `unit` is contextual (only directly after a type and before `(`).
+- `+`, `-`, comparisons, assignment, `if` arms, arguments and results need
+  equal dimensions; `*` adds exponents and `/` subtracts them. An unannotated
+  numeric parameter, `let` or result is dimensionless.
+- A literal takes the dimension it meets (`x + 1.0` is fine for any `x`) and
+  is dimensionless under `*` and `/` (`2.0 * x` keeps `x`'s dimension).
+- Values the checker cannot follow (fields, array elements, calls through
+  anything but a plain function) are unconstrained, so a mismatch through them
+  is not caught.
+- The qualifier lowers to its base type: units cost nothing at run time and
+  code generation never sees them. There are no unit conversions (`km` and
+  `m` are unrelated base units).
+
 ### Modules & imports
 
 ```codira

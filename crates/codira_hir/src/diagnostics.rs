@@ -863,6 +863,29 @@ impl Diagnostic for UnfilledHole {
     }
 }
 
+/// A units-of-measure error: two values of different dimensions added,
+/// compared, assigned, passed or returned (see `crate::verify::units`).
+#[derive(Debug)]
+pub struct UnitMismatch {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for UnitMismatch {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A `@test` function the test runner could not call: see
 /// `expr::validator::test_fn` for the required shape.
 #[derive(Debug)]
