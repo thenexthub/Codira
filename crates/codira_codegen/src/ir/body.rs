@@ -37,6 +37,7 @@ use crate::{
     value::Global,
 };
 
+mod closures;
 mod effects;
 mod tasks;
 
@@ -378,6 +379,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 tail,
             } => self.gen_block(expr, statements, *tail),
             Expr::Path(ref p) => {
+                // A named function used as a value: see `closures`.
+                if let Some(item) = self.infer.function_value(expr) {
+                    return Some(self.gen_fn_item_value(item));
+                }
                 let resolver = codira_hir::resolver_for_expr(self.db, self.body.owner(), expr);
                 Some(self.gen_path_expr(p, expr, &resolver))
             }
@@ -400,6 +405,13 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                         return self.gen_channel_new(expr, args);
                     }
                     return self.gen_builtin_call(builtin, args);
+                }
+
+                // A call through a function value: see `closures`.
+                if self.infer.is_indirect_call(expr) {
+                    let callee_value = self.gen_expr(*callee)?;
+                    let fn_ty = self.infer[*callee].clone();
+                    return self.gen_indirect_call(expr, callee_value, &fn_ty, args);
                 }
 
                 // Get the callable definition from the map
@@ -474,6 +486,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Spawn { call } => self.gen_spawn(*call),
             Expr::ChannelSend { channel, value } => self.gen_channel_send(*channel, *value),
             Expr::ChannelReceive { channel } => self.gen_channel_receive(*channel),
+            Expr::Closure { .. } => self.gen_closure(expr),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
             // syntax error comes with a parse error; either way the build
@@ -1165,6 +1178,21 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_builtin_method(builtin, receiver, args);
         }
 
+        // `obj.callback(x)`: a call through the function value in a field.
+        if self.infer.is_field_call(tgt_expr) {
+            let body = self.body.clone();
+            let Expr::MethodCall { method_name, .. } = &body[tgt_expr] else {
+                unreachable!("a field call is a method-call expression");
+            };
+            let fn_ty = self.infer[receiver]
+                .as_struct()
+                .and_then(|s| s.field(self.db, method_name))
+                .map(|field| field.ty(self.db))
+                .expect("inference resolved the called field");
+            let callee_value = self.gen_field(tgt_expr, receiver, method_name)?;
+            return self.gen_indirect_call(tgt_expr, callee_value, &fn_ty, args);
+        }
+
         let resolved = self
             .infer
             .method_resolution(tgt_expr)
@@ -1528,6 +1556,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     self.gen_binary_op_heap_struct(lhs, rhs, op)
                 }
             }
+            // A function value is a GC reference like a class instance;
+            // inference admits only plain assignment for it.
+            TyKind::Function(_) => self.gen_binary_op_heap_struct(lhs, rhs, op),
             _ => {
                 let rhs_type = self.infer[rhs].clone();
                 unimplemented!(

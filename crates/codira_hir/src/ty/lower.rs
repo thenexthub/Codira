@@ -150,6 +150,23 @@ impl Ty {
             TypeRef::Optional(inner) | TypeRef::Refinement(inner) => Some(
                 Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *inner),
             ),
+            TypeRef::Function { params, ret } => {
+                let params = params
+                    .iter()
+                    .map(|tr| {
+                        Self::from_hir_with_diagnostics(
+                            db,
+                            resolver,
+                            type_ref_map,
+                            diagnostics,
+                            *tr,
+                        )
+                    })
+                    .collect();
+                let ret =
+                    Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *ret);
+                Some(Ty::function(params, ret))
+            }
         };
         if let Some(ty) = res {
             ty

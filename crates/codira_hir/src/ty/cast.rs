@@ -210,6 +210,7 @@ fn classify(ty: &Ty) -> Class {
         | TyKind::Array(_)
         | TyKind::Channel(_)
         | TyKind::FnDef(..)
+        | TyKind::Function(_)
         // A generic parameter is not a numeric type *here*, whatever it is
         // instantiated with later. `Other` rejects the cast, which is the
         // right answer: `x as T` for an unconstrained `T` cannot be given a

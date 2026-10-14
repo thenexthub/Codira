@@ -14,6 +14,7 @@ use itertools::Itertools;
 
 use crate::{
     ir::{
+        closures::SyntheticStruct,
         dispatch_table::{DispatchTable, DispatchableFunction},
         ty::{guid_from_struct, HirTypeCache},
         type_table::TypeTable,
@@ -108,15 +109,84 @@ fn gen_prototype_from_dispatch_entry<'ink>(
     }
 }
 
+/// The definition of a garbage-collected struct that has no
+/// `codira_hir::Struct` behind it: a function type or a closure environment
+/// (see `ir::closures`).
+fn gen_synthetic_type_definition<'ink>(
+    context: &IrValueContext<'ink, '_, '_>,
+    def: &SyntheticStruct<'ink>,
+    ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
+) -> ir::TypeDefinition<'ink> {
+    let name = &def.name;
+    let target_data = context.type_context.target_data;
+    let field_names = def
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(idx, (field, _))| {
+            CString::new(field.as_str())
+                .expect("field name is not a valid CString")
+                .intern(format!("struct_info::<{name}>::field_names.{idx}"), context)
+                .as_value(context)
+        })
+        .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_names"), context);
+    let field_types = def
+        .fields
+        .iter()
+        .map(|(_, ty)| ir_type_builder.construct_from_type_id(ty))
+        .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_types"), context);
+    let field_offsets = (0..def.fields.len())
+        .map(|idx| {
+            target_data
+                .offset_of_element(&def.ir_type, idx as u32)
+                .expect("field index in range") as u16
+        })
+        .into_const_private_pointer_or_null(
+            format!("struct_info::<{name}>::field_offsets"),
+            context,
+        );
+    ir::TypeDefinition {
+        name: CString::new(name.as_str())
+            .expect("typename is not a valid CString")
+            .intern(format!("type_info::<{name}>::name"), context)
+            .as_value(context),
+        size_in_bits: target_data
+            .get_bit_size(&def.ir_type)
+            .try_into()
+            .expect("could not convert size in bits to smaller size"),
+        alignment: target_data
+            .get_abi_alignment(&def.ir_type)
+            .try_into()
+            .expect("could not convert alignment to smaller size"),
+        data: ir::TypeDefinitionData::Struct(ir::StructDefinition {
+            guid: def.guid,
+            field_names,
+            field_types,
+            field_offsets,
+            num_fields: def
+                .fields
+                .len()
+                .try_into()
+                .expect("could not convert num_fields to smaller bit size"),
+            memory_kind: abi::StructMemoryKind::Gc,
+        }),
+    }
+}
+
 /// Construct a global that holds a reference to all types. e.g.:
 /// `CodiraTypeInfo[] definitions = { ... }`
 fn get_type_definition_array<'ink>(
     db: &dyn HirDatabase,
     context: &IrValueContext<'ink, '_, '_>,
     types: impl Iterator<Item = codira_hir::Ty>,
+    synthetic: &[SyntheticStruct<'ink>],
     hir_types: &HirTypeCache<'_, 'ink>,
     ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
 ) -> Value<'ink, *const ir::TypeDefinition<'ink>> {
+    let synthetic_definitions: Vec<ir::TypeDefinition<'ink>> = synthetic
+        .iter()
+        .map(|def| gen_synthetic_type_definition(context, def, ir_type_builder))
+        .collect();
     types
         .sorted_by_cached_key(|type_info| match type_info.interned() {
             TyKind::Struct(s, _) => s.full_name(db),
@@ -154,6 +224,7 @@ fn get_type_definition_array<'ink>(
             }
             _ => unreachable!("unsupported export type"),
         })
+        .chain(synthetic_definitions)
         .into_const_private_pointer_or_null("fn.get_info.types", context)
 }
 
@@ -377,6 +448,7 @@ pub(super) fn gen_reflection_ir<'db, 'ink>(
     module_name: &str,
     function_definitions: &HashSet<codira_hir::Function>,
     type_definitions: &HashSet<codira_hir::Ty>,
+    synthetic_types: &[SyntheticStruct<'ink>],
     dispatch_table: &DispatchTable<'ink>,
     type_table: &TypeTable<'ink>,
     hir_types: &HirTypeCache<'db, 'ink>,
@@ -395,11 +467,12 @@ pub(super) fn gen_reflection_ir<'db, 'ink>(
     );
 
     // Get the TypeTable global
-    let num_types = type_definitions.len() as u32;
+    let num_types = (type_definitions.len() + synthetic_types.len()) as u32;
     let types = get_type_definition_array(
         db,
         context,
         type_definitions.iter().cloned(),
+        synthetic_types,
         hir_types,
         &ir_type_builder,
     );

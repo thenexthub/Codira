@@ -974,27 +974,18 @@ fn while_expr(p: &mut Parser<'_>) -> CompletedMarker {
 
 /// Parses a closure literal: `func(a: T, b: T) -> R { .. }`.
 ///
-/// Syntax only. `spec/EIDOS_RFC_002.md` section 3.1 prices closures (S11) at
-/// 4-6 weeks -- capture analysis, a function type, an indirect-call op, GC
-/// interaction -- and notes they block exactly one stdlib file. This is not
-/// that work: HIR lowers a closure to `Missing`, so a program that *uses*
-/// one gets a diagnostic rather than silently compiling.
-///
-/// What it buys is the one thing the ratchet needs: a file that merely
-/// *mentions* a closure stops failing to parse, so every other construct in
-/// it can be checked. `std/builtin/sort.code` passes a comparator on one
-/// line and is otherwise ordinary code.
-///
-/// The parameter list reuses `params::param_list`, so a closure's parameters
-/// are parsed by exactly the same production a function's are -- including
-/// the ownership keywords -- rather than by a second, subtly different one.
+/// The parameter list reuses the function parameter production, so a
+/// closure's parameters are parsed exactly as a function's are -- including
+/// the ownership keywords -- except that a parameter's type may be left out:
+/// `apply(xs, func(x) { x * 2 })`. Inference then takes it from the function
+/// type the closure is checked against, and reports it when there is none.
 fn closure_expr(p: &mut Parser<'_>) -> CompletedMarker {
     assert!(p.at(T![func]));
     let m = p.start();
     p.bump(T![func]);
 
     if p.at(T!['(']) {
-        params::param_list(p);
+        params::param_list_untyped(p);
     } else {
         p.error("expected a parameter list");
     }

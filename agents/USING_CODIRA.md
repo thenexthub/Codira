@@ -225,6 +225,72 @@ if let value = find(xs, 7) {
 }
 ```
 
+### Function values and closures
+
+```codira
+func square(x: i32) -> i32 { x * x }
+
+func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+
+func adder(a: i32) -> func(i32) -> i32 {
+    func(b: i32) -> i32 { a + b }      // a closure literal; captures `a`
+}
+
+class Counter { n: i32 }
+
+func make_counter() -> func() -> i32 {
+    let state = Counter { n: 0 }
+    func() -> i32 { state.n += 1; state.n }   // state lives in a captured object
+}
+
+class Button { on_click: func(i32) -> i32 }
+
+public func main() -> i32 {
+    let f = square                     // a named function used as a value
+    let steps = [square, adder(1), func(x) { x * 3 }]
+    let b = Button { on_click: f }
+    b.on_click(2) + apply(func(x) { x + 1 }, 4) + steps[1](5) + make_counter()()
+}
+```
+
+- `func(A, B) -> R` is the type of a function value (`func()` returns `()`).
+  A named function (used anywhere but as the callee of a call) or a closure
+  literal `func(a: A) -> R { .. }` is a value of that type: store it in a
+  local, a field or an array, pass and return it, call it with `f(x)`. A
+  field of function type is called like a method: `obj.on_click(x)`.
+- **Captures are by value, at creation.** A closure copies every local it
+  mentions when it is created; changing the variable afterwards does not
+  change the closure's copy. Assigning to a captured variable (or a field of
+  a captured value struct) inside the closure is a compile error. Mutable
+  state goes in a class instance: capturing it copies the reference, so the
+  closure and its creator share the object (the counter above).
+- Parameter types and the result may be left out when the closure is
+  checked against a known function type (an argument, a typed `let`, an
+  array of functions); otherwise parameter types are required and a missing
+  `-> R` means `()`, as for functions.
+- Function values cannot be compared (`==` is a type error).
+- Not allowed: a generic function, a function that `uses` effects, an
+  `extern "codira-intrinsic"` or `@asm` function as a value; `perform`,
+  `handle` or calling a `uses` function inside a closure; `spawn` of a
+  function value; capturing a `str`, tuple or channel (no runtime type info
+  for those yet). `break`/`continue` inside a closure do not reach loops
+  outside it; `return` returns from the closure.
+- Secrets: a closure that captures a secret is secret (so is its result);
+  function-value parameters are never `secret`; `@constant_time` functions
+  neither create nor call function values. A function with contracts may
+  not contain closures whose obligations would go unchecked (the verifier
+  says so).
+- Cost: creating a function value allocates one GC object (a cell word plus
+  the captures); a call is three dependent loads and an indirect call.
+- Hot reload: a function value never holds a raw code pointer. It points at a
+  runtime-owned code cell that every reload repoints, so a value created
+  before a reload runs the *new* code of the same closure (or named
+  function) with the captures it was created with. If the reload removed
+  that closure or changed its signature, calling the old value stops the
+  program with a message instead.
+- `codira run --jit` (Cranelift) does not compile function values; such a
+  program runs on the LLVM backend.
+
 ### Algebraic effects: `effect`, `uses`, `perform`, `handle`, `resume`
 
 An effect declares operations; a function that may perform them says so
@@ -274,7 +340,7 @@ Rules (checked by the compiler):
   result.
 - Innermost handler wins.
 - Version-1 restrictions: an arm cannot use local variables or parameters of
-  the enclosing function (no closures yet -- pass values through the
+  the enclosing function (arms do not capture -- pass values through the
   operation's parameters), cannot `return` or `break` out of the enclosing
   function, and a function with `uses` can only be called from its own
   module and cannot be `@export`ed.
@@ -798,6 +864,9 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
+- function values: named functions as values, closures with by-value
+  captures, calls through locals, fields and arrays (see "Function values
+  and closures")
 
 Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
@@ -839,7 +908,7 @@ on a worker pool; see "Structured concurrency" above for what may cross
 between tasks (scalars and channels only). No `select` yet.
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
-supported by the code generator yet" naming the construct: `match`, closures,
+supported by the code generator yet" naming the construct: `match`,
 postfix `!`, postfix `^`. Not available at
 all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
 instantiation (generic code type-checks but does not build), `String`, and

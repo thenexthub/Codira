@@ -16,6 +16,7 @@ use inkwell::{
 
 mod array;
 pub mod body;
+pub(crate) mod closures;
 #[macro_use]
 pub(crate) mod dispatch_table;
 pub mod file;

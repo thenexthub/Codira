@@ -142,6 +142,14 @@ impl TypeVariableTable {
         // First resolve both types as much as possible
         let a = self.replace_if_possible(db, a);
         let b = self.replace_if_possible(db, b);
+        // A variable that already stands for the other type: equal. Without
+        // this a type parameter never unified with a variable instantiated
+        // to that same parameter (`equals_ctor` has no case for it), so
+        // passing `cmp: func(T, T) -> i32` on to another generic function
+        // was a mismatch.
+        if a == b {
+            return true;
+        }
         if a.equals_ctor(&b) {
             match (a.interned(), b.interned()) {
                 // Struct is here for the same reason as tuple: the
@@ -150,9 +158,8 @@ impl TypeVariableTable {
                 // struct itself, which would let `Box[i32]` and `Box[f64]`
                 // unify.
                 (TyKind::Tuple(_, a), TyKind::Tuple(_, b))
-                | (TyKind::Struct(_, a), TyKind::Struct(_, b)) => {
-                    self.unify_substitutions(db, a, b)
-                }
+                | (TyKind::Struct(_, a), TyKind::Struct(_, b))
+                | (TyKind::Function(a), TyKind::Function(b)) => self.unify_substitutions(db, a, b),
                 (TyKind::Array(t1), TyKind::Array(t2))
                 | (TyKind::Channel(t1), TyKind::Channel(t2)) => self.unify_inner(db, t1, t2),
                 _ => true,

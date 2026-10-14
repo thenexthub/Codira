@@ -133,6 +133,29 @@ pub(crate) fn gen_file_ir<'ink>(
         code_gen.gen_fn_body();
     }
 
+    // The code of every function-value target: closure bodies and thunks
+    // (see `ir::closures`). Each is generated here, once, rather than where
+    // its value is created, so a target exists even when the function that
+    // creates it was folded to a constant.
+    for target in group_ir.dispatch_table.fn_values().targets() {
+        let code_type = code_gen.hir_types.get_fn_value_code_type(&target.fn_ty);
+        let llvm_function = llvm_module.add_function(&target.symbol, code_type, None);
+        let mut code_gen = BodyIrGenerator::new(
+            code_gen.context,
+            &llvm_module,
+            code_gen.db,
+            (target.creator, llvm_function),
+            &functions,
+            &group_ir.dispatch_table,
+            &group_ir.type_table,
+            external_globals.clone(),
+            &code_gen.hir_types,
+            module_group,
+            None,
+        );
+        code_gen.gen_fn_value_target(target);
+    }
+
     for (hir_function, llvm_function) in wrapper_functions.iter() {
         let mut code_gen = BodyIrGenerator::new(
             code_gen.context,

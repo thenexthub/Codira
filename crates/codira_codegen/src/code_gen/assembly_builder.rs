@@ -58,6 +58,15 @@ impl<'db, 'ink, 'ctx, 't> AssemblyBuilder<'db, 'ink, 'ctx, 't> {
             .link_in_module(file.llvm_module.clone())
             .map_err(|e| CodeGenerationError::ModuleLinkerError(e.to_string()))?;
 
+        // Function-value code is reached only through the dispatch table
+        // (see `ir::closures`); once the two halves are linked its symbols
+        // need not be visible outside the assembly.
+        for target in group_ir.dispatch_table.fn_values().targets() {
+            if let Some(function) = self.assembly_module.get_function(&target.symbol) {
+                function.set_linkage(Linkage::Private);
+            }
+        }
+
         if self.code_gen.db.target().options.is_like_windows {
             // Add the useless `_fltused` symbol to indicate that the object file supports
             // floating-point values. This is required for Windows.
@@ -106,6 +115,10 @@ impl<'db, 'ink, 'ctx, 't> AssemblyBuilder<'db, 'ink, 'ctx, 't> {
             &module_group.name,
             &file.function_definitions,
             &file.type_definitions,
+            &group_ir
+                .dispatch_table
+                .fn_values()
+                .synthetic_structs(self.code_gen.db, &self.code_gen.hir_types),
             &group_ir.dispatch_table,
             &group_ir.type_table,
             &self.code_gen.hir_types,

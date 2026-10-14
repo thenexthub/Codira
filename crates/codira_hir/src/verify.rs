@@ -169,6 +169,9 @@ pub enum ObligationKind {
     /// One of this function's own clauses, which the verifier cannot
     /// encode; reported so it is never silently ignored.
     UncheckableClause,
+    /// A closure in code the verifier checks: its body is not verified, so
+    /// whatever it would have to prove is reported instead of passed.
+    UnverifiedClosure,
     /// The predicate of a `choose x where pred` (synthesis only).
     ChoosePredicate,
 }
@@ -342,6 +345,9 @@ impl Obligation {
             ),
             ObligationKind::UncheckableClause => {
                 format!("contract clause `{}` cannot be checked", self.clause)
+            }
+            ObligationKind::UnverifiedClosure => {
+                "this closure's body is not verified yet".to_string()
             }
             ObligationKind::ChoosePredicate => {
                 format!("the chosen value might not satisfy `{}`", self.clause)

@@ -44,6 +44,24 @@ fn array_index() {
     );
 }
 
+/// A closure capturing a parameter, passed as a function value and called
+/// through it: the object is allocated with its cell from the
+/// `codira.fn_cell:` slot, the call loads the object, the cell and the code,
+/// and the closure body reads its capture back out of the object.
+#[test]
+fn closure_call() {
+    test_snapshot_unoptimized(
+        "closure_call",
+        r"
+    func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+
+    public func main(k: i32) -> i32 {
+        apply(func(x: i32) -> i32 { x + k }, 2)
+    }
+    ",
+    );
+}
+
 #[test]
 fn array_literal() {
     test_snapshot_unoptimized(

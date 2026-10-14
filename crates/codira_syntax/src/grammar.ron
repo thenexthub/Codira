@@ -575,9 +575,8 @@ Grammar(
                 [ "exprs", "Expr" ]
             ]
         ),
-        // `func(a: T, b: T) -> R { .. }` -- a closure literal. Parses only;
-        // see `expressions::closure_expr` for what that does and does not
-        // claim.
+        // `func(a: T, b: T) -> R { .. }` -- a closure literal; parameter
+        // types may be omitted (see `expressions::closure_expr`).
         "ClosureExpr": (
             traits: ["ArgListOwner"],
             options: ["ParamList", ["ret_type", "RetType"], ["body", "BlockExpr"]],
@@ -690,10 +689,7 @@ Grammar(
         // exactly as the parameter ownership keywords do (LANGUAGE_SPEC
         // section 14), since there is no borrow model to enforce yet.
         "ReferenceType": (options: ["TypeRef"]),
-        // `func(A, B) -> R` -- a function type. Parse-level only; there are
-        // no function *values* yet (LANGUAGE_SPEC section 12 lists closures
-        // as unimplemented), so this exists so signatures that mention one
-        // can be read.
+        // `func(A, B) -> R` -- the type of a function value.
         "FunctionType": (
             collections: [("params", "TypeRef")],
             options: [["ret_type", "RetType"]],

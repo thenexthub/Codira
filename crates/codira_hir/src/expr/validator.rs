@@ -22,6 +22,7 @@ use crate::{
     Visibility,
 };
 
+mod closures;
 pub(crate) mod codegen_support;
 mod effect_obligation;
 mod effects;
@@ -64,6 +65,7 @@ impl<'a> ExprValidator<'a> {
         self.validate_effect_obligations(sink);
         self.validate_effects(sink);
         self.validate_tasks(sink);
+        self.validate_closures(sink);
         self.validate_healing_contract(sink);
         self.validate_move_checking(sink);
         self.validate_codegen_support(sink);

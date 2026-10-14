@@ -56,6 +56,11 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         }
     }
 
+    /// The LLVM context the types live in.
+    pub fn context(&self) -> &'ink Context {
+        self.context
+    }
+
     /// Returns the type of the specified floating-point type
     pub fn get_float_type(&self, ty: codira_hir::FloatTy) -> FloatType<'ink> {
         match ty.bitness {
@@ -334,7 +339,36 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            // A reference to the function value's GC object (see
+            // `ir::body::closures`).
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
+        }
+    }
+
+    /// The LLVM type of the code a function value of type `fn_ty` calls:
+    /// the function value itself (its GC handle) first, then the parameters,
+    /// all in the internal representation (value structs by value).
+    pub fn get_fn_value_code_type(&self, fn_ty: &Ty) -> FunctionType<'ink> {
+        let (params, ret) = fn_ty
+            .as_function()
+            .expect("a function value has a function type");
+        let param_tys: Vec<_> =
+            std::iter::once(self.context.ptr_type(AddressSpace::default()).into())
+                .chain(params.iter().map(|p| {
+                    self.get_basic_type(p)
+                        .expect("could not convert a function value's parameter to a basic type")
+                        .into()
+                }))
+                .collect();
+        match ret.interned() {
+            TyKind::Tuple(0, _) | TyKind::Never => {
+                self.context.void_type().fn_type(&param_tys, false)
+            }
+            _ => self
+                .get_basic_type(ret)
+                .expect("could not convert a function value's return type")
+                .fn_type(&param_tys, false),
         }
     }
 
@@ -353,6 +387,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
         }
     }
@@ -376,6 +411,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
         }
     }
@@ -486,6 +522,30 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                 assert!(previous_entry.is_none(), "array cyclic reference?");
 
                 array_type_id
+            }
+            // Structural like a tuple: one id per signature, hashed from the
+            // `core::fn(..) -> R` guid string. To the runtime it is a garbage
+            // collected struct whose one field locates the code; every
+            // function value object starts with that field (see
+            // `ir::closures`).
+            TyKind::Function(_) => {
+                {
+                    let read_only = self.tuple_ty_to_type_id.borrow();
+                    if let Some(id) = read_only.get(ty.interned()) {
+                        return id.clone();
+                    }
+                }
+                let name = ty
+                    .guid_string(self.db)
+                    .expect("a function type of representable types has a guid string");
+                let fn_type_id = Arc::new(TypeId {
+                    data: TypeIdData::Concrete(Guid::from_str(&name)),
+                    name,
+                });
+                self.tuple_ty_to_type_id
+                    .borrow_mut()
+                    .insert(ty.interned().clone(), fn_type_id.clone());
+                fn_type_id
             }
             // A tuple's identity is structural, so -- unlike an array, which
             // gets a dedicated `TypeIdData::Array` wrapper around its element

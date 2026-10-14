@@ -21,7 +21,11 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     intrinsics::Intrinsic,
-    ir::{function, ty::HirTypeCache},
+    ir::{
+        closures::{FnValueTargets, TargetKind},
+        function,
+        ty::HirTypeCache,
+    },
     module_group::ModuleGroup,
     type_info::{HasStaticTypeId, TypeId},
 };
@@ -55,6 +59,10 @@ pub struct DispatchTable<'ink> {
     table_ref: Option<inkwell::values::GlobalValue<'ink>>,
     //
     table_type: Option<inkwell::types::StructType<'ink>>,
+    // The function-value targets of the group, and the index of each one's
+    // `codira.fn_cell:` entry by key (see `ir::closures`).
+    fn_values: FnValueTargets,
+    fn_cell_to_idx: HashMap<String, usize>,
 }
 
 /// A `FunctionPrototype` defines a unique signature that can be added to the
@@ -77,6 +85,10 @@ pub struct DispatchableFunction<'ink> {
     /// pointers removed `CallableValue`'s ability to carry a callee's type
     /// alongside its address -- see `gen_function_lookup_by_index`.
     pub ir_type: FunctionType<'ink>,
+    /// The LLVM function this slot starts out pointing at, when it is not a
+    /// `codira_hir` function: the code of a function-value target, offered
+    /// to the runtime under `codira.fn_code:` (see `ir::closures`).
+    pub prefill: Option<String>,
 }
 
 impl<'ink> DispatchTable<'ink> {
@@ -174,6 +186,27 @@ impl<'ink> DispatchTable<'ink> {
         (ir_type, function_ptr)
     }
 
+    /// The function-value targets of the module group (see `ir::closures`).
+    pub(crate) fn fn_values(&self) -> &FnValueTargets {
+        &self.fn_values
+    }
+
+    /// Loads the address of the runtime-owned code cell for the
+    /// function-value target `key`, from its `codira.fn_cell:` slot.
+    pub(crate) fn gen_fn_value_cell_lookup(
+        &self,
+        table_ref: Option<inkwell::values::GlobalValue<'ink>>,
+        builder: &inkwell::builder::Builder<'ink>,
+        key: &str,
+    ) -> PointerValue<'ink> {
+        let index = *self
+            .fn_cell_to_idx
+            .get(key)
+            .expect("every function-value target has a cell slot");
+        self.gen_function_lookup_by_index(table_ref, builder, "fn_cell", index)
+            .1
+    }
+
     /// Returns the value that represents the dispatch table in IR or `None` if
     /// no table was generated.
     pub fn global_value(&self) -> Option<&inkwell::values::GlobalValue<'ink>> {
@@ -211,6 +244,9 @@ pub(crate) struct DispatchTableBuilder<'db, 'ink, 't> {
     module_group: &'t ModuleGroup,
     // The set of modules that is referenced
     referenced_modules: FxHashSet<codira_hir::Module>,
+    // The function-value targets and their cell slots
+    fn_values: FnValueTargets,
+    fn_cell_to_idx: HashMap<String, usize>,
 }
 
 struct TypedDispatchableFunction<'ink> {
@@ -242,6 +278,8 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
             hir_types,
             module_group,
             referenced_modules: FxHashSet::default(),
+            fn_values: FnValueTargets::default(),
+            fn_cell_to_idx: HashMap::default(),
         };
 
         if !intrinsics.is_empty() {
@@ -255,6 +293,7 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                         prototype: prototype.clone(),
                         codira_hir: None,
                         ir_type: *ir_type,
+                        prefill: None,
                     },
                     ir_type: *ir_type,
                 });
@@ -311,12 +350,81 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                     }
                 }
                 Some(codira_hir::CallableDef::Struct(_)) => (),
+                // A call through a function value: no callee to link.
+                None if infer.is_indirect_call(expr_id) => (),
                 None => panic!("expected a callable expression"),
             }
         }
 
         // Recurse further
         expr.walk_child_exprs(|expr_id| self.collect_expr(expr_id, body, infer));
+    }
+
+    /// Adds the two entries of every function-value target (see
+    /// `ir::closures`): the empty `codira.fn_cell:` slot the runtime fills
+    /// with the target's cell, and the `codira.fn_code:` slot pre-filled with
+    /// its code. A thunk calls its function like any call does, so a
+    /// function of another module gets its ordinary entry too.
+    pub fn collect_fn_values(&mut self, fn_values: FnValueTargets) {
+        if fn_values.targets().is_empty() {
+            self.fn_values = fn_values;
+            return;
+        }
+        self.ensure_table_ref();
+        for target in fn_values.targets() {
+            if let TargetKind::Item(item) = target.kind {
+                if self.module_group.should_runtime_link_fn(self.db, item) {
+                    let fn_module = item.module(self.db);
+                    if !item.is_extern(self.db) && !self.module_group.contains(fn_module) {
+                        self.referenced_modules.insert(fn_module);
+                    }
+                    self.collect_fn_def(item);
+                }
+            }
+
+            let slot_type = self.context.void_type().fn_type(&[], false);
+            let cell_index = self.entries.len();
+            self.push_named_entry(
+                format!("{}{}", codira_abi::FN_VALUE_CELL_PREFIX, target.key),
+                slot_type,
+                None,
+            );
+            self.fn_cell_to_idx.insert(target.key.clone(), cell_index);
+
+            let code_type = self.hir_types.get_fn_value_code_type(&target.fn_ty);
+            self.push_named_entry(
+                format!("{}{}", codira_abi::FN_VALUE_CODE_PREFIX, target.key),
+                code_type,
+                Some(target.symbol.clone()),
+            );
+        }
+        self.fn_values = fn_values;
+    }
+
+    /// Adds an entry that is not a `codira_hir` function: no arguments, no
+    /// result, as far as the runtime's signature check is concerned.
+    fn push_named_entry(
+        &mut self,
+        name: String,
+        ir_type: FunctionType<'ink>,
+        prefill: Option<String>,
+    ) {
+        let prototype = FunctionPrototype {
+            name,
+            arg_types: Vec::new(),
+            ret_type: <()>::type_id().clone(),
+        };
+        let index = self.entries.len();
+        self.entries.push(TypedDispatchableFunction {
+            function: DispatchableFunction {
+                prototype: prototype.clone(),
+                codira_hir: None,
+                ir_type,
+                prefill,
+            },
+            ir_type,
+        });
+        self.prototype_to_idx.insert(prototype, index);
     }
 
     /// Collects function call expression from the given expression.
@@ -363,6 +471,7 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                     prototype: prototype.clone(),
                     codira_hir: Some(function),
                     ir_type,
+                    prefill: None,
                 },
                 ir_type,
             });
@@ -418,6 +527,18 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                     let function_type = table_body[i].into_pointer_type();
                     // Find the associated IR function if it exists
                     match entry.function.codira_hir {
+                        // The code of a function-value target, defined in
+                        // the file module and declared here.
+                        None if entry.function.prefill.is_some() => {
+                            let symbol = entry.function.prefill.as_deref().unwrap_or_default();
+                            self.module
+                                .get_function(symbol)
+                                .unwrap_or_else(|| {
+                                    self.module.add_function(symbol, entry.ir_type, None)
+                                })
+                                .as_global_value()
+                                .as_pointer_value()
+                        }
                         // Case external function: Convert to typed null for the given function
                         None => function_type.const_null(),
                         // Case external function, or function from another module
@@ -453,6 +574,8 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                 prototype_to_idx: self.prototype_to_idx,
                 table_ref: self.table_ref,
                 table_type,
+                fn_values: self.fn_values,
+                fn_cell_to_idx: self.fn_cell_to_idx,
                 entries: self
                     .entries
                     .into_iter()

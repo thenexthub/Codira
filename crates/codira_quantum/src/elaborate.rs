@@ -701,6 +701,12 @@ impl Elaborator<'_> {
                 id,
                 "`scope`, `spawn` and channels are not supported in quantum kernels".into(),
             )),
+            Expr::Closure { .. } => Err(self.error(
+                frame,
+                id,
+                "closures are not supported in quantum kernels: a circuit has no function values"
+                    .into(),
+            )),
             Expr::Perform { .. } | Expr::Handle { .. } | Expr::Resume { .. } => Err(self.error(
                 frame,
                 id,

@@ -457,6 +457,7 @@ fn ty_to_mir_type(ty: &Ty, layout: &TargetDataLayout) -> Option<TypeId> {
         | TyKind::Array(_)
         | TyKind::Channel(_)
         | TyKind::FnDef(..)
+        | TyKind::Function(_)
         | TyKind::Never
         | TyKind::TypeAlias(_)
         | TyKind::InferenceVar(_)

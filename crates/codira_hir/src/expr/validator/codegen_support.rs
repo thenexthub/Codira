@@ -163,7 +163,7 @@ impl ExprValidator<'_> {
     /// Reports an `Expr::Missing` that stands in for a construct the front
     /// end parses but does not lower.
     ///
-    /// Several expression forms -- `match`, closures, postfix `!` and
+    /// Several expression forms -- `match`, postfix `!` and
     /// postfix `^` -- are fully parsed and then lowered to
     /// `Expr::Missing`, so that the code around them still type-checks.
     /// `Missing` infers to the error type, which unifies with everything and
@@ -191,10 +191,7 @@ impl ExprValidator<'_> {
                 "`match`",
                 "pattern matching has no lowering yet; use `if`/`else` chains for now",
             ),
-            SyntaxKind::CLOSURE_EXPR => (
-                "a closure",
-                "there is no function-value representation or capture analysis yet",
-            ),
+
             SyntaxKind::TRY_EXPR => (
                 "postfix `!` (force-unwrap)",
                 "`Type?` optionals have no runtime representation yet",
@@ -251,7 +248,7 @@ pub(crate) fn contains_type_parameter(ty: &Ty) -> bool {
         // is exactly as uninstantiated as one of type `T` directly, and
         // missing that here would let a struct-wrapped type parameter slip
         // past this check into a codegen path that still cannot handle it.
-        TyKind::Tuple(_, substs) | TyKind::Struct(_, substs) => {
+        TyKind::Tuple(_, substs) | TyKind::Struct(_, substs) | TyKind::Function(substs) => {
             substs.iter().any(contains_type_parameter)
         }
         _ => false,

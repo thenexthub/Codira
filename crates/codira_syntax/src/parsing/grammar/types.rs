@@ -216,13 +216,9 @@ fn reference_type(p: &mut Parser<'_>) -> CompletedMarker {
     m.complete(p, REFERENCE_TYPE)
 }
 
-/// Parses `func(A, B) -> R` -- a function type.
-///
-/// Parse-level only. `spec/LANGUAGE_SPEC.md` section 12 lists closures as
-/// unimplemented, and without function *values* a function type has nothing
-/// to describe -- but signatures that take one (`std/builtin/sort.code`'s
-/// `cmp: func(T, T) -> i32`) have to be readable before the feature lands,
-/// and rejecting the whole file until then blocks everything else in it.
+/// Parses `func(A, B) -> R` -- the type of a function value (a named
+/// function used as a value, or a closure), e.g. `std/builtin/sort.code`'s
+/// `cmp: func(T, T) -> i32`.
 ///
 /// The return type is optional: `func()` is a function returning unit, which
 /// is how `std/gpu/profiler.code` writes a callback parameter.
