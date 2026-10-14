@@ -94,6 +94,11 @@ pub enum TyKind {
     /// An dynamically sized array type
     Array(Ty),
 
+    /// `Channel[T]`: a bounded, blocking channel of `T` values between
+    /// tasks (see `expr::validator::tasks`). A runtime handle; its lifetime
+    /// is the `scope` that created it.
+    Channel(Ty),
+
     /// A bound generic type parameter: the `T` of `func map[T](..)` or
     /// `struct Box[T]`.
     ///
@@ -270,6 +275,7 @@ impl Ty {
             TyKind::Float(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Int(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Array(ty) => Some(format!("[{}]", ty.display(db))),
+            TyKind::Channel(ty) => Some(format!("core::Channel[{}]", ty.guid_string(db)?)),
             // A tuple is a structural type: two tuples are the same type
             // exactly when their element types match, so the name is built
             // from the elements rather than from a declaration site. `()`
@@ -331,7 +337,9 @@ impl Ty {
         match (self.interned(), other.interned()) {
             (TyKind::Struct(s1, _), TyKind::Struct(s2, _)) => s1 == s2,
             (TyKind::Tuple(_, substs1), TyKind::Tuple(_, substs2)) => substs1 == substs2,
-            (TyKind::Array(_), TyKind::Array(_)) | (TyKind::Bool, TyKind::Bool) => true,
+            (TyKind::Array(_), TyKind::Array(_))
+            | (TyKind::Channel(_), TyKind::Channel(_))
+            | (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
             (TyKind::Int(i1), TyKind::Int(i2)) => i1 == i2,
             (TyKind::FnDef(def, _), TyKind::FnDef(def2, _)) => def == def2,
@@ -491,6 +499,7 @@ impl HirDisplay for Ty {
                 write!(f, ") -> {}", sig.ret().display(f.db))
             }
             TyKind::Array(elem_ty) => write!(f, "[{}]", elem_ty.display(f.db)),
+            TyKind::Channel(elem_ty) => write!(f, "Channel[{}]", elem_ty.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }
     }
@@ -528,7 +537,7 @@ pub trait TypeWalk {
 impl TypeWalk for Ty {
     fn walk(&self, f: &mut impl FnMut(&Ty)) {
         match self.interned() {
-            TyKind::Array(elem_ty) => f(elem_ty),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => f(elem_ty),
             _ => {
                 if let Some(substs) = self.type_parameters() {
                     substs.walk(f);
@@ -540,7 +549,7 @@ impl TypeWalk for Ty {
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Ty)) {
         match self.interned_mut() {
-            TyKind::Array(elem_ty) => f(elem_ty),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => f(elem_ty),
             _ => {
                 if let Some(substs) = self.type_parameters_mut() {
                     substs.walk_mut(f);

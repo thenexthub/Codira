@@ -883,6 +883,10 @@ impl<'a, 'db> Translator<'a, 'db> {
 
     fn call(&mut self, id: ExprId, callee: ExprId, args: &[ExprId]) -> Lowered {
         if let Some(builtin) = self.infer.builtin_call(id) {
+            // Structured concurrency lowers through the LLVM backend only.
+            if builtin == BuiltinFn::Channel {
+                return self.unsupported("`channel`");
+            }
             for &arg in args {
                 self.print(arg)?;
             }

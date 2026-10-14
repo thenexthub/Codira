@@ -28,6 +28,7 @@ mod effects;
 mod inline_asm;
 mod literal_out_of_range;
 mod move_check;
+mod tasks;
 mod test_fn;
 mod uninitialized_access;
 
@@ -62,6 +63,7 @@ impl<'a> ExprValidator<'a> {
         self.validate_privacy(sink);
         self.validate_effect_obligations(sink);
         self.validate_effects(sink);
+        self.validate_tasks(sink);
         self.validate_healing_contract(sink);
         self.validate_move_checking(sink);
         self.validate_codegen_support(sink);

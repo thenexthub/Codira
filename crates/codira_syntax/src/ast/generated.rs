@@ -827,6 +827,7 @@ impl AstNode for Expr {
                 | MATCH_EXPR
                 | PERFORM_EXPR
                 | SPAWN_EXPR
+                | SCOPE_EXPR
                 | HANDLE_EXPR
                 | TRY_EXPR
                 | TRANSFER_EXPR
@@ -871,6 +872,7 @@ pub enum ExprKind {
     MatchExpr(MatchExpr),
     PerformExpr(PerformExpr),
     SpawnExpr(SpawnExpr),
+    ScopeExpr(ScopeExpr),
     HandleExpr(HandleExpr),
     TryExpr(TryExpr),
     TransferExpr(TransferExpr),
@@ -997,6 +999,11 @@ impl From<SpawnExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<ScopeExpr> for Expr {
+    fn from(n: ScopeExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 impl From<HandleExpr> for Expr {
     fn from(n: HandleExpr) -> Expr {
         Expr { syntax: n.syntax }
@@ -1054,6 +1061,7 @@ impl Expr {
             MATCH_EXPR => ExprKind::MatchExpr(MatchExpr::cast(self.syntax.clone()).unwrap()),
             PERFORM_EXPR => ExprKind::PerformExpr(PerformExpr::cast(self.syntax.clone()).unwrap()),
             SPAWN_EXPR => ExprKind::SpawnExpr(SpawnExpr::cast(self.syntax.clone()).unwrap()),
+            SCOPE_EXPR => ExprKind::ScopeExpr(ScopeExpr::cast(self.syntax.clone()).unwrap()),
             HANDLE_EXPR => ExprKind::HandleExpr(HandleExpr::cast(self.syntax.clone()).unwrap()),
             TRY_EXPR => ExprKind::TryExpr(TryExpr::cast(self.syntax.clone()).unwrap()),
             TRANSFER_EXPR => {
@@ -3038,6 +3046,34 @@ impl AstNode for ReturnExpr {
 }
 impl ReturnExpr {
     pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
+// ScopeExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ScopeExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ScopeExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SCOPE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ScopeExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ScopeExpr {
+    pub fn body(&self) -> Option<BlockExpr> {
         super::child_opt(self)
     }
 }

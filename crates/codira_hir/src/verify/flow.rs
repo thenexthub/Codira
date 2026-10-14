@@ -414,7 +414,7 @@ impl Checker<'_> {
                             }
                         }
                     }
-                    Some(BuiltinFn::Declassify | BuiltinFn::CtSelect) => {}
+                    Some(BuiltinFn::Declassify | BuiltinFn::CtSelect | BuiltinFn::Channel) => {}
                     None => self.check_call(id, args, None),
                 }
             }

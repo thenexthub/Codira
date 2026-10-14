@@ -12,8 +12,8 @@ use super::{
     FLOAT_NUMBER, HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR,
     INT_NUMBER, INVARIANT_CLAUSE, LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST,
     MATCH_EXPR, PARAM, PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR,
-    RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SPAWN_EXPR, STRING,
-    TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
+    RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SCOPE_EXPR, SPAWN_EXPR,
+    STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
 };
 use crate::{parsing::grammar::paths::PATH_FIRST, SyntaxKind::METHOD_CALL_EXPR};
 
@@ -307,7 +307,7 @@ fn lhs(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, BlockLik
             PREFIX_EXPR
         }
         // `<-chan` receives the next value from a channel (Go-style, see
-        // spec/LANGUAGE_SPEC.md section 14). Parse-level scaffolding only.
+        // spec/LANGUAGE_SPEC.md section 14; `codira_hir::expr::tasks`).
         T![<] if p.at(T![<-]) => {
             m = p.start();
             p.bump(T![<-]);
@@ -497,6 +497,12 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
         return Some((m, BlockLike::NotBlock));
     }
 
+    // `scope { .. }`, unless a block cannot start here (`if scope { .. }`
+    // tests a variable called `scope`).
+    if !r.forbid_structs && p.at_contextual_kw("scope") && p.nth_at(1, T!['{']) {
+        return Some((scope_expr(p), BlockLike::Block));
+    }
+
     if paths::is_path_start(p) {
         return Some(path_expr(p, r));
     }
@@ -571,17 +577,24 @@ fn match_arm_list(p: &mut Parser<'_>) {
     m.complete(p, MATCH_ARM_LIST);
 }
 
-/// `spawn <expr>`: launches `expr` (typically a call or block) as a
-/// concurrently-scheduled task, Go-`go`-statement style (see
-/// `spec/LANGUAGE_SPEC.md` section 14). Parse-level scaffolding only: there
-/// is no green-thread/work-stealing scheduler backing this yet, so it does
-/// not actually run anything concurrently.
+/// `spawn <expr>`: runs a call as a task of the enclosing `scope` (see
+/// `codira_hir::expr::tasks` for what may be spawned).
 fn spawn_expr(p: &mut Parser<'_>) -> CompletedMarker {
     assert!(p.at(T![spawn]));
     let m = p.start();
     p.bump(T![spawn]);
     expr(p);
     m.complete(p, SPAWN_EXPR)
+}
+
+/// `scope { .. }`: a structured-concurrency scope. Every task `spawn`ed
+/// inside the block is joined before control leaves it, by any path.
+fn scope_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    assert!(p.at_contextual_kw("scope"));
+    let m = p.start();
+    p.bump_remap(T![scope]);
+    block(p);
+    m.complete(p, SCOPE_EXPR)
 }
 
 /// `perform Effect.op(args)`: invokes an algebraic effect operation.

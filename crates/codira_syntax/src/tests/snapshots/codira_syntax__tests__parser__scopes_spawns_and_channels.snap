@@ -1,0 +1,126 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        func run(ch: Channel[i32]) {\n            scope {\n                spawn work(1)\n                ch <- 2\n                let x = <-ch\n            }\n            if scope { 1 }\n            let scope = 3\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..226
+  FUNCTION_DEF@0..217
+    WHITESPACE@0..9 "\n        "
+    FUNC_KW@9..13 "func"
+    WHITESPACE@13..14 " "
+    NAME@14..17
+      IDENT@14..17 "run"
+    PARAM_LIST@17..35
+      L_PAREN@17..18 "("
+      PARAM@18..34
+        BIND_PAT@18..20
+          NAME@18..20
+            IDENT@18..20 "ch"
+        COLON@20..21 ":"
+        WHITESPACE@21..22 " "
+        PATH_TYPE@22..34
+          PATH@22..29
+            PATH_SEGMENT@22..29
+              NAME_REF@22..29
+                IDENT@22..29 "Channel"
+          GENERIC_ARG_LIST@29..34
+            L_BRACKET@29..30 "["
+            PATH_TYPE@30..33
+              PATH@30..33
+                PATH_SEGMENT@30..33
+                  NAME_REF@30..33
+                    IDENT@30..33 "i32"
+            R_BRACKET@33..34 "]"
+      R_PAREN@34..35 ")"
+    WHITESPACE@35..36 " "
+    BLOCK_EXPR@36..217
+      L_CURLY@36..37 "{"
+      WHITESPACE@37..50 "\n            "
+      EXPR_STMT@50..154
+        SCOPE_EXPR@50..154
+          SCOPE_KW@50..55 "scope"
+          WHITESPACE@55..56 " "
+          BLOCK_EXPR@56..154
+            L_CURLY@56..57 "{"
+            WHITESPACE@57..74 "\n                "
+            EXPR_STMT@74..87
+              SPAWN_EXPR@74..87
+                SPAWN_KW@74..79 "spawn"
+                WHITESPACE@79..80 " "
+                CALL_EXPR@80..87
+                  PATH_EXPR@80..84
+                    PATH@80..84
+                      PATH_SEGMENT@80..84
+                        NAME_REF@80..84
+                          IDENT@80..84 "work"
+                  ARG_LIST@84..87
+                    L_PAREN@84..85 "("
+                    LITERAL@85..86
+                      INT_NUMBER@85..86 "1"
+                    R_PAREN@86..87 ")"
+            WHITESPACE@87..104 "\n                "
+            EXPR_STMT@104..111
+              CHANNEL_SEND_EXPR@104..111
+                PATH_EXPR@104..106
+                  PATH@104..106
+                    PATH_SEGMENT@104..106
+                      NAME_REF@104..106
+                        IDENT@104..106 "ch"
+                WHITESPACE@106..107 " "
+                LARROW@107..109 "<-"
+                WHITESPACE@109..110 " "
+                LITERAL@110..111
+                  INT_NUMBER@110..111 "2"
+            WHITESPACE@111..128 "\n                "
+            LET_STMT@128..140
+              LET_KW@128..131 "let"
+              WHITESPACE@131..132 " "
+              BIND_PAT@132..133
+                NAME@132..133
+                  IDENT@132..133 "x"
+              WHITESPACE@133..134 " "
+              EQ@134..135 "="
+              WHITESPACE@135..136 " "
+              CHANNEL_RECV_EXPR@136..140
+                LARROW@136..138 "<-"
+                PATH_EXPR@138..140
+                  PATH@138..140
+                    PATH_SEGMENT@138..140
+                      NAME_REF@138..140
+                        IDENT@138..140 "ch"
+            WHITESPACE@140..153 "\n            "
+            R_CURLY@153..154 "}"
+      WHITESPACE@154..167 "\n            "
+      EXPR_STMT@167..181
+        IF_EXPR@167..181
+          IF_KW@167..169 "if"
+          WHITESPACE@169..170 " "
+          CONDITION@170..175
+            PATH_EXPR@170..175
+              PATH@170..175
+                PATH_SEGMENT@170..175
+                  NAME_REF@170..175
+                    IDENT@170..175 "scope"
+          WHITESPACE@175..176 " "
+          BLOCK_EXPR@176..181
+            L_CURLY@176..177 "{"
+            WHITESPACE@177..178 " "
+            LITERAL@178..179
+              INT_NUMBER@178..179 "1"
+            WHITESPACE@179..180 " "
+            R_CURLY@180..181 "}"
+      WHITESPACE@181..194 "\n            "
+      LET_STMT@194..207
+        LET_KW@194..197 "let"
+        WHITESPACE@197..198 " "
+        BIND_PAT@198..203
+          NAME@198..203
+            IDENT@198..203 "scope"
+        WHITESPACE@203..204 " "
+        EQ@204..205 "="
+        WHITESPACE@205..206 " "
+        LITERAL@206..207
+          INT_NUMBER@206..207 "3"
+      WHITESPACE@207..216 "\n        "
+      R_CURLY@216..217 "}"
+  WHITESPACE@217..226 "\n        "

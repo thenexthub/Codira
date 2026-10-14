@@ -118,6 +118,24 @@ fn effects_and_handlers() {
 }
 
 #[test]
+fn scopes_spawns_and_channels() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func run(ch: Channel[i32]) {
+            scope {
+                spawn work(1)
+                ch <- 2
+                let x = <-ch
+            }
+            if scope { 1 }
+            let scope = 3
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn attributes_and_extern_blocks() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

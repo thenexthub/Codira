@@ -332,6 +332,8 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -349,6 +351,8 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -370,6 +374,8 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -421,6 +427,16 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                 }
             }
             TyKind::Bool => bool::type_id().clone(),
+            // A channel is an opaque runtime handle. It gets an id of its own
+            // so a signature mentioning one still has reflection metadata;
+            // the host has no way to make one.
+            TyKind::Channel(_) => Arc::new(TypeId {
+                data: TypeIdData::Concrete(Guid::from_str(
+                    &ty.guid_string(self.db)
+                        .expect("a channel's element type has a guid string"),
+                )),
+                name: ty.display(self.db).to_string(),
+            }),
             // Structural, like the tuple case below, and for the same
             // reason: to the runtime a `str` is an anonymous value struct
             // of a pointer and a length. There is exactly one `str`, so the

@@ -109,6 +109,9 @@ struct HandleFrame<'ink> {
     unwind: BasicBlock<'ink>,
     /// Whether anything branches to `unwind`.
     used: bool,
+    /// How many `scope`s were open at the `handle` (see `tasks`): an abort
+    /// that lands here ends the ones opened since.
+    scope_depth: usize,
 }
 
 /// The handler arm being generated, when this generator emits one.
@@ -274,13 +277,17 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
                     "aborted",
                 )
                 .expect("failed to compare handler state");
-            let target = match evidence.local_frame {
+            let (target, keep_scopes) = match evidence.local_frame {
                 Some(frame) => {
                     self.effects.frames[frame].used = true;
-                    self.effects.frames[frame].unwind
+                    (
+                        self.effects.frames[frame].unwind,
+                        self.effects.frames[frame].scope_depth,
+                    )
                 }
-                None => self.early_exit_block(),
+                None => (self.early_exit_block(), 0),
             };
+            let target = self.through_scopes(target, keep_scopes);
             let next = self
                 .context
                 .append_basic_block(self.fn_value, "not_aborted");
@@ -292,6 +299,28 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
         self.builder
             .build_unconditional_branch(otherwise)
             .expect("failed to branch past abort check");
+    }
+
+    /// `target`, or -- when `scope`s opened after the first `keep` are still
+    /// open here -- a block that ends them and then goes to `target`, so an
+    /// abort never leaves a scope without joining its tasks.
+    fn through_scopes(&mut self, target: BasicBlock<'ink>, keep: usize) -> BasicBlock<'ink> {
+        if self.tasks.scopes.len() <= keep {
+            return target;
+        }
+        let current = self.builder.get_insert_block();
+        let block = self
+            .context
+            .append_basic_block(self.fn_value, "abort_scopes");
+        self.builder.position_at_end(block);
+        self.gen_end_scopes(keep);
+        self.builder
+            .build_unconditional_branch(target)
+            .expect("failed to branch after ending scopes");
+        if let Some(current) = current {
+            self.builder.position_at_end(current);
+        }
+        block
     }
 
     /// The block that leaves this function because an abort targets a
@@ -416,6 +445,8 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
             Some(value) => Some(self.gen_expr(value)?),
             None => None,
         };
+        // The arm's own scopes end before it returns to the `perform`.
+        self.gen_end_scopes(0);
         match (value_type(self, &op_ret), value) {
             (Some(_), Some(value)) => self
                 .builder
@@ -475,6 +506,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
         self.effects.frames.push(HandleFrame {
             unwind,
             used: false,
+            scope_depth: self.tasks.scopes.len(),
         });
 
         let mut records = Vec::with_capacity(handled.len());

@@ -262,6 +262,54 @@ Cost: evidence passing. Each `uses` effect is one hidden pointer parameter;
 passed evidence, one load and branch per handler in scope. Code that uses no
 effects pays nothing.
 
+### Structured concurrency: `scope`, `spawn`, channels
+
+```codira
+func square(jobs: Channel[i32], results: Channel[i32]) {
+    let x = <-jobs              // receive: waits while the channel is empty
+    results <- x * x            // send: waits while the channel is full
+}
+
+public func sum_of_squares(n: i32) -> i32 {
+    scope {
+        let jobs = channel(64)      // bounded; the element type is inferred
+        let results = channel(64)
+        let i = 0
+        while i < n { spawn square(jobs, results); i += 1 }
+        i = 0
+        while i < n { jobs <- i; i += 1 }
+        let sum = 0
+        i = 0
+        while i < n { sum += <-results; i += 1 }
+        sum
+    }                               // every task has finished here
+}
+```
+
+- `scope { .. }` owns tasks: every task `spawn`ed in it has finished before
+  control leaves it, by its end, `return`, `break`, or an effect handler
+  abandoning the computation. `scope` is a contextual keyword (only before
+  `{`; `if scope { .. }` still tests a variable).
+- `spawn f(args)` runs a call to a function of the same module on the
+  runtime's worker pool. It must be inside a `scope` (of the same function;
+  a handler arm counts as its own function); `f` takes only integers,
+  floats, `bool` and `Channel[T]` and declares no effects. Arguments are
+  evaluated by the spawner; the result is discarded -- results come back
+  through channels.
+- `let ch = channel(capacity)` creates a bounded blocking `Channel[T]` of
+  integers, floats or `bool`, owned by the enclosing `scope` and freed when
+  it ends. A channel is only *used*: `ch <- v`, `<-ch`, or passed to a
+  function or `spawn`. It cannot be stored, returned, copied into another
+  binding or made the value of a block -- that is what keeps it from
+  outliving its scope.
+- Tasks share nothing but channels, so they cannot race on memory.
+- The pool keeps `available_parallelism()` workers running and starts a
+  replacement when one blocks on a channel or a nested scope, so blocked
+  tasks cannot starve the ones that would unblock them. Mismatched sends and
+  receives still block forever, as with any blocking channel.
+- Output printed by a task is not captured by `capture_output` (it is
+  per-thread); a task's `print` goes to standard output.
+
 ### Contracts and verification
 
 Every contract is proven at compile time by Z3; a clause that cannot be
@@ -688,7 +736,7 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 - arrays: literals, indexing, element assignment
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
-- algebraic effects (see below)
+- algebraic effects and structured concurrency (see below)
 
 Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
@@ -725,9 +773,13 @@ across call frames; see "Algebraic effects" above for the version-1
 restrictions (no captures in arms, `uses` functions callable only within
 their module).
 
+Structured concurrency (`scope`, `spawn`, `channel(n)`, `ch <- v`, `<-ch`)
+on a worker pool; see "Structured concurrency" above for what may cross
+between tasks (scalars and channels only). No `select` yet.
+
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
-postfix `!`, `spawn`, channel operators. Not available at
+postfix `!`, postfix `^`. Not available at
 all yet: `for` loops, `enum`, `trait`, `T?`/`nil` at runtime, generic
 instantiation (generic code type-checks but does not build), `String`, and
 using the standard library from a program.

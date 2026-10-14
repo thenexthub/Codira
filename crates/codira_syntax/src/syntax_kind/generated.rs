@@ -134,6 +134,7 @@ pub enum SyntaxKind {
     GHOST_KW,
     SECRET_KW,
     OBLIVIOUS_KW,
+    SCOPE_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -221,6 +222,7 @@ pub enum SyntaxKind {
     MATCH_ARM,
     PERFORM_EXPR,
     SPAWN_EXPR,
+    SCOPE_EXPR,
     HANDLE_EXPR,
     HANDLER_ARM_LIST,
     HANDLER_ARM,
@@ -591,6 +593,9 @@ macro_rules! T {
     (oblivious) => {
         $crate::SyntaxKind::OBLIVIOUS_KW
     };
+    (scope) => {
+        $crate::SyntaxKind::SCOPE_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -670,6 +675,7 @@ impl SyntaxKind {
         | GHOST_KW
         | SECRET_KW
         | OBLIVIOUS_KW
+        | SCOPE_KW
         )
     }
 
@@ -851,6 +857,7 @@ impl SyntaxKind {
             GHOST_KW => &SyntaxInfo { name: "GHOST_KW" },
             SECRET_KW => &SyntaxInfo { name: "SECRET_KW" },
             OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
+            SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -938,6 +945,7 @@ impl SyntaxKind {
             MATCH_ARM => &SyntaxInfo { name: "MATCH_ARM" },
             PERFORM_EXPR => &SyntaxInfo { name: "PERFORM_EXPR" },
             SPAWN_EXPR => &SyntaxInfo { name: "SPAWN_EXPR" },
+            SCOPE_EXPR => &SyntaxInfo { name: "SCOPE_EXPR" },
             HANDLE_EXPR => &SyntaxInfo { name: "HANDLE_EXPR" },
             HANDLER_ARM_LIST => &SyntaxInfo { name: "HANDLER_ARM_LIST" },
             HANDLER_ARM => &SyntaxInfo { name: "HANDLER_ARM" },

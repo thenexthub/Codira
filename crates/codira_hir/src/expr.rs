@@ -31,6 +31,7 @@ use crate::{
 
 pub(crate) mod effects;
 pub(crate) mod scope;
+mod tasks;
 pub(crate) mod validator;
 
 pub type ExprId = Idx<Expr>;
@@ -460,6 +461,25 @@ pub enum Expr {
     Resume {
         value: Option<ExprId>,
     },
+    /// `scope { .. }`: every task spawned inside is joined before the scope
+    /// is left, by any path (see `expr::tasks`).
+    Scope {
+        body: ExprId,
+    },
+    /// `spawn f(args)`: runs the call `call` as a task of the innermost
+    /// enclosing `scope`.
+    Spawn {
+        call: ExprId,
+    },
+    /// `channel <- value`: sends `value`, waiting while the channel is full.
+    ChannelSend {
+        channel: ExprId,
+        value: ExprId,
+    },
+    /// `<-channel`: receives the next value, waiting while there is none.
+    ChannelReceive {
+        channel: ExprId,
+    },
 }
 
 /// One arm of a `handle` expression: `Effect.op(a, b) -> body`.
@@ -601,6 +621,13 @@ impl Expr {
                 if let Some(value) = value {
                     f(*value);
                 }
+            }
+            Expr::Scope { body: expr }
+            | Expr::Spawn { call: expr }
+            | Expr::ChannelReceive { channel: expr } => f(*expr),
+            Expr::ChannelSend { channel, value } => {
+                f(*channel);
+                f(*value);
             }
         }
     }
@@ -1150,6 +1177,19 @@ impl<'a> ExprCollector<'a> {
             }
             ast::ExprKind::PerformExpr(e) => self.collect_perform(&e, syntax_ptr),
             ast::ExprKind::HandleExpr(e) => self.collect_handle(&e, syntax_ptr),
+            ast::ExprKind::ScopeExpr(e) => {
+                let body = self.collect_block_opt(e.body());
+                self.alloc_expr(Expr::Scope { body }, syntax_ptr)
+            }
+            ast::ExprKind::SpawnExpr(e) => {
+                let call = self.collect_expr_opt(e.expr());
+                self.alloc_expr(Expr::Spawn { call }, syntax_ptr)
+            }
+            ast::ExprKind::ChannelRecvExpr(e) => {
+                let channel = self.collect_expr_opt(e.expr());
+                self.alloc_expr(Expr::ChannelReceive { channel }, syntax_ptr)
+            }
+            ast::ExprKind::ChannelSendExpr(e) => self.collect_channel_send(&e, syntax_ptr),
             ast::ExprKind::CallExpr(e) => {
                 let callee = self.collect_expr_opt(e.expr());
                 let args = if let Some(arg_list) = e.arg_list() {
@@ -1238,24 +1278,16 @@ impl<'a> ExprCollector<'a> {
             // force-unwrap typing -- is follow-up work rather than implemented here
             // without a way to verify it end-to-end. They currently lower to a
             // `Missing` placeholder so surrounding code still type-checks.
-            //
-            // `spawn <expr>` (see spec/LANGUAGE_SPEC.md section 14) is likewise
-            // fully parsed but has no green-thread scheduler to lower to yet, so
-            // it lowers the same way.
             // A closure literal (`func(a: T) -> R { .. }`) joins these: it
             // parses, but there is no function-value representation, no
             // capture analysis and no indirect-call op for it to lower to.
             ast::ExprKind::ClosureExpr(_)
             | ast::ExprKind::MatchExpr(_)
-            | ast::ExprKind::SpawnExpr(_)
             | ast::ExprKind::TryExpr(_)
-            // `x^` transfer, `<-ch` receive, and `ch <- x` (channel send) (see
-            // spec/LANGUAGE_SPEC.md section 14) are fully parsed but lower to a
-            // `Missing` placeholder: the HIR has no move/borrow or channel
-            // value model yet, so nothing more can be done for now.
-            | ast::ExprKind::TransferExpr(_)
-            | ast::ExprKind::ChannelRecvExpr(_)
-            | ast::ExprKind::ChannelSendExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
+            // `x^` transfer (see spec/LANGUAGE_SPEC.md section 14) is fully
+            // parsed but lowers to a `Missing` placeholder: the HIR has no
+            // move/borrow model yet.
+            | ast::ExprKind::TransferExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
         }
     }
 

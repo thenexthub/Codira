@@ -28,6 +28,7 @@ use crate::{
 
 mod effects;
 mod place_expr;
+mod tasks;
 mod type_variable;
 mod unify;
 
@@ -748,6 +749,12 @@ impl InferenceResultBuilder<'_> {
             Expr::Perform { path, args } => self.infer_perform(tgt_expr, path, args),
             Expr::Handle { body, arms } => self.infer_handle(tgt_expr, *body, arms, expected),
             Expr::Resume { value } => self.infer_resume(tgt_expr, *value),
+            Expr::Scope { body } => self.infer_expr_coerce(*body, expected),
+            Expr::Spawn { call } => self.infer_spawn(*call),
+            Expr::ChannelSend { channel, value } => {
+                self.infer_channel_send(tgt_expr, *channel, *value)
+            }
+            Expr::ChannelReceive { channel } => self.infer_channel_receive(tgt_expr, *channel),
         };
 
         let ty = self.resolve_ty_as_far_as_possible(ty);
@@ -1285,6 +1292,7 @@ impl InferenceResultBuilder<'_> {
                 }
                 ty
             }
+            BuiltinFn::Channel => self.infer_channel_new(tgt_expr, args),
         }
     }
 

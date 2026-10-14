@@ -47,9 +47,23 @@ fn collect_expr<'ink>(
 
     // A builtin call (`print`/`println`) lowers to calls into the runtime's
     // printing functions, which therefore need dispatch table slots.
-    if infer.builtin_call(expr_id).is_some() {
-        for intrinsic in intrinsics::print_functions() {
+    let uses_tasks = matches!(
+        expr,
+        Expr::Scope { .. }
+            | Expr::Spawn { .. }
+            | Expr::ChannelSend { .. }
+            | Expr::ChannelReceive { .. }
+    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel);
+    if uses_tasks {
+        for intrinsic in intrinsics::task_functions() {
             collect_intrinsic(context, target, intrinsic, intrinsics);
+        }
+    }
+    if let Some(builtin) = infer.builtin_call(expr_id) {
+        if builtin != codira_hir::BuiltinFn::Channel {
+            for intrinsic in intrinsics::print_functions() {
+                collect_intrinsic(context, target, intrinsic, intrinsics);
+            }
         }
     } else if let Expr::Call { callee, .. } = expr {
         match infer[*callee].as_callable_def() {

@@ -130,7 +130,12 @@ impl ExprValidator<'_> {
                     };
                 }
             }
-            Expr::UnaryOp { expr, .. } | Expr::Field { expr, .. } | Expr::Cast { expr, .. } => {
+            Expr::UnaryOp { expr, .. }
+            | Expr::Field { expr, .. }
+            | Expr::Cast { expr, .. }
+            | Expr::Scope { body: expr }
+            | Expr::Spawn { call: expr }
+            | Expr::ChannelReceive { channel: expr } => {
                 self.validate_expr_access(sink, initialized_patterns, *expr, ExprKind::Normal);
             }
             Expr::BinaryOp { lhs, rhs, op } => {
@@ -218,6 +223,10 @@ impl ExprValidator<'_> {
                 for arg in args {
                     self.validate_expr_access(sink, initialized_patterns, *arg, ExprKind::Normal);
                 }
+            }
+            Expr::ChannelSend { channel, value } => {
+                self.validate_expr_access(sink, initialized_patterns, *channel, ExprKind::Normal);
+                self.validate_expr_access(sink, initialized_patterns, *value, ExprKind::Normal);
             }
             Expr::Resume { value } => {
                 if let Some(value) = value {

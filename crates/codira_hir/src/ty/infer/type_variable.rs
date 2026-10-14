@@ -153,7 +153,8 @@ impl TypeVariableTable {
                 | (TyKind::Struct(_, a), TyKind::Struct(_, b)) => {
                     self.unify_substitutions(db, a, b)
                 }
-                (TyKind::Array(t1), TyKind::Array(t2)) => self.unify_inner(db, t1, t2),
+                (TyKind::Array(t1), TyKind::Array(t2))
+                | (TyKind::Channel(t1), TyKind::Channel(t2)) => self.unify_inner(db, t1, t2),
                 _ => true,
             }
         } else {

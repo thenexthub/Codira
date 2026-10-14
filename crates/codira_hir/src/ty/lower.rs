@@ -101,7 +101,28 @@ impl Ty {
                 path,
                 generic_args,
                 diagnostics,
-            ),
+            )
+            .or_else(|| {
+                // `Channel[T]` is built in, but only where nothing in scope
+                // already claims the name.
+                match generic_args.as_slice() {
+                    [element]
+                        if path
+                            .as_ident()
+                            .is_some_and(|n| n.as_str() == Some("Channel")) =>
+                    {
+                        let element = Self::from_hir_with_diagnostics(
+                            db,
+                            resolver,
+                            type_ref_map,
+                            diagnostics,
+                            *element,
+                        );
+                        Some(TyKind::Channel(element).intern())
+                    }
+                    _ => None,
+                }
+            }),
             TypeRef::Error => Some(TyKind::Unknown.intern()),
             TypeRef::Tuple(inner) => {
                 let inner_tys = inner.iter().map(|tr| {

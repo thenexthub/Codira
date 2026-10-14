@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Functions the compiler provides itself, with no declaration in any source
-//!   file: `print` and `println`.
+//!   file: `print`, `println` and `channel`.
 //!
 //! # Why these are built in rather than library functions
 //!
@@ -50,6 +50,9 @@ pub enum BuiltinFn {
     /// LLVM `select` marked `!unpredictable`. The way to choose on a
     /// `secret` in a constant-time function.
     CtSelect,
+    /// `channel(capacity)` creates a bounded `Channel[T]`, owned by the
+    /// enclosing `scope` (see `expr::validator::tasks`).
+    Channel,
 }
 
 impl BuiltinFn {
@@ -59,6 +62,7 @@ impl BuiltinFn {
         BuiltinFn::Println,
         BuiltinFn::Declassify,
         BuiltinFn::CtSelect,
+        BuiltinFn::Channel,
     ];
 
     /// The name a program calls this builtin by.
@@ -68,6 +72,7 @@ impl BuiltinFn {
             BuiltinFn::Println => "println",
             BuiltinFn::Declassify => "declassify",
             BuiltinFn::CtSelect => "ct_select",
+            BuiltinFn::Channel => "channel",
         }
     }
 

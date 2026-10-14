@@ -68,6 +68,42 @@ runtime_functions! {
     pub fn fuel_exhausted() -> () = "codira.fuel_exhausted";
 }
 
+runtime_functions! {
+    /// Opens a `scope`: returns a handle that owns the scope's tasks and
+    /// channels.
+    pub fn scope_begin() -> usize = "codira.scope_begin";
+
+    /// Runs `entry(copy of args[..size])` as a task of `scope`.
+    pub fn scope_spawn(scope: usize, entry: usize, args: usize, size: usize) -> () = "codira.scope_spawn";
+
+    /// Waits for every task of `scope`, then frees its channels and the
+    /// scope itself.
+    pub fn scope_end(scope: usize) -> () = "codira.scope_end";
+
+    /// Creates a channel of `capacity` elements of `element_size` bytes,
+    /// owned by `scope`.
+    pub fn channel_new(scope: usize, capacity: usize, element_size: usize) -> usize = "codira.channel_new";
+
+    /// Sends the element at address `value`, waiting while the channel is full.
+    pub fn channel_send(channel: usize, value: usize) -> () = "codira.channel_send";
+
+    /// Receives the next element into address `out`, waiting while there is none.
+    pub fn channel_receive(channel: usize, out: usize) -> () = "codira.channel_receive";
+}
+
+/// Every runtime function `scope`, `spawn` and channels lower to, collected
+/// together like [`print_functions`].
+pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
+    [
+        &scope_begin,
+        &scope_spawn,
+        &scope_end,
+        &channel_new,
+        &channel_send,
+        &channel_receive,
+    ]
+}
+
 /// Every runtime function a `print`/`println` call may need, collected
 /// together so the dispatch table has all of them whenever a module prints
 /// anything at all. Which ones a given call uses depends on its argument

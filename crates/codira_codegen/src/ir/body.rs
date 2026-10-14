@@ -38,6 +38,7 @@ use crate::{
 };
 
 mod effects;
+mod tasks;
 
 pub(crate) use effects::has_evidence;
 
@@ -86,6 +87,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     /// Evidence in scope, `handle` frames and the arm being generated. See
     /// `effects`.
     effects: effects::EffectState<'ink>,
+    /// Open `scope`s and loops, for joining tasks on every exit. See
+    /// `tasks`.
+    tasks: tasks::TaskState<'ink>,
 }
 
 impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
@@ -135,6 +139,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             module_group,
             eidos,
             effects: effects::EffectState::default(),
+            tasks: tasks::TaskState::default(),
         }
     }
 
@@ -388,6 +393,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             } => {
                 // `print`/`println`: no callee definition, lowered here.
                 if let Some(builtin) = self.infer.builtin_call(expr) {
+                    if builtin == BuiltinFn::Channel {
+                        return self.gen_channel_new(expr, args);
+                    }
                     return self.gen_builtin_call(builtin, args);
                 }
 
@@ -450,6 +458,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Perform { args, .. } => self.gen_perform(expr, args),
             Expr::Handle { body: handled, arms } => self.gen_handle(expr, *handled, arms),
             Expr::Resume { value } => self.gen_resume(*value),
+            Expr::Scope { body: scoped } => self.gen_scope(*scoped),
+            Expr::Spawn { call } => self.gen_spawn(*call),
+            Expr::ChannelSend { channel, value } => self.gen_channel_send(*channel, *value),
+            Expr::ChannelReceive { channel } => self.gen_channel_receive(*channel),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
             // syntax error comes with a parse error; either way the build
@@ -473,6 +485,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         args: &[ExprId],
     ) -> Option<BasicValueEnum<'ink>> {
         match builtin {
+            BuiltinFn::Channel => unreachable!("lowered by `gen_channel_new`"),
             BuiltinFn::Print | BuiltinFn::Println => {
                 let mut values = Vec::with_capacity(args.len());
                 for &arg in args {
@@ -2188,6 +2201,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     ) -> Option<BasicValueEnum<'ink>> {
         let ret_value = ret_expr.and_then(|expr| self.gen_expr(expr));
 
+        // Every task of every open scope finishes before the function does.
+        self.gen_end_scopes(0);
+
         // Construct a return statement from the returned value of the body
         if let Some(value) = ret_value {
             self.builder
@@ -2215,6 +2231,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
             // If the expression never returns, we can stop what we're doing.
             if let Some(break_value) = break_value {
+                // The scopes opened inside the loop end before leaving it.
+                self.gen_end_loop_scopes();
                 let loop_info = self.active_loop.as_mut().unwrap();
                 loop_info.break_values.push(Some((
                     break_value,
@@ -2227,6 +2245,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         } else {
             // If the break expression doesnt contain a break statement. Add a none to the
             // break values.
+            self.gen_end_loop_scopes();
             let loop_info = self.active_loop.as_mut().unwrap();
             loop_info.break_values.push(None);
             self.builder
@@ -2256,7 +2275,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let prev_loop = self.active_loop.replace(loop_info);
 
         // Start generating code inside the loop
+        self.enter_loop_scopes();
         let value = self.gen_expr(block);
+        self.leave_loop_scopes();
 
         let LoopInfo {
             exit_block,

@@ -170,6 +170,12 @@ Grammar(
         // type qualifier, `oblivious` before `func`.
         "secret",
         "oblivious",
+        // `scope { .. }`: a structured-concurrency scope -- every task
+        // `spawn`ed inside it is joined before it is left. Promoted only
+        // when directly followed by `{` where a block may start, so `scope`
+        // stays an ordinary identifier everywhere else (`if scope { .. }`
+        // still tests a variable named `scope`).
+        "scope",
     ],
     literals: [
         "INT_NUMBER",
@@ -276,6 +282,7 @@ Grammar(
         "MATCH_ARM",
         "PERFORM_EXPR",
         "SPAWN_EXPR",
+        "SCOPE_EXPR",
         "HANDLE_EXPR",
         "HANDLER_ARM_LIST",
         "HANDLER_ARM",
@@ -575,6 +582,9 @@ Grammar(
         "TransferExpr": (
             options: [ ["expr", "Expr"] ]
         ),
+        "ScopeExpr": (
+            options: [ ["body", "BlockExpr"] ]
+        ),
         "ChannelRecvExpr": (
             options: [ ["expr", "Expr"] ]
         ),
@@ -614,6 +624,7 @@ Grammar(
                 "MatchExpr",
                 "PerformExpr",
                 "SpawnExpr",
+                "ScopeExpr",
                 "HandleExpr",
                 "TryExpr",
                 "TransferExpr",

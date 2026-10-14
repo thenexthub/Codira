@@ -685,6 +685,14 @@ impl Elaborator<'_> {
                  supported in kernels yet"
                     .into(),
             )),
+            Expr::Scope { .. }
+            | Expr::Spawn { .. }
+            | Expr::ChannelSend { .. }
+            | Expr::ChannelReceive { .. } => Err(self.error(
+                frame,
+                id,
+                "`scope`, `spawn` and channels are not supported in quantum kernels".into(),
+            )),
             Expr::Perform { .. } | Expr::Handle { .. } | Expr::Resume { .. } => Err(self.error(
                 frame,
                 id,

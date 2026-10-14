@@ -23,6 +23,7 @@ mod function_info;
 mod marshal;
 pub mod native_memory;
 mod reflection;
+mod tasks;
 mod utils;
 
 use std::{
@@ -333,6 +334,9 @@ impl Runtime {
             fuel::fuel_exhausted as extern "C" fn(),
             abi::FUEL_EXHAUSTED_FN_NAME,
         ));
+
+        // `scope`, `spawn` and channels.
+        options.user_functions.extend(tasks::functions());
 
         options.user_functions.into_iter().for_each(|fn_def| {
             dispatch_table.insert_fn(fn_def.prototype.name.clone(), Arc::new(fn_def));
