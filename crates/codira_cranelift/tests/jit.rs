@@ -127,6 +127,34 @@ fn unsupported_constructs_are_named_not_miscompiled() {
     assert_eq!(error.function, "main");
 }
 
+/// Enums and optionals have no representation in this backend: a function
+/// that builds or matches one is refused, naming what it met.
+#[test]
+fn enums_and_optionals_are_refused() {
+    let enums = r"
+        enum Shape { Circle(f64) Point }
+        public func main() -> i64 {
+            match Shape.Point {
+                Shape.Circle(_) -> 1,
+                Shape.Point -> 2,
+            }
+        }
+    ";
+    let optionals = r"
+        public func main() -> i64 {
+            let x: i64? = 5
+            x!
+        }
+    ";
+    for source in [enums, optionals] {
+        let driver = driver(source);
+        let error = compile(driver.db(), "main")
+            .err()
+            .expect("enums and optionals are not supported");
+        assert_eq!(error.function, "main");
+    }
+}
+
 /// A builtin other than `print`/`println` is refused, never compiled as a
 /// print. `ct_select` used to be, which produced a program that printed its
 /// operands instead of choosing between them.

@@ -5,6 +5,7 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 mod effect;
+mod r#enum;
 mod function;
 mod r#impl;
 mod module;
@@ -16,13 +17,14 @@ mod type_alias;
 
 use std::sync::Arc;
 
-pub(crate) use self::effect::lower_effect_query;
+pub(crate) use self::{effect::lower_effect_query, r#enum::lower_enum_query};
 pub use self::{
     effect::{Effect, EffectData, EffectOpSig},
     function::{Function, FunctionData},
     module::{Module, ModuleDef},
     package::Package,
     primitive_type::PrimitiveType,
+    r#enum::{Enum, EnumData, EnumLayout, EnumSlot, EnumVariant, VariantKind},
     r#impl::{AssocItem, ImplData},
     r#struct::{Field, Struct, StructData, StructKind, StructMemoryKind},
     src::HasSource,

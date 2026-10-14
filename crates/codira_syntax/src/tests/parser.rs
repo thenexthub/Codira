@@ -67,6 +67,21 @@ fn enum_and_match() {
 }
 
 #[test]
+fn if_let_and_while_let_with_variant_patterns() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        public enum Step { Next(count: i32), Done }
+
+        func run(s: Step) {
+            if let Step.Next(n) = s { n } else { 0 }
+            while let Step.Next(n) = next(n) { }
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn comptime_and_generics_and_where() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

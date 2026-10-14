@@ -120,6 +120,7 @@ fn get_type_definition_array<'ink>(
     types
         .sorted_by_cached_key(|type_info| match type_info.interned() {
             TyKind::Struct(s, _) => s.full_name(db),
+            TyKind::Enum(e, _) => e.full_name(db),
             _ => type_info.guid_string(db).unwrap_or_default(),
         })
         .map(|type_info| match type_info.interned() {
@@ -152,7 +153,7 @@ fn get_type_definition_array<'ink>(
                     )),
                 }
             }
-            TyKind::Tuple(..) | TyKind::Optional(_) => {
+            TyKind::Tuple(..) | TyKind::Optional(_) | TyKind::Enum(..) | TyKind::Str => {
                 gen_structural_definition(&type_info, context, hir_types, ir_type_builder, db)
             }
             _ => unreachable!("unsupported export type"),
@@ -160,10 +161,14 @@ fn get_type_definition_array<'ink>(
         .into_const_private_pointer_or_null("fn.get_info.types", context)
 }
 
-/// The definition of a tuple or optional type, exported as an anonymous
-/// value struct: a tuple's fields are named `0`, `1`, ..; an optional's are
-/// `is_some` and `value`. Its GUID is the hash of the same structural name
-/// `HirTypeCache::type_id` uses, so references to it resolve to this.
+/// The definition of a tuple, optional or enum type, exported as a value
+/// struct: a tuple's fields are named `0`, `1`, ..; an optional's are
+/// `is_some` and `value`; an enum's are `tag` and its payload slots (see
+/// `codira_hir::EnumLayout`). Its GUID is the hash of the same name
+/// `HirTypeCache::type_id` uses, so references to it resolve to this. A
+/// tuple or optional is also *named* by that structural name; an enum is
+/// named by its path, as a struct is, which is what hot reloading matches
+/// an old and a new layout by.
 fn gen_structural_definition<'ink>(
     ty: &codira_hir::Ty,
     context: &IrValueContext<'ink, '_, '_>,
@@ -171,12 +176,16 @@ fn gen_structural_definition<'ink>(
     ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
     db: &dyn HirDatabase,
 ) -> ir::TypeDefinition<'ink> {
-    let name = ty
+    let guid_name = ty
         .guid_string(db)
         .expect("only types with a structural name are exported");
+    let name = match ty.interned() {
+        TyKind::Enum(e, _) => e.full_name(db),
+        _ => guid_name.clone(),
+    };
     let inkwell_type = hir_types
         .get_basic_type(ty)
-        .expect("a tuple or optional is a basic type")
+        .expect("a tuple, optional or enum is a basic type")
         .into_struct_type();
     let (field_names, field_types): (Vec<String>, Vec<codira_hir::Ty>) = match ty.interned() {
         TyKind::Tuple(_, elements) => (
@@ -187,7 +196,27 @@ fn gen_structural_definition<'ink>(
             vec!["is_some".to_string(), "value".to_string()],
             vec![TyKind::Bool.intern(), payload.clone()],
         ),
-        _ => unreachable!("only tuples and optionals are structural"),
+        // The bytes are static, so the address is an integer to the runtime:
+        // nothing for the collector to trace.
+        TyKind::Str => (
+            vec!["data".to_string(), "len".to_string()],
+            vec![
+                TyKind::Int(codira_hir::IntTy::usize()).intern(),
+                TyKind::Int(codira_hir::IntTy::usize()).intern(),
+            ],
+        ),
+        TyKind::Enum(e, _) => {
+            let layout = e.layout(db);
+            (
+                std::iter::once(codira_hir::EnumLayout::TAG.to_string())
+                    .chain(layout.slots.iter().map(|slot| slot.name.clone()))
+                    .collect(),
+                std::iter::once(TyKind::Int(codira_hir::IntTy::u32()).intern())
+                    .chain(layout.slots.iter().map(|slot| slot.ty.clone()))
+                    .collect(),
+            )
+        }
+        _ => unreachable!("only tuples, optionals and enums are exported this way"),
     };
 
     let target_data = context.type_context.target_data;
@@ -230,7 +259,7 @@ fn gen_structural_definition<'ink>(
             .try_into()
             .expect("could not convert alignment to smaller size"),
         data: ir::TypeDefinitionData::Struct(ir::StructDefinition {
-            guid: abi::Guid::from_str(&name),
+            guid: abi::Guid::from_str(&guid_name),
             field_names: field_names_value,
             field_types: field_types_value,
             field_offsets,

@@ -3,7 +3,7 @@ source: crates/codira_compiler/tests/stdlib_check_ratchet.rs
 expression: summary
 ---
 8 of 79 std files check clean
-0 syntax, 3286 semantic
+0 syntax, 3288 semantic
 
    0 syntax     0 semantic  ai/algorithm/functional.code
    0 syntax    10 semantic  ai/algorithm/reduction.code
@@ -32,7 +32,7 @@ expression: summary
    0 syntax     0 semantic  builtin/traits.code
    0 syntax   132 semantic  builtin/tuple.code
    0 syntax     0 semantic  builtin/type_aliases.code
-   0 syntax     5 semantic  builtin/types.code
+   0 syntax     7 semantic  builtin/types.code
    0 syntax    67 semantic  collections/array.code
    0 syntax    58 semantic  collections/binary_heap.code
    0 syntax    30 semantic  collections/bitset.code

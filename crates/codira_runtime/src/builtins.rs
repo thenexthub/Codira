@@ -176,6 +176,11 @@ extern "C" fn str_eq(a: *const u8, a_len: usize, b: *const u8, b_len: usize) -> 
     if a_len != b_len {
         return 0;
     }
+    // An empty `str` may have a null data pointer (a zeroed enum slot does),
+    // which a slice must not be built from.
+    if a_len == 0 {
+        return 1;
+    }
     // Safety: both halves of each `str` describe `len` readable bytes.
     let (a, b) = unsafe { (embedded_str(a, a_len), embedded_str(b, b_len)) };
     u8::from(a == b)

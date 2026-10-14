@@ -23,6 +23,7 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
             | TyKind::Float(_)
             | TyKind::Bool
             | TyKind::Optional(_)
+            | TyKind::Enum(..)
             | TyKind::InferenceVar(InferTy::Float(_) | InferTy::Int(_)) => lhs_ty,
             _ => TyKind::Unknown.intern(),
         },
@@ -36,6 +37,7 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
             | TyKind::Optional(_)
             | TyKind::Str
             | TyKind::Tuple(..)
+            | TyKind::Enum(..)
             | TyKind::InferenceVar(InferTy::Float(_) | InferTy::Int(_)) => lhs_ty,
             _ => TyKind::Unknown.intern(),
         },

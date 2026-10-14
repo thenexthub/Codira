@@ -28,9 +28,9 @@ pub struct FileIr<'ink> {
     pub type_definitions: HashSet<codira_hir::Ty>,
 }
 
-/// Adds every tuple and optional type inside `ty` (including `ty` itself)
-/// to `types`. The unit type `()` is skipped -- it is a primitive to the
-/// runtime -- and so is anything whose layout is not known (an error type,
+/// Adds every tuple, optional and `str` type inside `ty` (including `ty`
+/// itself) to `types`. The unit type `()` is skipped -- it is a primitive to
+/// the runtime -- and so is anything whose layout is not known (an error type,
 /// an uninstantiated parameter).
 fn collect_structural_types(
     db: &dyn codira_hir::HirDatabase,
@@ -41,7 +41,7 @@ fn collect_structural_types(
     ty.walk(&mut |inner| {
         let structural = match inner.interned() {
             TyKind::Tuple(arity, _) => *arity > 0,
-            TyKind::Optional(_) => true,
+            TyKind::Optional(_) | TyKind::Str => true,
             _ => false,
         };
         if structural && inner.guid_string(db).is_some() {
@@ -107,6 +107,15 @@ pub(crate) fn gen_file_ir<'ink>(
         .iter()
         .flat_map(|module| module.declarations(code_gen.db))
     {
+        if let ModuleDef::Enum(e) = def {
+            // An enum is exported by the module that declares it, like a
+            // struct, together with the tuples and optionals its payloads
+            // use.
+            type_definitions.insert(e.ty());
+            for slot in e.layout(code_gen.db).slots.iter() {
+                collect_structural_types(code_gen.db, &slot.ty, &mut type_definitions);
+            }
+        }
         if let ModuleDef::Struct(s) = def {
             type_definitions.insert(s.ty(code_gen.db));
             for field in s.fields(code_gen.db) {

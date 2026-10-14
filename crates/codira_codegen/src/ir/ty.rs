@@ -35,6 +35,7 @@ pub struct HirTypeCache<'db, 'ink> {
     array_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     tuple_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     struct_to_type_id: RefCell<HashMap<codira_hir::Struct, Arc<TypeId>>>,
+    enum_to_type_id: RefCell<HashMap<codira_hir::Enum, Arc<TypeId>>>,
 
     /// There is exactly one `str` type, so its id is a single cell rather
     /// than a map keyed by something that never varies.
@@ -50,6 +51,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             target_data,
             types: RefCell::new(HashMap::default()),
             struct_to_type_id: RefCell::default(),
+            enum_to_type_id: RefCell::default(),
             array_ty_to_type_id: RefCell::default(),
             tuple_ty_to_type_id: RefCell::default(),
             str_type_id: std::cell::OnceCell::new(),
@@ -131,6 +133,33 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             .collect();
         ir_ty.set_body(&field_types, false);
 
+        ir_ty
+    }
+
+    /// Returns the IR type of an enum: a named value struct of a `u32` tag
+    /// and the payload slots of its layout (see `codira_hir::EnumLayout`),
+    /// `{ i32, slot0, slot1, .. }`.
+    pub fn get_enum_type(&self, hir_enum: codira_hir::Enum) -> StructType<'ink> {
+        let ty = TyKind::Enum(hir_enum, codira_hir::Substitution::empty());
+        if let Some(ir_ty) = self.types.borrow().get(&ty) {
+            return *ir_ty;
+        }
+
+        // Opaque first, like a struct, so a slot type that mentions this
+        // enum (through a class, say) finds it in the cache.
+        let ir_ty = self
+            .context
+            .opaque_struct_type(&hir_enum.full_name(self.db));
+        self.types.borrow_mut().insert(ty, ir_ty);
+
+        let layout = hir_enum.layout(self.db);
+        let field_types: Vec<BasicTypeEnum<'ink>> = std::iter::once(self.context.i32_type().into())
+            .chain(layout.slots.iter().map(|slot| {
+                self.get_basic_type(&slot.ty)
+                    .expect("an enum payload should be a basic type")
+            }))
+            .collect();
+        ir_ty.set_body(&field_types, false);
         ir_ty
     }
 
@@ -347,6 +376,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(struct_ty, _) => Some(self.get_struct_reference_type(*struct_ty)),
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
@@ -367,6 +397,9 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(struct_ty, _) => Some(self.get_public_struct_reference_type(*struct_ty)),
+            // Passed by value even across the host boundary, like a tuple or
+            // an optional.
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
@@ -385,6 +418,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(struct_ty, _) => Some(self.get_struct_type(*struct_ty).into()),
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::FnDef(codira_hir::CallableDef::Function(fn_ty), type_params) => {
                 if !type_params.is_empty() {
                     unimplemented!("cannot yet deal with type parameters in functions");
@@ -482,6 +516,23 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                     Arc::new(TypeId {
                         name: s.full_name(self.db),
                         data: TypeIdData::Concrete(guid_from_struct(self.db, s)),
+                    })
+                })
+                .clone(),
+            // Named like a struct (hot reloading matches types by name), and
+            // identified by the GUID of its layout, so a re-laid-out enum is
+            // a changed type.
+            &TyKind::Enum(e, _) => self
+                .enum_to_type_id
+                .borrow_mut()
+                .entry(e)
+                .or_insert_with(|| {
+                    Arc::new(TypeId {
+                        name: e.full_name(self.db),
+                        data: TypeIdData::Concrete(Guid::from_str(
+                            &ty.guid_string(self.db)
+                                .expect("an enum of representable payloads has a guid string"),
+                        )),
                     })
                 })
                 .clone(),

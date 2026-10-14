@@ -57,6 +57,8 @@ pub trait InternDatabase: SourceDatabase {
     fn intern_impl(self, loc: ids::ImplLoc) -> ids::ImplId;
     #[salsa::interned]
     fn intern_effect(&self, loc: ids::EffectLoc) -> ids::EffectId;
+    #[salsa::interned]
+    fn intern_enum(&self, loc: ids::EnumLoc) -> ids::EnumId;
 }
 
 #[salsa::query_group(DefDatabaseStorage)]
@@ -71,6 +73,9 @@ pub trait DefDatabase: InternDatabase + AstDatabase {
 
     #[salsa::invoke(crate::code_model::EffectData::effect_data_query)]
     fn effect_data(&self, id: ids::EffectId) -> Arc<crate::code_model::EffectData>;
+
+    #[salsa::invoke(crate::code_model::EnumData::enum_data_query)]
+    fn enum_data(&self, id: ids::EnumId) -> Arc<crate::code_model::EnumData>;
 
     #[salsa::invoke(TypeAliasData::type_alias_data_query)]
     fn type_alias_data(&self, id: ids::TypeAliasId) -> Arc<TypeAliasData>;
@@ -124,6 +129,12 @@ pub trait HirDatabase: DefDatabase {
 
     #[salsa::invoke(crate::code_model::lower_effect_query)]
     fn lower_effect(&self, def: crate::code_model::Effect) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::lower_enum_query)]
+    fn lower_enum(&self, def: crate::code_model::Enum) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::EnumLayout::enum_layout_query)]
+    fn enum_layout(&self, def: crate::code_model::Enum) -> Arc<crate::code_model::EnumLayout>;
 
     #[salsa::invoke(crate::ty::callable_item_sig)]
     fn callable_sig(&self, def: CallableDef) -> FnSig;

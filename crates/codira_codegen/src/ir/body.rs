@@ -384,6 +384,11 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
     /// The value of `expr` itself, before any implicit optional wrapping.
     fn gen_expr_inner(&mut self, expr: ExprId) -> Option<inkwell::values::BasicValueEnum<'ink>> {
+        // `Shape.Circle(..)` and `Shape.Point` look like a method call and a
+        // field access; inference has recorded what they really are.
+        if let Some(variant) = self.infer.variant_of_expr(expr) {
+            return self.gen_variant(expr, variant);
+        }
         let body = self.body.clone();
         match &body[expr] {
             Expr::Block {
@@ -1537,9 +1542,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let lhs_type = self.infer[lhs].clone();
         match (lhs_type.interned(), op) {
             (
-                TyKind::Optional(_) | TyKind::Str | TyKind::Tuple(..),
+                TyKind::Optional(_) | TyKind::Str | TyKind::Tuple(..) | TyKind::Enum(..),
                 BinaryOp::Assignment { op: None },
             ) => return self.gen_plain_assignment(lhs, rhs),
+            (TyKind::Enum(e, _), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
+                return self.gen_enum_eq(lhs, rhs, *e, negated)
+            }
             (TyKind::Optional(payload), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
                 return self.gen_optional_eq(lhs, rhs, &payload.clone(), negated)
             }
@@ -2850,10 +2858,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             }
         }
 
+        // Inference has proved the match exhaustive, so this is reached only
+        // by a value no declaration describes -- an enum tag a hot reload
+        // has removed the variant of. Stop with the location rather than
+        // run on.
         if falls_through {
-            self.builder
-                .build_unreachable()
-                .expect("failed to build unreachable after the last match arm");
+            self.gen_panic("no `match` arm matches this value", match_expr);
         }
 
         if incoming.is_empty() {
@@ -2941,7 +2951,47 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 all
             }
             Pat::Path(_) | Pat::TupleStruct { .. } => {
-                unreachable!("inference rejects variant patterns until enums exist")
+                let variant = self
+                    .infer
+                    .variant_of_pat(pat)
+                    .expect("inference resolved every variant pattern");
+                let enum_value = value.into_struct_value();
+                let tag = self
+                    .builder
+                    .build_extract_value(enum_value, 0, "tag")
+                    .expect("an enum has a tag")
+                    .into_int_value();
+                let mut all = self
+                    .builder
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        tag,
+                        tag.get_type().const_int(u64::from(variant.index()), false),
+                        "is_variant",
+                    )
+                    .expect("failed to compare an enum tag");
+                // The payload tests read the variant's slots whatever the
+                // tag is: an inactive slot holds a zero, which every test
+                // can safely look at, and the tag test decides the result.
+                let args = match &body[pat] {
+                    Pat::TupleStruct { args, .. } => args.clone(),
+                    _ => Vec::new(),
+                };
+                let field_tys = variant.field_types(self.db);
+                let slots = variant.slots(self.db);
+                for ((&arg, field_ty), slot) in args.iter().zip(field_tys.iter()).zip(slots) {
+                    let field = self
+                        .builder
+                        .build_extract_value(enum_value, slot as u32 + 1, "payload")
+                        .expect("a payload slot exists in the layout");
+                    if let Some(matched) = self.gen_pat_test(arg, field, field_ty) {
+                        all = self
+                            .builder
+                            .build_and(all, matched, "and")
+                            .expect("failed to combine pattern tests");
+                    }
+                }
+                Some(all)
             }
         }
     }
@@ -3062,9 +3112,120 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     self.gen_pat_bind(arg, element, element_ty);
                 }
             }
-            Pat::Wild | Pat::Missing | Pat::Literal(_) | Pat::Path(_) | Pat::TupleStruct { .. } => {
+            Pat::TupleStruct { args, .. } => {
+                let Some(variant) = self.infer.variant_of_pat(pat) else {
+                    return;
+                };
+                let enum_value = value.into_struct_value();
+                let field_tys = variant.field_types(self.db);
+                let slots = variant.slots(self.db);
+                for ((&arg, field_ty), slot) in args.iter().zip(field_tys.iter()).zip(slots) {
+                    let field = self
+                        .builder
+                        .build_extract_value(enum_value, slot as u32 + 1, "payload")
+                        .expect("a payload slot exists in the layout");
+                    self.gen_pat_bind(arg, field, field_ty);
+                }
             }
+            Pat::Wild | Pat::Missing | Pat::Literal(_) | Pat::Path(_) => {}
         }
+    }
+
+    /// Generates IR for `Shape.Circle(args)` or `Shape.Point`: the enum's
+    /// all-zero value with the variant's tag and its payload in the
+    /// variant's slots (see `codira_hir::EnumLayout`). Every slot the
+    /// variant does not use stays zero, so a reference slot is null.
+    fn gen_variant(
+        &mut self,
+        expr: ExprId,
+        variant: codira_hir::EnumVariant,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let body = self.body.clone();
+        let args: Vec<ExprId> = match &body[expr] {
+            Expr::MethodCall { args, .. } => args.clone(),
+            _ => Vec::new(),
+        };
+        let enum_type = self.hir_types.get_enum_type(variant.parent());
+        let tag = self
+            .context
+            .i32_type()
+            .const_int(u64::from(variant.index()), false);
+        let mut value: AggregateValueEnum<'ink> = self
+            .builder
+            .build_insert_value(enum_type.const_zero(), tag, 0, "variant")
+            .expect("failed to set an enum tag");
+        for (&arg, slot) in args.iter().zip(variant.slots(self.db)) {
+            let payload = self.gen_expr(arg)?;
+            value = self
+                .builder
+                .build_insert_value(value, payload, slot as u32 + 1, "payload")
+                .expect("failed to set an enum payload");
+        }
+        Some(value.into_struct_value().into())
+    }
+
+    /// `a == b` / `a != b` on an enum whose payloads are all numbers or
+    /// `bool`s: the tags are equal and so is every slot. A slot the variant
+    /// does not use is zero on both sides, so it never decides the result;
+    /// a float slot compares like float `==` (`NaN` is unequal to itself).
+    fn gen_enum_eq(
+        &mut self,
+        lhs: ExprId,
+        rhs: ExprId,
+        hir_enum: codira_hir::Enum,
+        negated: bool,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let lhs_value = self.gen_expr(lhs)?.into_struct_value();
+        let rhs_value = self.gen_expr(rhs)?.into_struct_value();
+        let layout = hir_enum.layout(self.db);
+        let b = &self.builder;
+        let field = |value: StructValue<'ink>, idx: u32| {
+            b.build_extract_value(value, idx, "field")
+                .expect("an enum field exists in its layout")
+        };
+        let mut equal = b
+            .build_int_compare(
+                IntPredicate::EQ,
+                field(lhs_value, 0).into_int_value(),
+                field(rhs_value, 0).into_int_value(),
+                "tag_eq",
+            )
+            .expect("failed to compare enum tags");
+        for (idx, slot) in layout.slots.iter().enumerate() {
+            let (l, r) = (
+                field(lhs_value, idx as u32 + 1),
+                field(rhs_value, idx as u32 + 1),
+            );
+            let slot_equal = match slot.ty.interned() {
+                TyKind::Float(_) => b
+                    .build_float_compare(
+                        FloatPredicate::OEQ,
+                        l.into_float_value(),
+                        r.into_float_value(),
+                        "slot_eq",
+                    )
+                    .expect("failed to compare enum payloads"),
+                TyKind::Int(_) | TyKind::Bool => b
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        l.into_int_value(),
+                        r.into_int_value(),
+                        "slot_eq",
+                    )
+                    .expect("failed to compare enum payloads"),
+                _ => unreachable!("inference only admits `==` on enums with scalar payloads"),
+            };
+            equal = b
+                .build_and(equal, slot_equal, "enum_eq")
+                .expect("failed to combine enum comparison");
+        }
+        Some(if negated {
+            b.build_not(equal, "enum_ne")
+                .expect("failed to negate an enum comparison")
+                .into()
+        } else {
+            equal.into()
+        })
     }
 
     /// Generates IR for `continue`: a jump to the innermost loop's

@@ -17,8 +17,9 @@ pub use codira_hir_input::ModuleId;
 pub use salsa;
 
 pub use self::code_model::{
-    Effect, EffectData, EffectOpSig, Field, Function, FunctionData, HasSource, Module, ModuleDef,
-    Package, PrimitiveType, Struct, StructMemoryKind, TypeAlias,
+    Effect, EffectData, EffectOpSig, Enum, EnumLayout, EnumSlot, EnumVariant, Field, Function,
+    FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Struct, StructMemoryKind,
+    TypeAlias, VariantKind,
 };
 pub use crate::{
     builtin::BuiltinFn,
