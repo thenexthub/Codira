@@ -34,7 +34,7 @@ use crate::{
     in_file::InFile,
     resolve::{resolver_for_expr, ValueNs},
     ty::lower::CallableDef,
-    Body, Expr, ExprId, HirDatabase, InferenceResult, IntTy, Literal, Pat, PatId, Path,
+    Body, Expr, ExprId, HirDatabase, InferenceResult, IntTy, Literal, MatchArm, Pat, PatId, Path,
     ResolveBitness, Ty, TyKind, UnaryOp,
 };
 
@@ -790,6 +790,16 @@ impl<'ctx> Exec<'_, 'ctx> {
                 None
             }
             Expr::Loop { body: loop_body } => self.eval_loop(state, expr, None, *loop_body),
+            Expr::Match {
+                expr: scrutinee,
+                arms,
+                ..
+            } => {
+                let value = self.eval(state, *scrutinee)?;
+                let optional =
+                    matches!(self.frame.infer[*scrutinee].interned(), TyKind::Optional(_));
+                self.eval_arms(state, value, optional, arms)
+            }
             Expr::While {
                 condition,
                 body: loop_body,
@@ -1011,6 +1021,55 @@ impl<'ctx> Exec<'_, 'ctx> {
             }
             (Some(a), Some(b)) => {
                 *state = merge_states(then_state, else_state, cb);
+                Some(merge_sym(cb, a, b))
+            }
+        }
+    }
+
+    /// The arms of a `match`, from the first. Patterns are not modelled:
+    /// each arm but the last is entered under a fresh condition, so what is
+    /// proven inside it holds whichever values reach it, and the last arm
+    /// takes the remaining paths (inference has checked the match covers
+    /// every value). A name a pattern binds is the scrutinee itself when the
+    /// whole pattern is that name, and a fresh value otherwise.
+    fn eval_arms(
+        &mut self,
+        state: &mut State<'ctx>,
+        value: Sym<'ctx>,
+        optional: bool,
+        arms: &[MatchArm],
+    ) -> Option<Sym<'ctx>> {
+        let (first, rest) = arms.split_first()?;
+        let mut arm_state = state.clone();
+        let bound = if optional {
+            self.fresh_for_ty(&self.frame.infer[first.pat].clone(), "bound")
+        } else {
+            value
+        };
+        self.bind(&mut arm_state, first.pat, bound);
+        if rest.is_empty() {
+            let arm_value = self.eval(&mut arm_state, first.expr);
+            *state = arm_state;
+            return arm_value;
+        }
+        let cb = self.fresh_bool("arm");
+        arm_state.pc = state.pc.and(cb);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(cb.not());
+        let arm_value = self.eval(&mut arm_state, first.expr);
+        let rest_value = self.eval_arms(&mut rest_state, value, optional, rest);
+        match (arm_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = arm_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(arm_state, rest_state, cb);
                 Some(merge_sym(cb, a, b))
             }
         }

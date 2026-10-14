@@ -30,7 +30,8 @@ pub use crate::{
     display::HirDisplay,
     expr::{
         ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
-        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
+        Literal, LogicOp, LoopContract, MatchArm, MatchSource, Ordering, Pat, PatId,
+        RecordLitField, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,
@@ -43,7 +44,7 @@ pub use crate::{
         cast::{check_cast, CastCheck, CastOp, InvalidCastReason},
         lower::CallableDef,
         FloatTy, FnSig, InferenceResult, IntTy, ResolveBitness, Substitution, Ty, TyKind,
-        TypableDef,
+        TypableDef, TypeWalk,
     },
     visibility::{HasVisibility, Visibility},
 };

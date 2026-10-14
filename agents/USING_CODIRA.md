@@ -213,17 +213,46 @@ func first[T](items: [T]) -> T? {
 ### Optional types
 
 ```codira
-func find(items: [Value], target: i32) -> i32? {
+func find(items: [i32], target: i32) -> i32? {
     for item in items {
-        if item == target { return item }
+        if item == target { return item }   // an `i32` becomes an `i32?` here
     }
     nil
 }
 
-if let value = find(xs, 7) {
-    print(value)
+if let value = find(xs, 7) {      // binds the value when present
+    println(value)
+} else {
+    println("not found")
 }
+
+let forced = find(xs, 7)!         // panics with its location on `nil`
+let missing = find(xs, 8) == nil  // `==`/`!=` work; optionals are not ordered
+while let v = next() { }          // loops while present
 ```
+
+`T?` is a value -- a present flag plus the payload, no allocation. A `T` is
+accepted wherever a `T?` is expected. `nil` needs an optional type from
+context (`let x = nil` alone is an error: annotate it).
+
+### `match`
+
+```codira
+match n {
+    0 -> "zero",
+    1 -> "one",
+    _ -> "many",
+}
+
+match (a, b) { (0, _) -> 0, (1, y) -> y, (x, y) -> x + y }
+match name { "alice" -> 1, _ -> 2 }      // string literals compare bytes
+match maybe { nil -> 0, 1 -> 10, v -> v } // other patterns match the value inside
+```
+
+Patterns: literals (integer, float, `bool`, string, `nil`), names, `_`, and
+tuples of those. A `match` must be exhaustive: both `bool`s, `nil` plus a
+present case for an optional, or a `_`/name arm otherwise -- the error names
+what is missing. Enum variant patterns wait on `enum` (not lowered yet).
 
 ### Algebraic effects: `effect`, `uses`, `perform`, `handle`, `resume`
 
@@ -444,9 +473,11 @@ public func equal(a: u64, b: u64) -> bool {
 
 - `secret T` marks a parameter, result or `let`. A secret may not reach a
   non-secret result, parameter, `let`, field/array store or `print` without
-  `declassify(..)`; values assigned under a secret `if`/`while` are secret too.
+  `declassify(..)`; values assigned under a secret `if`/`while`/`match` are
+  secret too, and so are the names a pattern binds from a secret.
 - In `@constant_time` / `oblivious` functions the compiler rejects branching on
-  a secret (`if`, `while`, the left side of `&&`/`||`), indexing by a secret,
+  a secret (`if`, `while`, `match`/`if let`/`while let`, the left side of
+  `&&`/`||`), indexing by a secret,
   `/` or `%` on a secret, and passing a secret to a function that is not
   constant-time. `ct_select(c, a, b)` chooses without a branch.
 - What is guaranteed: those source rules, and that `ct_select` becomes one
@@ -796,6 +827,8 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
+- optionals (`T?`, `nil`, `if let`, `while let`, postfix `!`, `== nil`) and
+  `match` over literals, tuples, strings and optionals, checked exhaustive
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
 
@@ -839,9 +872,8 @@ on a worker pool; see "Structured concurrency" above for what may cross
 between tasks (scalars and channels only). No `select` yet.
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
-supported by the code generator yet" naming the construct: `match`, closures,
-postfix `!`, postfix `^`. Not available at
-all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
+supported by the code generator yet" naming the construct: closures,
+postfix `^`. Not available at all yet: `enum`, `trait`, generic
 instantiation (generic code type-checks but does not build), `String`, and
 using the standard library from a program.
 

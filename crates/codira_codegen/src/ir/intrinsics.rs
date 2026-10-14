@@ -92,6 +92,14 @@ fn collect_expr<'ink>(
         }
     }
 
+    // `x!` panics on `nil`; a `match` may compare strings.
+    if let Expr::Unwrap { .. } = expr {
+        collect_intrinsic(context, target, &intrinsics::panic, intrinsics);
+    }
+    if let Expr::Match { .. } = expr {
+        collect_intrinsic(context, target, &intrinsics::str_eq, intrinsics);
+    }
+
     // Indexing checks its bounds and panics through the runtime when the
     // index is out of range.
     if let Expr::Index { .. } = expr {

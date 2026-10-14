@@ -172,6 +172,15 @@ extern "C" fn panic_index_out_of_bounds(
     )
 }
 
+extern "C" fn str_eq(a: *const u8, a_len: usize, b: *const u8, b_len: usize) -> u8 {
+    if a_len != b_len {
+        return 0;
+    }
+    // Safety: both halves of each `str` describe `len` readable bytes.
+    let (a, b) = unsafe { (embedded_str(a, a_len), embedded_str(b, b_len)) };
+    u8::from(a == b)
+}
+
 /// The builtin functions every runtime registers, under the names the
 /// compiler's `runtime_functions!` prototypes use.
 pub(crate) fn definitions() -> Vec<FunctionDefinition> {
@@ -190,6 +199,10 @@ pub(crate) fn definitions() -> Vec<FunctionDefinition> {
         IntoFunctionDefinition::into(
             panic as extern "C" fn(*const u8, usize, *const u8, usize, u32, u32),
             "codira.panic",
+        ),
+        IntoFunctionDefinition::into(
+            str_eq as extern "C" fn(*const u8, usize, *const u8, usize) -> u8,
+            "codira.str_eq",
         ),
         IntoFunctionDefinition::into(
             panic_index_out_of_bounds as extern "C" fn(u64, u8, u64, *const u8, usize, u32, u32),

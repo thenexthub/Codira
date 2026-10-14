@@ -147,9 +147,23 @@ impl Ty {
             // Tracked as follow-up work -- introducing it touches unification,
             // coercion, and codegen's representation of these values, which need a
             // real LLVM toolchain to verify end-to-end.
-            TypeRef::Optional(inner) | TypeRef::Refinement(inner) => Some(
-                Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *inner),
+            TypeRef::Optional(inner) => Some(
+                TyKind::Optional(Self::from_hir_with_diagnostics(
+                    db,
+                    resolver,
+                    type_ref_map,
+                    diagnostics,
+                    *inner,
+                ))
+                .intern(),
             ),
+            TypeRef::Refinement(inner) => Some(Self::from_hir_with_diagnostics(
+                db,
+                resolver,
+                type_ref_map,
+                diagnostics,
+                *inner,
+            )),
         };
         if let Some(ty) = res {
             ty

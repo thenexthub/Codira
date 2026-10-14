@@ -214,9 +214,8 @@ fn test_unlowered_constructs_are_reported_not_crashed() {
     }
     "#,
     ), @"
-    37..65: `match` is not supported by the code generator yet: pattern matching has no lowering yet; use `if`/`else` chains for now
     103..128: a closure is not supported by the code generator yet: there is no function-value representation or capture analysis yet
-    177..179: postfix `!` (force-unwrap) is not supported by the code generator yet: `Type?` optionals have no runtime representation yet
+    177..179: postfix `!` unwraps an optional (`T?`), but this is `i32`
     ");
 }
 
@@ -241,5 +240,66 @@ fn test_for_range_and_continue_errors() {
     76..77: a range's bounds must be integers, found `bool`
     93..94: a `for` loop's pattern must always match: use a name, `_` or a tuple of those
     113..121: `continue` outside of a loop
+    ");
+}
+
+/// A `match` must cover every value: a missing `bool` literal, a missing
+/// `nil`, or no catch-all for an integer are each reported, naming what is
+/// not covered. Patterns are checked against the scrutinee's type.
+#[test]
+fn test_match_exhaustiveness_and_pattern_errors() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func f(n: i32, b: bool, o: i32?) {
+        let a = match n { 0 -> 1, 1 -> 2 };
+        let c = match b { true -> 1 };
+        let d = match o { 5 -> 1, v -> v };
+        let e = match o { nil -> 0, 5 -> 1 };
+        let g = match n { "x" -> 1, _ -> 2 };
+        let h = match n { nil -> 1, _ -> 2 };
+        let i = n!;
+        let ok1 = match b { true -> 1, false -> 2 };
+        let ok2 = match o { nil -> 0, v -> v };
+        let ok3 = match (n, b) { (0, true) -> 1, (_, _) -> 2 };
+    }
+    "#,
+    ), @"
+    47..73: `match` is not exhaustive: every `i32` not matched by a literal is not covered; add an arm for it, or a `_ ->` arm
+    87..108: `match` is not exhaustive: `false` is not covered; add an arm for it, or a `_ ->` arm
+    122..148: `match` is not exhaustive: `nil` is not covered; add an arm for it, or a `_ ->` arm
+    162..190: `match` is not exhaustive: a present value (every `i32` not matched by a literal) is not covered; add an arm for it, or a `_ ->` arm
+    214..217: this pattern is a `str`, but the value it matches is a `i32`
+    256..259: `nil` only matches an optional (`T?`), not `i32`
+    288..290: postfix `!` unwraps an optional (`T?`), but this is `i32`
+    ");
+}
+
+/// `T` converts to `T?` where an optional is expected; `nil` takes the
+/// optional type it is used as; optionals compare with `==`/`!=` but are
+/// not ordered.
+#[test]
+fn test_optional_typing() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    struct P { x: i32 }
+
+    func f() -> i32? {
+        let a: i32? = 5;
+        let b: i32? = nil;
+        let c = a == b;
+        let d = a < b;
+        let p: P? = nil;
+        let q = p == p;
+        let r = p == nil;
+        let unknown = nil;
+        if let x = a { return x }
+        nil
+    }
+    "#,
+    ), @"
+    116..121: optionals (`i32?`) are not ordered; compare them with `==`/`!=` or unwrap them first
+    156..162: `P` values cannot be compared with `==`; compare the optional with `nil` instead
+    204..207: type annotations needed: the type of this expression is ambiguous
+    194..201: type annotations needed: the type of this expression is ambiguous
     ");
 }

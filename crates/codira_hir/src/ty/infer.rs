@@ -77,6 +77,11 @@ pub struct InferenceResult {
     /// [`effects::EffectResolutions`].
     pub(crate) effects: effects::EffectResolutions,
 
+    /// Expressions whose value is implicitly wrapped into an optional: a
+    /// `T` used where a `T?` is expected. Maps each such expression to the
+    /// optional type it becomes; the expression's own type stays `T`.
+    pub(crate) optional_wraps: FxHashMap<ExprId, Ty>,
+
     /// Interned Unknown to return references to.
     standard_types: InternedStandardTypes,
 }
@@ -110,6 +115,25 @@ impl InferenceResult {
     /// is not a call to a builtin. See [`BuiltinFn`].
     pub fn builtin_call(&self, expr: ExprId) -> Option<BuiltinFn> {
         self.builtin_calls.get(&expr).copied()
+    }
+
+    /// Every type this inference assigned to an expression or a pattern.
+    ///
+    /// For consumers that need every type a body mentions -- code
+    /// generation exports the layout of each tuple and optional the runtime
+    /// may meet.
+    pub fn all_types(&self) -> impl Iterator<Item = &Ty> {
+        self.type_of_expr
+            .iter()
+            .map(|(_, ty)| ty)
+            .chain(self.type_of_pat.iter().map(|(_, ty)| ty))
+            .chain(self.optional_wraps.values())
+    }
+
+    /// The optional type `expr`'s value is wrapped into, if it is used
+    /// where a `T?` is expected (see `optional_wraps`).
+    pub fn optional_wrap(&self, expr: ExprId) -> Option<&Ty> {
+        self.optional_wraps.get(&expr)
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -211,6 +235,9 @@ struct InferenceResultBuilder<'a> {
     /// The return type of the effect operation whose handler arm is being
     /// inferred: what `resume` takes. `None` outside every arm.
     active_arm_ret: Option<Ty>,
+
+    /// Expressions implicitly wrapped into an optional
+    optional_wraps: FxHashMap<ExprId, Ty>,
 }
 
 impl<'a> InferenceResultBuilder<'a> {
@@ -231,6 +258,8 @@ impl<'a> InferenceResultBuilder<'a> {
             builtin_calls: FxHashMap::default(),
             effects: effects::EffectResolutions::default(),
             active_arm_ret: None,
+
+            optional_wraps: FxHashMap::default(),
         }
     }
 
@@ -424,6 +453,9 @@ impl InferenceResultBuilder<'_> {
     /// Returns the type after possible coercion. Adds a diagnostic message
     /// if coercion failed.
     fn coerce_expr_ty(&mut self, expr: ExprId, ty: Ty, expected: &Expectation) -> Ty {
+        if let Some(wrapped) = self.try_wrap_optional(expr, &ty, &expected.ty) {
+            return wrapped;
+        }
         let ty = if !self.coerce(&ty, &expected.ty) {
             self.diagnostics.push(InferenceDiagnostic::MismatchedTypes {
                 expected: expected.ty.clone(),
@@ -438,6 +470,31 @@ impl InferenceResultBuilder<'_> {
         };
 
         self.resolve_ty_as_far_as_possible(ty)
+    }
+
+    /// The implicit `T` to `T?` conversion: a value used where an optional
+    /// is expected becomes a present optional. Records `expr` for code
+    /// generation and returns the optional type, or `None` when no wrapping
+    /// applies (the value is already optional, still unknown, or diverges).
+    fn try_wrap_optional(&mut self, expr: ExprId, ty: &Ty, expected: &Ty) -> Option<Ty> {
+        let expected = self.normalize(expected);
+        let TyKind::Optional(inner) = expected.interned() else {
+            return None;
+        };
+        let actual = self.normalize(ty);
+        match actual.interned() {
+            TyKind::Optional(_)
+            | TyKind::InferenceVar(InferTy::Type(_))
+            | TyKind::Never
+            | TyKind::Unknown => return None,
+            _ => {}
+        }
+        if !self.unify(&actual, inner) {
+            return None;
+        }
+        let expected = self.resolve_ty_as_far_as_possible(expected.clone());
+        self.optional_wraps.insert(expr, expected.clone());
+        Some(expected)
     }
 
     /// Infer the type of the given expression. Returns the type of the
@@ -505,11 +562,20 @@ impl InferenceResultBuilder<'_> {
                         self.diagnostics
                             .push(InferenceDiagnostic::CannotApplyBinaryOp {
                                 id: tgt_expr,
-                                lhs: lhs_ty,
+                                lhs: lhs_ty.clone(),
                                 rhs: rhs_expected.clone(),
                             });
                     }
-                    let rhs_ty = self.infer_expr(*rhs, &Expectation::has_type(rhs_expected));
+                    let lhs_is_optional =
+                        matches!(self.normalize(&lhs_ty).interned(), TyKind::Optional(_));
+                    let rhs_ty = if lhs_is_optional {
+                        self.infer_expr_coerce(*rhs, &Expectation::has_type(rhs_expected))
+                    } else {
+                        self.infer_expr(*rhs, &Expectation::has_type(rhs_expected))
+                    };
+                    if lhs_is_optional {
+                        self.check_optional_comparison(tgt_expr, *op, &lhs_ty, *rhs);
+                    }
                     op::binary_op_return_ty(*op, rhs_ty)
                 }
                 _ => error_type(),
@@ -553,11 +619,21 @@ impl InferenceResultBuilder<'_> {
                 // is no dedicated `TyKind::Optional` yet (see `TypeRef::Optional` in
                 // `type_ref.rs`), so for now it is left as `Unknown` rather than
                 // pretending to enforce a nil-safety guarantee that isn't wired up.
-                Literal::Nil => TyKind::Unknown.intern(),
+                // `nil` is the absent value of whatever optional it is used
+                // as; with no optional expected, its payload type is left
+                // for later uses to determine.
+                Literal::Nil => {
+                    let expected_ty = self.normalize(&expected.ty);
+                    if let TyKind::Optional(_) = expected_ty.interned() {
+                        expected_ty
+                    } else {
+                        TyKind::Optional(self.type_variables.new_type_var()).intern()
+                    }
+                }
             },
             Expr::Return { expr } => {
                 if let Some(expr) = expr {
-                    self.infer_expr(*expr, &Expectation::has_type(self.return_ty.clone()));
+                    self.infer_expr_coerce(*expr, &Expectation::has_type(self.return_ty.clone()));
                 } else if !self.return_ty.is_empty() {
                     self.diagnostics
                         .push(InferenceDiagnostic::ReturnMissingExpression { id: tgt_expr });
@@ -575,6 +651,26 @@ impl InferenceResultBuilder<'_> {
                 iterable,
                 body,
             } => self.infer_for_expr(*pat, *iterable, *body),
+            Expr::Match { expr, arms, source } => {
+                self.infer_match(tgt_expr, *expr, arms, *source, expected)
+            }
+            Expr::Unwrap { expr } => {
+                let inner_ty = self.infer_expr(*expr, &Expectation::none());
+                match self.normalize(&inner_ty).interned() {
+                    TyKind::Optional(payload) => payload.clone(),
+                    TyKind::Unknown => error_type(),
+                    _ => {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: tgt_expr.into(),
+                            message: format!(
+                                "postfix `!` unwraps an optional (`T?`), but this is `{}`",
+                                inner_ty.display(self.db)
+                            ),
+                        });
+                        error_type()
+                    }
+                }
+            }
             Expr::Continue => {
                 if self.active_loop.is_none() {
                     self.diagnostics.push(InferenceDiagnostic::ExprError {
@@ -1616,18 +1712,22 @@ impl InferenceResultBuilder<'_> {
         //let mut tv_stack = Vec::new();
         let mut expr_types = std::mem::take(&mut self.type_of_expr);
         for (expr, ty) in expr_types.iter_mut() {
-            let was_unknown = ty.is_unknown();
+            let was_unknown = ty.is_unknown() || contains_unknown(ty);
             let resolved = self.type_variables.resolve_ty_completely(ty.clone());
-            if !was_unknown && resolved.is_unknown() {
+            if !was_unknown && is_ambiguous(&resolved) {
                 self.report_expr_inference_failure(expr);
             }
             *ty = resolved;
         }
+        let mut optional_wraps = std::mem::take(&mut self.optional_wraps);
+        for ty in optional_wraps.values_mut() {
+            *ty = self.type_variables.resolve_ty_completely(ty.clone());
+        }
         let mut pat_types = std::mem::take(&mut self.type_of_pat);
         for (pat, ty) in pat_types.iter_mut() {
-            let was_unknown = ty.is_unknown();
+            let was_unknown = ty.is_unknown() || contains_unknown(ty);
             let resolved = self.type_variables.resolve_ty_completely(ty.clone());
-            if !was_unknown && resolved.is_unknown() {
+            if !was_unknown && is_ambiguous(&resolved) {
                 self.report_pat_inference_failure(pat);
             }
             *ty = resolved;
@@ -1643,6 +1743,8 @@ impl InferenceResultBuilder<'_> {
             method_resolutions: self.method_resolution,
             builtin_calls: self.builtin_calls,
             effects: self.effects,
+
+            optional_wraps,
         }
     }
 
@@ -1798,6 +1900,295 @@ impl InferenceResultBuilder<'_> {
         Ty::unit()
     }
 
+    /// `==` and `!=` on optionals: equal when both are `nil`, or both are
+    /// present with equal payloads. Ordering optionals means nothing, and
+    /// comparing payloads is only possible for scalar payloads; comparing
+    /// with `nil` works for any payload.
+    fn check_optional_comparison(
+        &mut self,
+        tgt_expr: ExprId,
+        op: BinaryOp,
+        lhs_ty: &Ty,
+        rhs: ExprId,
+    ) {
+        let BinaryOp::CmpOp(cmp) = op else {
+            return;
+        };
+        let lhs_ty = self.normalize(lhs_ty);
+        if let crate::CmpOp::Ord { .. } = cmp {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "optionals (`{}`) are not ordered; compare them with `==`/`!=` or unwrap them first",
+                    lhs_ty.display(self.db)
+                ),
+            });
+            return;
+        }
+        let rhs_is_nil = matches!(self.body[rhs], Expr::Literal(Literal::Nil));
+        let TyKind::Optional(payload) = lhs_ty.interned() else {
+            return;
+        };
+        let payload = self.normalize(payload);
+        let scalar = matches!(
+            payload.interned(),
+            TyKind::Int(_)
+                | TyKind::Float(_)
+                | TyKind::Bool
+                | TyKind::Unknown
+                | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
+        );
+        if !rhs_is_nil && !scalar {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "`{}` values cannot be compared with `==`; compare the optional with `nil` instead",
+                    payload.display(self.db)
+                ),
+            });
+        }
+    }
+
+    /// Infers a `match` (or an `if let`/`while let`, which lower to one).
+    ///
+    /// Every arm's pattern is checked against the scrutinee's type and binds
+    /// its names; the arms' values merge like `if` branches. A `match`
+    /// written as such must also be exhaustive.
+    fn infer_match(
+        &mut self,
+        tgt_expr: ExprId,
+        scrutinee: ExprId,
+        arms: &[crate::expr::MatchArm],
+        source: crate::expr::MatchSource,
+        expected: &Expectation,
+    ) -> Ty {
+        let scrutinee_ty = self.infer_expr(scrutinee, &Expectation::none());
+        let scrutinee_ty = self.normalize(&scrutinee_ty);
+        for arm in arms {
+            self.infer_match_pat(arm.pat, &scrutinee_ty);
+        }
+
+        let mut result: Option<Ty> = None;
+        for arm in arms {
+            let arm_ty = self.infer_expr_coerce(arm.expr, expected);
+            if self.is_never(&arm_ty) {
+                continue;
+            }
+            result = Some(match result {
+                None => arm_ty,
+                Some(previous) => {
+                    if let Some(merged) = self.coerce_merge_branch(&previous, &arm_ty) {
+                        merged
+                    } else {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: arm.expr.into(),
+                            message: format!(
+                                "`match` arms have incompatible types: `{}` and `{}`",
+                                previous.display(self.db),
+                                arm_ty.display(self.db)
+                            ),
+                        });
+                        previous
+                    }
+                }
+            });
+        }
+
+        if source == crate::expr::MatchSource::Match {
+            let pats: Vec<PatId> = arms.iter().map(|arm| arm.pat).collect();
+            if let Some(missing) = self.missing_pattern(&pats, &scrutinee_ty) {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: format!(
+                        "`match` is not exhaustive: {missing} is not covered; add an arm for it, or a `_ ->` arm"
+                    ),
+                });
+            }
+        }
+
+        // No arm completes (or there are none): the match diverges.
+        result.unwrap_or_else(|| TyKind::Never.intern())
+    }
+
+    /// Checks `pat` against a value of type `ty`, recording the type of the
+    /// pattern and of every name it binds.
+    ///
+    /// Against an optional, `nil` and `_` match the optional itself, and
+    /// every other pattern matches the *payload* of a present value -- so
+    /// `if let x = maybe` binds the unwrapped value, and `match maybe { nil
+    /// -> .., x -> .. }` covers both cases.
+    fn infer_match_pat(&mut self, pat: PatId, ty: &Ty) {
+        let ty = self.normalize(ty);
+        let pattern = self.body[pat].clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            match pattern {
+                Pat::Wild | Pat::Missing | Pat::Literal(Literal::Nil) => {
+                    self.set_pat_type(pat, ty.clone());
+                }
+                _ => self.infer_match_pat(pat, &payload.clone()),
+            }
+            return;
+        }
+
+        match pattern {
+            Pat::Bind { .. } | Pat::Wild | Pat::Missing => self.set_pat_type(pat, ty),
+            Pat::Literal(literal) => {
+                let literal_ty = match &literal {
+                    Literal::Bool(_) => TyKind::Bool.intern(),
+                    Literal::String(_) => TyKind::Str.intern(),
+                    Literal::Int(LiteralInt {
+                        kind: LiteralIntKind::Suffixed(suffix),
+                        ..
+                    }) => TyKind::Int(IntTy {
+                        bitness: suffix.bitness,
+                        signedness: suffix.signedness,
+                    })
+                    .intern(),
+                    Literal::Int(_) => self.type_variables.new_integer_var(),
+                    Literal::Float(LiteralFloat {
+                        kind: LiteralFloatKind::Suffixed(suffix),
+                        ..
+                    }) => TyKind::Float(FloatTy {
+                        bitness: suffix.bitness,
+                    })
+                    .intern(),
+                    Literal::Float(_) => self.type_variables.new_float_var(),
+                    Literal::Nil => {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: pat.into(),
+                            message: format!(
+                                "`nil` only matches an optional (`T?`), not `{}`",
+                                ty.display(self.db)
+                            ),
+                        });
+                        self.set_pat_type(pat, ty);
+                        return;
+                    }
+                };
+                if !self.unify(&literal_ty, &ty) {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: pat.into(),
+                        message: format!(
+                            "this pattern is a `{}`, but the value it matches is a `{}`",
+                            literal_ty.display(self.db),
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                self.set_pat_type(pat, ty);
+            }
+            Pat::Tuple(args) => {
+                match ty.interned() {
+                    TyKind::Tuple(arity, substs) if *arity == args.len() => {
+                        let substs = substs.clone();
+                        for (&arg, elem_ty) in args.iter().zip(substs.iter()) {
+                            self.infer_match_pat(arg, elem_ty);
+                        }
+                    }
+                    TyKind::Unknown => {
+                        for &arg in &args {
+                            self.infer_match_pat(arg, &ty);
+                        }
+                    }
+                    _ => self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: pat.into(),
+                        message: format!(
+                            "a tuple pattern of {} elements cannot match a value of type `{}`",
+                            args.len(),
+                            ty.display(self.db)
+                        ),
+                    }),
+                }
+                self.set_pat_type(pat, ty);
+            }
+            Pat::Path(_) | Pat::TupleStruct { .. } => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: pat.into(),
+                    message: "`Type.Variant` patterns match `enum` variants, and enums are not supported yet".to_string(),
+                });
+                self.set_pat_type(pat, ty);
+            }
+        }
+    }
+
+    /// Whether `pat` matches every value of type `ty`.
+    fn pat_is_irrefutable_for(&mut self, pat: PatId, ty: &Ty) -> bool {
+        let ty = self.normalize(ty);
+        match &self.body[pat] {
+            Pat::Wild | Pat::Missing => true,
+            // Against an optional a binding matches only present values.
+            Pat::Bind { .. } => !matches!(ty.interned(), TyKind::Optional(_)),
+            Pat::Tuple(args) => {
+                let args = args.clone();
+                match ty.interned() {
+                    TyKind::Tuple(arity, substs) if *arity == args.len() => {
+                        let substs = substs.clone();
+                        args.iter()
+                            .zip(substs.iter())
+                            .all(|(&arg, elem)| self.pat_is_irrefutable_for(arg, elem))
+                    }
+                    _ => false,
+                }
+            }
+            Pat::Literal(_) | Pat::Path(_) | Pat::TupleStruct { .. } => false,
+        }
+    }
+
+    /// Describes a value of type `ty` that none of `pats` matches, or
+    /// returns `None` when together they cover every value.
+    ///
+    /// Deliberately conservative: a value counts as covered only by a
+    /// pattern that matches all of it at once (an irrefutable pattern, the
+    /// two `bool` literals, `nil` plus an irrefutable payload pattern). That
+    /// can reject a match that is exhaustive only through a combination of
+    /// nested refutable patterns, but never accepts one that is not.
+    fn missing_pattern(&mut self, pats: &[PatId], ty: &Ty) -> Option<String> {
+        let ty = self.normalize(ty);
+        if ty.is_unknown() {
+            return None;
+        }
+        if pats
+            .iter()
+            .any(|&pat| self.pat_is_irrefutable_for(pat, &ty))
+        {
+            return None;
+        }
+        match ty.interned() {
+            TyKind::Optional(payload) => {
+                let payload = payload.clone();
+                let mut has_nil = false;
+                let mut payload_pats = Vec::new();
+                for &pat in pats {
+                    match &self.body[pat] {
+                        Pat::Literal(Literal::Nil) => has_nil = true,
+                        _ => payload_pats.push(pat),
+                    }
+                }
+                if !has_nil {
+                    return Some("`nil`".to_string());
+                }
+                self.missing_pattern(&payload_pats, &payload)
+                    .map(|missing| format!("a present value ({missing})"))
+            }
+            TyKind::Bool => {
+                let has = |value: bool| {
+                    pats.iter().any(|&pat| {
+                        matches!(&self.body[pat], Pat::Literal(Literal::Bool(b)) if *b == value)
+                    })
+                };
+                match (has(true), has(false)) {
+                    (true, true) => None,
+                    (false, _) => Some("`true`".to_string()),
+                    (true, false) => Some("`false`".to_string()),
+                }
+            }
+            _ => Some(format!(
+                "every `{}` not matched by a literal",
+                ty.display(self.db)
+            )),
+        }
+    }
+
     /// Infers the two bounds of a range, which must be the same integer
     /// type, and returns that type.
     fn infer_range_bounds(&mut self, start: ExprId, end: ExprId) -> Ty {
@@ -1913,6 +2304,24 @@ fn is_printable(ty: &Ty) -> bool {
             | TyKind::Unknown
             | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
     )
+}
+
+/// Whether a type that resolved to `ty` was left undetermined: the unknown
+/// type itself, or an optional of it -- `let x = nil` with nothing to say
+/// what `x` holds. Deliberately not "contains unknown anywhere": a generic
+/// instantiation nothing pinned down already reports where it matters.
+fn is_ambiguous(ty: &Ty) -> bool {
+    match ty.interned() {
+        TyKind::Optional(inner) => inner.is_unknown(),
+        _ => ty.is_unknown(),
+    }
+}
+
+/// Whether `ty` is, or contains, the unknown type.
+fn contains_unknown(ty: &Ty) -> bool {
+    let mut found = false;
+    ty.walk(&mut |inner| found |= inner.is_unknown());
+    found
 }
 
 /// Returns a type used for errors

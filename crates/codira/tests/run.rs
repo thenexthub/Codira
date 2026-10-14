@@ -149,3 +149,30 @@ public func main() {
         "stderr: {stderr}"
     );
 }
+
+/// Unwrapping `nil` with postfix `!` stops the program with the location of
+/// the `!` expression.
+#[test]
+fn unwrapping_nil_panics_with_its_location() {
+    let dir = package_with(
+        r#"
+func lookup(key: i32) -> i32? {
+    if key == 1 { 10 } else { nil }
+}
+
+public func main() {
+    println(lookup(1)!)
+    println(lookup(2)!)
+}
+"#,
+    );
+    let output = codira_run(dir.path(), &[]);
+    let stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(101), "stderr: {stderr}");
+    assert_eq!(stdout, "10\n");
+    assert!(
+        stderr.contains("panic at mod.code:8:13: unwrapped `nil` with postfix `!`"),
+        "stderr: {stderr}"
+    );
+}

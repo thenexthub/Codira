@@ -34,8 +34,9 @@
 //! and in a `@constant_time`/`oblivious` function, where the time taken must
 //! not depend on secrets:
 //!
-//! * no `if`/`while` condition, and no left operand of `&&`/`||` (both branch),
-//!   may be secret -- this includes loop bounds;
+//! * no `if`/`while` condition, no `match` (or `if let`/`while let`) scrutinee,
+//!   and no left operand of `&&`/`||` (all branch), may be secret -- this
+//!   includes loop bounds;
 //! * no index may be secret (the address of a memory access leaks through the
 //!   cache);
 //! * no operand of `/` or `%` may be secret (integer division takes
@@ -314,6 +315,23 @@ impl Checker<'_> {
                 let inner = under_secret || self.tainted(*condition);
                 self.walk_propagate(*b, inner, changed);
             }
+            // Which arm runs depends on the scrutinee, and every name a
+            // pattern binds is a piece of it.
+            Expr::Match {
+                expr: scrutinee,
+                arms,
+                ..
+            } => {
+                self.walk_propagate(*scrutinee, under_secret, changed);
+                let secret = self.tainted(*scrutinee);
+                let inner = under_secret || secret;
+                for arm in arms {
+                    if secret && self.taint_pat(arm.pat) {
+                        *changed = true;
+                    }
+                    self.walk_propagate(arm.expr, inner, changed);
+                }
+            }
             Expr::BinaryOp {
                 lhs,
                 rhs,
@@ -476,6 +494,15 @@ impl Checker<'_> {
                     *condition,
                     "branch on a secret in a constant-time function (use `ct_select(..)` to choose \
                      without branching)",
+                );
+            }
+            Expr::Match {
+                expr: scrutinee, ..
+            } if ct && self.tainted(*scrutinee) => {
+                self.error(
+                    *scrutinee,
+                    "`match` (or `if let`/`while let`) on a secret in a constant-time function \
+                     branches on it (use `ct_select(..)` to choose without branching)",
                 );
             }
             Expr::BinaryOp {

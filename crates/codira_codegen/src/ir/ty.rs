@@ -320,11 +320,29 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         )
     }
 
+    /// Returns the IR type of `T?`: `{ i1 present, T payload }`.
+    ///
+    /// No allocation and no pointer: an optional is a value exactly as large
+    /// as its payload plus a flag, and a `nil` is the all-zero value -- so a
+    /// payload is never undefined, and comparing two `nil`s' payloads is
+    /// well defined.
+    pub fn get_optional_type(&self, payload: &Ty) -> StructType<'ink> {
+        self.context.struct_type(
+            &[
+                self.get_bool_type().into(),
+                self.get_basic_type(payload)
+                    .expect("an optional's payload should be a basic type"),
+            ],
+            false,
+        )
+    }
+
     /// Returns the inkwell type of the specified HIR type as a basic value. If
     /// the type cannot be represented as a basic type enum, `None` is
     /// returned.
     pub fn get_basic_type(&self, ty: &codira_hir::Ty) -> Option<BasicTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
@@ -344,6 +362,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// basic type enum, `None` is returned.
     pub fn get_public_basic_type(&self, ty: &codira_hir::Ty) -> Option<BasicTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
@@ -361,6 +380,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// be represented as an inkwell type, `None` is returned.
     pub fn get_any_type(&self, ty: &codira_hir::Ty) -> Option<AnyTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
@@ -493,7 +513,8 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             // `guid_string` produces. That keeps the ABI stable without
             // adding a tuple case to every consumer of `TypeIdData`: a tuple
             // is, to the runtime, just an anonymous value struct.
-            TyKind::Tuple(..) => {
+            // An optional is structural too, and identified the same way.
+            TyKind::Tuple(..) | TyKind::Optional(_) => {
                 {
                     let read_only = self.tuple_ty_to_type_id.borrow();
                     if let Some(id) = read_only.get(ty.interned()) {
@@ -503,7 +524,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
 
                 let name = ty
                     .guid_string(self.db)
-                    .expect("a tuple of representable types has a guid string");
+                    .expect("a tuple or optional of representable types has a guid string");
                 let tuple_type_id = Arc::new(TypeId {
                     data: TypeIdData::Concrete(Guid::from_str(&name)),
                     name,

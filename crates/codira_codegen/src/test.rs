@@ -1846,12 +1846,13 @@ fn tuple_pattern_is_zero_overhead() {
 /// A construct the front end parses but cannot lower yet stops the build with
 /// a diagnostic naming it, rather than reaching `gen_expr` and crashing.
 #[test]
-fn unlowered_match_is_a_diagnostic() {
+fn unlowered_closure_is_a_diagnostic() {
     test_snapshot(
-        "unlowered_match_is_a_diagnostic",
+        "unlowered_closure_is_a_diagnostic",
         r#"
     public func main(x: i32) -> i32 {
-        match x { 1 -> 10, _ -> 20 }
+        let f = func(a: i32) -> i32 { a };
+        x
     }"#,
     );
 }

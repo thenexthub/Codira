@@ -99,6 +99,10 @@ pub enum TyKind {
     /// is the `scope` that created it.
     Channel(Ty),
 
+    /// `T?`: a `T`, or `nil`. Represented as a present flag and a payload,
+    /// with no allocation -- see `codira_codegen`'s `get_optional_type`.
+    Optional(Ty),
+
     /// A bound generic type parameter: the `T` of `func map[T](..)` or
     /// `struct Box[T]`.
     ///
@@ -276,6 +280,8 @@ impl Ty {
             TyKind::Int(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Array(ty) => Some(format!("[{}]", ty.display(db))),
             TyKind::Channel(ty) => Some(format!("core::Channel[{}]", ty.guid_string(db)?)),
+            // Structural like a tuple, so the name is built from the payload.
+            TyKind::Optional(ty) => Some(format!("{}?", ty.guid_string(db)?)),
             // A tuple is a structural type: two tuples are the same type
             // exactly when their element types match, so the name is built
             // from the elements rather than from a declaration site. `()`
@@ -344,6 +350,7 @@ impl Ty {
             (TyKind::Tuple(arity1, _), TyKind::Tuple(arity2, _)) => arity1 == arity2,
             (TyKind::Array(_), TyKind::Array(_))
             | (TyKind::Channel(_), TyKind::Channel(_))
+            | (TyKind::Optional(_), TyKind::Optional(_))
             | (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
             (TyKind::Int(i1), TyKind::Int(i2)) => i1 == i2,
@@ -505,6 +512,7 @@ impl HirDisplay for Ty {
             }
             TyKind::Array(elem_ty) => write!(f, "[{}]", elem_ty.display(f.db)),
             TyKind::Channel(elem_ty) => write!(f, "Channel[{}]", elem_ty.display(f.db)),
+            TyKind::Optional(inner) => write!(f, "{}?", inner.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }
     }
@@ -544,7 +552,9 @@ impl TypeWalk for Ty {
         match self.interned() {
             // Recurse, not just visit: an element type can itself contain
             // types (`[(T, U)]`), which a resolution pass must reach too.
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk(f),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) | TyKind::Optional(elem_ty) => {
+                elem_ty.walk(f);
+            }
             _ => {
                 if let Some(substs) = self.type_parameters() {
                     substs.walk(f);
@@ -556,7 +566,9 @@ impl TypeWalk for Ty {
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Ty)) {
         match self.interned_mut() {
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk_mut(f),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) | TyKind::Optional(elem_ty) => {
+                elem_ty.walk_mut(f);
+            }
             _ => {
                 if let Some(substs) = self.type_parameters_mut() {
                     substs.walk_mut(f);

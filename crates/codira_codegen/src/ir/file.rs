@@ -28,6 +28,28 @@ pub struct FileIr<'ink> {
     pub type_definitions: HashSet<codira_hir::Ty>,
 }
 
+/// Adds every tuple and optional type inside `ty` (including `ty` itself)
+/// to `types`. The unit type `()` is skipped -- it is a primitive to the
+/// runtime -- and so is anything whose layout is not known (an error type,
+/// an uninstantiated parameter).
+fn collect_structural_types(
+    db: &dyn codira_hir::HirDatabase,
+    ty: &codira_hir::Ty,
+    types: &mut HashSet<codira_hir::Ty>,
+) {
+    use codira_hir::{TyKind, TypeWalk};
+    ty.walk(&mut |inner| {
+        let structural = match inner.interned() {
+            TyKind::Tuple(arity, _) => *arity > 0,
+            TyKind::Optional(_) => true,
+            _ => false,
+        };
+        if structural && inner.guid_string(db).is_some() {
+            types.insert(inner.clone());
+        }
+    });
+}
+
 /// Generates IR for the specified file.
 pub(crate) fn gen_file_ir<'ink>(
     code_gen: &CodeGenContext<'_, 'ink>,
@@ -87,6 +109,33 @@ pub(crate) fn gen_file_ir<'ink>(
     {
         if let ModuleDef::Struct(s) = def {
             type_definitions.insert(s.ty(code_gen.db));
+            for field in s.fields(code_gen.db) {
+                collect_structural_types(
+                    code_gen.db,
+                    &field.ty(code_gen.db),
+                    &mut type_definitions,
+                );
+            }
+        }
+    }
+
+    // Tuples and optionals have no declaration to export them from, but the
+    // runtime needs their layout as soon as one crosses into it -- as a
+    // parameter, a return value, a field or an array element. Every one this
+    // group's code mentions is exported as an anonymous value struct.
+    for f in module_group
+        .iter()
+        .flat_map(|module| module.all_functions(code_gen.db))
+    {
+        if f.is_extern(code_gen.db) {
+            continue;
+        }
+        let sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
+        for ty in sig.params().iter().chain(std::iter::once(sig.ret())) {
+            collect_structural_types(code_gen.db, ty, &mut type_definitions);
+        }
+        for ty in f.infer(code_gen.db).all_types() {
+            collect_structural_types(code_gen.db, ty, &mut type_definitions);
         }
     }
 

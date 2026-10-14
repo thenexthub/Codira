@@ -1,0 +1,5 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    public func main(x: i32) -> i32 {\n        let f = func(a: i32) -> i32 { a };\n        x\n    }"
+---
+mod.code (2:13): error: a closure is not supported by the code generator yet: there is no function-value representation or capture analysis yet

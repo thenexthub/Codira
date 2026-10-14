@@ -12,8 +12,8 @@ use std::{
 use codira_abi as abi;
 use codira_hir::{
     ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase, HirDisplay,
-    InferenceResult, Literal, LogicOp, Name, Ordering, Pat, PatId, Path, ResolveBitness, Resolver,
-    Statement, Ty, TyKind, UnaryOp, ValueNs,
+    InferenceResult, Literal, LogicOp, MatchArm, Name, Ordering, Pat, PatId, Path, ResolveBitness,
+    Resolver, Statement, Ty, TyKind, UnaryOp, ValueNs,
 };
 use inkwell::{
     basic_block::BasicBlock,
@@ -370,7 +370,20 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
     /// Generates IR for the specified expression. Dependending on the type of
     /// expression an IR value is returned.
+    ///
+    /// A value used where an optional is expected (`return x` from a
+    /// `-> i32?` function) is wrapped here, after it is computed, so no
+    /// individual construct has to know about the conversion.
     fn gen_expr(&mut self, expr: ExprId) -> Option<inkwell::values::BasicValueEnum<'ink>> {
+        let value = self.gen_expr_inner(expr)?;
+        match self.infer.optional_wrap(expr).cloned() {
+            Some(optional_ty) => Some(self.wrap_optional(&optional_ty, value)),
+            None => Some(value),
+        }
+    }
+
+    /// The value of `expr` itself, before any implicit optional wrapping.
+    fn gen_expr_inner(&mut self, expr: ExprId) -> Option<inkwell::values::BasicValueEnum<'ink>> {
         let body = self.body.clone();
         match &body[expr] {
             Expr::Block {
@@ -455,6 +468,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 body: loop_body,
             } => self.gen_for(*pat, *iterable, *loop_body),
             Expr::Continue => self.gen_continue(),
+            Expr::Match { expr: scrutinee, arms, .. } => self.gen_match(expr, *scrutinee, arms),
+            Expr::Unwrap { expr: inner } => self.gen_unwrap(expr, *inner),
             Expr::Range { .. } => unreachable!(
                 "inference rejects a range anywhere but a `for` loop's iterable, which `gen_for` lowers itself"
             ),
@@ -990,11 +1005,14 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
             Literal::String(value) => self.gen_string_literal(value),
 
-            Literal::Nil => unimplemented!(
-                "`nil`/optional codegen is not implemented yet -- `Type?` currently lowers \
-                 transparently to `Type` in the type system (see type_ref.rs), so there is no \
-                 IR representation for the absent case yet"
-            ),
+            // `nil` is the all-zero optional: absent, with a zero payload.
+            Literal::Nil => {
+                let ty = self.infer[expr].clone();
+                self.hir_types
+                    .get_basic_type(&ty)
+                    .expect("`nil` has an optional type")
+                    .const_zero()
+            }
         }
     }
 
@@ -1517,6 +1535,16 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_short_circuit(lhs, rhs, op);
         }
         let lhs_type = self.infer[lhs].clone();
+        match (lhs_type.interned(), op) {
+            (
+                TyKind::Optional(_) | TyKind::Str | TyKind::Tuple(..),
+                BinaryOp::Assignment { op: None },
+            ) => return self.gen_plain_assignment(lhs, rhs),
+            (TyKind::Optional(payload), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
+                return self.gen_optional_eq(lhs, rhs, &payload.clone(), negated)
+            }
+            _ => {}
+        }
         match lhs_type.interned() {
             TyKind::Bool => self.gen_binary_op_bool(lhs, rhs, op),
             TyKind::Float(_) => self.gen_binary_op_float(lhs, rhs, op),
@@ -2593,6 +2621,448 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 // Otherwise, in the case of `break;` (without an expression) the return value
                 // is just empty.
                 Some(self.gen_empty())
+            }
+        }
+    }
+
+    /// Wraps `value`, a `T`, into the present `T?` of type `optional_ty`.
+    fn wrap_optional(
+        &mut self,
+        optional_ty: &Ty,
+        value: BasicValueEnum<'ink>,
+    ) -> BasicValueEnum<'ink> {
+        let optional_type = self
+            .hir_types
+            .get_basic_type(optional_ty)
+            .expect("an optional is a basic type")
+            .into_struct_type();
+        let with_flag = self
+            .builder
+            .build_insert_value(
+                optional_type.const_zero(),
+                self.context.bool_type().const_all_ones(),
+                0,
+                "some.flag",
+            )
+            .expect("failed to set an optional's present flag");
+        self.builder
+            .build_insert_value(with_flag, value, 1, "some")
+            .expect("failed to set an optional's payload")
+            .into_struct_value()
+            .into()
+    }
+
+    /// `x!`: the payload of a present optional, or a panic naming the
+    /// source location when it is `nil`.
+    fn gen_unwrap(&mut self, unwrap_expr: ExprId, inner: ExprId) -> Option<BasicValueEnum<'ink>> {
+        let optional = self.gen_expr(inner)?.into_struct_value();
+        let present = self
+            .builder
+            .build_extract_value(optional, 0, "is_some")
+            .expect("an optional has a present flag")
+            .into_int_value();
+        let ok_block = self
+            .context
+            .append_basic_block(self.fn_value, "unwrap.some");
+        let nil_block = self.context.append_basic_block(self.fn_value, "unwrap.nil");
+        self.builder
+            .build_conditional_branch(present, ok_block, nil_block)
+            .expect("failed to branch on an optional");
+
+        self.builder.position_at_end(nil_block);
+        self.gen_panic("unwrapped `nil` with postfix `!`", unwrap_expr);
+
+        self.builder.position_at_end(ok_block);
+        Some(
+            self.builder
+                .build_extract_value(optional, 1, "value")
+                .expect("an optional has a payload"),
+        )
+    }
+
+    /// Emits a call to `codira.panic` with `message` and the location of
+    /// `expr`, followed by `unreachable`: the runtime never returns.
+    fn gen_panic(&mut self, message: &str, expr: ExprId) {
+        let message = self.gen_string_literal(message).into_struct_value();
+        let (file, line, column) = self.source_location(expr);
+        let mut args: Vec<BasicMetadataValueEnum<'ink>> = Vec::with_capacity(6);
+        for value in [message, file] {
+            args.push(
+                self.builder
+                    .build_extract_value(value, 0, "str.data")
+                    .expect("a str has a data pointer")
+                    .into(),
+            );
+            args.push(
+                self.builder
+                    .build_extract_value(value, 1, "str.len")
+                    .expect("a str has a length")
+                    .into(),
+            );
+        }
+        let u32_type = self.context.i32_type();
+        args.push(u32_type.const_int(u64::from(line), false).into());
+        args.push(u32_type.const_int(u64::from(column), false).into());
+        self.gen_runtime_call(&intrinsics::panic, &args);
+        self.builder
+            .build_unreachable()
+            .expect("failed to build unreachable after a panic");
+    }
+
+    /// `place = value` for a type that is stored as a whole: an optional, a
+    /// `str` or a tuple.
+    fn gen_plain_assignment(&mut self, lhs: ExprId, rhs: ExprId) -> Option<BasicValueEnum<'ink>> {
+        let value = self.gen_expr(rhs)?;
+        let place = self.gen_place_expr(lhs)?;
+        self.builder
+            .build_store(place, value)
+            .expect("failed to build store");
+        Some(self.gen_empty())
+    }
+
+    /// `a == b` / `a != b` on optionals: equal when both are `nil`, or both
+    /// are present with equal payloads. A `nil` payload is zero, so the
+    /// payload comparison is always well defined, and it only decides the
+    /// result when both are present.
+    fn gen_optional_eq(
+        &mut self,
+        lhs: ExprId,
+        rhs: ExprId,
+        payload_ty: &Ty,
+        negated: bool,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let lhs_value = self.gen_expr(lhs)?.into_struct_value();
+        let rhs_value = self.gen_expr(rhs)?.into_struct_value();
+        let b = &self.builder;
+        let lhs_present = b
+            .build_extract_value(lhs_value, 0, "lhs.is_some")
+            .expect("an optional has a present flag")
+            .into_int_value();
+
+        let equal = if matches!(self.body[rhs], Expr::Literal(Literal::Nil)) {
+            b.build_not(lhs_present, "is_nil")
+                .expect("failed to negate a present flag")
+        } else {
+            let rhs_present = b
+                .build_extract_value(rhs_value, 0, "rhs.is_some")
+                .expect("an optional has a present flag")
+                .into_int_value();
+            let lhs_payload = b
+                .build_extract_value(lhs_value, 1, "lhs.value")
+                .expect("an optional has a payload");
+            let rhs_payload = b
+                .build_extract_value(rhs_value, 1, "rhs.value")
+                .expect("an optional has a payload");
+            let payloads_equal = match payload_ty.interned() {
+                TyKind::Float(_) => b
+                    .build_float_compare(
+                        FloatPredicate::OEQ,
+                        lhs_payload.into_float_value(),
+                        rhs_payload.into_float_value(),
+                        "payload_eq",
+                    )
+                    .expect("failed to compare payloads"),
+                TyKind::Int(_) | TyKind::Bool => b
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        lhs_payload.into_int_value(),
+                        rhs_payload.into_int_value(),
+                        "payload_eq",
+                    )
+                    .expect("failed to compare payloads"),
+                _ => unreachable!(
+                    "inference only admits optional equality on scalar payloads, or against `nil`"
+                ),
+            };
+            let flags_equal = b
+                .build_int_compare(IntPredicate::EQ, lhs_present, rhs_present, "flags_eq")
+                .expect("failed to compare present flags");
+            let absent = b
+                .build_not(lhs_present, "absent")
+                .expect("failed to negate a present flag");
+            let absent_or_equal = b
+                .build_or(absent, payloads_equal, "absent_or_equal")
+                .expect("failed to combine optional comparison");
+            b.build_and(flags_equal, absent_or_equal, "optional_eq")
+                .expect("failed to combine optional comparison")
+        };
+
+        Some(if negated {
+            self.builder
+                .build_not(equal, "optional_ne")
+                .expect("failed to negate an optional comparison")
+                .into()
+        } else {
+            equal.into()
+        })
+    }
+
+    /// Generates IR for a `match` (and the `if let`/`while let` that lower
+    /// to one).
+    ///
+    /// The scrutinee is evaluated once; then each arm's pattern is tested in
+    /// order, and the first that matches binds its names and runs its arm.
+    /// An arm whose pattern always matches ends the chain. Falling off the
+    /// end is `unreachable`: inference has proved the match exhaustive, and
+    /// an `if let` ends in a `_` arm.
+    fn gen_match(
+        &mut self,
+        match_expr: ExprId,
+        scrutinee: ExprId,
+        arms: &[MatchArm],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let value = self.gen_expr(scrutinee)?;
+        let ty = self.infer[scrutinee].clone();
+        let merge_block = self.context.append_basic_block(self.fn_value, "match.end");
+        let mut incoming: Vec<(BasicValueEnum<'ink>, BasicBlock<'ink>)> = Vec::new();
+        let mut falls_through = true;
+
+        for arm in arms {
+            let arm_block = self.context.append_basic_block(self.fn_value, "match.arm");
+            let next_block = if let Some(matched) = self.gen_pat_test(arm.pat, value, &ty) {
+                let next_block = self.context.append_basic_block(self.fn_value, "match.next");
+                self.builder
+                    .build_conditional_branch(matched, arm_block, next_block)
+                    .expect("failed to branch on a match arm");
+                Some(next_block)
+            } else {
+                self.builder
+                    .build_unconditional_branch(arm_block)
+                    .expect("failed to branch to a match arm");
+                None
+            };
+
+            self.builder.position_at_end(arm_block);
+            self.gen_pat_bind(arm.pat, value, &ty);
+            if let Some(arm_value) = self.gen_expr(arm.expr) {
+                let end_block = self.builder.get_insert_block().unwrap();
+                self.builder
+                    .build_unconditional_branch(merge_block)
+                    .expect("failed to branch out of a match arm");
+                incoming.push((arm_value, end_block));
+            }
+
+            if let Some(next_block) = next_block {
+                self.builder.position_at_end(next_block);
+            } else {
+                falls_through = false;
+                break;
+            }
+        }
+
+        if falls_through {
+            self.builder
+                .build_unreachable()
+                .expect("failed to build unreachable after the last match arm");
+        }
+
+        if incoming.is_empty() {
+            merge_block
+                .remove_from_function()
+                .expect("the merge block must have a parent");
+            return None;
+        }
+
+        self.builder.position_at_end(merge_block);
+        if self.infer[match_expr].is_empty() {
+            return Some(self.gen_empty());
+        }
+        let phi = self
+            .builder
+            .build_phi(incoming[0].0.get_type(), "match")
+            .expect("failed to build a match phi");
+        for (arm_value, block) in &incoming {
+            phi.add_incoming(&[(arm_value, *block)]);
+        }
+        Some(phi.as_basic_value())
+    }
+
+    /// Emits the test of `pat` against `value` (of type `ty`), or returns
+    /// `None` when the pattern matches every value and needs no test.
+    fn gen_pat_test(
+        &mut self,
+        pat: PatId,
+        value: BasicValueEnum<'ink>,
+        ty: &Ty,
+    ) -> Option<IntValue<'ink>> {
+        let body = self.body.clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            return match &body[pat] {
+                Pat::Wild | Pat::Missing => None,
+                Pat::Literal(Literal::Nil) => {
+                    let present = self.optional_present(value);
+                    Some(
+                        self.builder
+                            .build_not(present, "is_nil")
+                            .expect("failed to negate a present flag"),
+                    )
+                }
+                // Any other pattern tests the payload of a present value.
+                _ => {
+                    let present = self.optional_present(value);
+                    let payload_value = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), 1, "value")
+                        .expect("an optional has a payload");
+                    Some(match self.gen_pat_test(pat, payload_value, payload) {
+                        None => present,
+                        Some(matched) => self
+                            .builder
+                            .build_and(present, matched, "some_and")
+                            .expect("failed to combine pattern tests"),
+                    })
+                }
+            };
+        }
+
+        match &body[pat] {
+            Pat::Wild | Pat::Missing | Pat::Bind { .. } => None,
+            Pat::Literal(literal) => Some(self.gen_literal_test(literal, value)),
+            Pat::Tuple(args) => {
+                let TyKind::Tuple(_, elements) = ty.interned() else {
+                    unreachable!("inference checked that a tuple pattern matches a tuple");
+                };
+                let mut all: Option<IntValue<'ink>> = None;
+                for (idx, (&arg, element_ty)) in args.iter().zip(elements.iter()).enumerate() {
+                    let element = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), idx as u32, "element")
+                        .expect("tuple element index checked by inference");
+                    if let Some(matched) = self.gen_pat_test(arg, element, element_ty) {
+                        all = Some(match all {
+                            None => matched,
+                            Some(previous) => self
+                                .builder
+                                .build_and(previous, matched, "and")
+                                .expect("failed to combine pattern tests"),
+                        });
+                    }
+                }
+                all
+            }
+            Pat::Path(_) | Pat::TupleStruct { .. } => {
+                unreachable!("inference rejects variant patterns until enums exist")
+            }
+        }
+    }
+
+    /// The present flag of an optional value.
+    fn optional_present(&self, value: BasicValueEnum<'ink>) -> IntValue<'ink> {
+        self.builder
+            .build_extract_value(value.into_struct_value(), 0, "is_some")
+            .expect("an optional has a present flag")
+            .into_int_value()
+    }
+
+    /// Compares `value` against a literal pattern.
+    fn gen_literal_test(
+        &mut self,
+        literal: &Literal,
+        value: BasicValueEnum<'ink>,
+    ) -> IntValue<'ink> {
+        match literal {
+            Literal::Bool(b) => {
+                let constant = self.context.bool_type().const_int(u64::from(*b), false);
+                self.builder
+                    .build_int_compare(IntPredicate::EQ, value.into_int_value(), constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Int(int) => {
+                let int_value = value.into_int_value();
+                let int_type = int_value.get_type();
+                let constant = if int_type.get_bit_width() > 64 {
+                    int_type.const_int_arbitrary_precision(&[
+                        int.value as u64,
+                        (int.value >> 64) as u64,
+                    ])
+                } else {
+                    int_type.const_int(int.value as u64, false)
+                };
+                self.builder
+                    .build_int_compare(IntPredicate::EQ, int_value, constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Float(float) => {
+                let float_value = value.into_float_value();
+                let constant = float_value.get_type().const_float(float.value);
+                self.builder
+                    .build_float_compare(FloatPredicate::OEQ, float_value, constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::String(text) => {
+                let literal = self.gen_string_literal(text).into_struct_value();
+                let value = value.into_struct_value();
+                let mut args: Vec<BasicMetadataValueEnum<'ink>> = Vec::with_capacity(4);
+                for string in [value, literal] {
+                    args.push(
+                        self.builder
+                            .build_extract_value(string, 0, "str.data")
+                            .expect("a str has a data pointer")
+                            .into(),
+                    );
+                    args.push(
+                        self.builder
+                            .build_extract_value(string, 1, "str.len")
+                            .expect("a str has a length")
+                            .into(),
+                    );
+                }
+                let (fn_ty, fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
+                    self.external_globals.dispatch_table,
+                    &self.builder,
+                    &intrinsics::str_eq,
+                );
+                let equal = self
+                    .builder
+                    .build_indirect_call(fn_ty, fn_ptr, &args, "str_eq")
+                    .expect("failed to call str_eq")
+                    .try_as_basic_value()
+                    .unwrap_basic()
+                    .into_int_value();
+                self.builder
+                    .build_int_compare(
+                        IntPredicate::NE,
+                        equal,
+                        equal.get_type().const_zero(),
+                        "is_lit",
+                    )
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Nil => unreachable!("`nil` patterns are tested on the optional itself"),
+        }
+    }
+
+    /// Binds the names in `pat`, which has already matched `value`.
+    fn gen_pat_bind(&mut self, pat: PatId, value: BasicValueEnum<'ink>, ty: &Ty) {
+        let body = self.body.clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            if !matches!(
+                &body[pat],
+                Pat::Wild | Pat::Missing | Pat::Literal(Literal::Nil)
+            ) {
+                let payload_value = self
+                    .builder
+                    .build_extract_value(value.into_struct_value(), 1, "value")
+                    .expect("an optional has a payload");
+                self.gen_pat_bind(pat, payload_value, payload);
+            }
+            return;
+        }
+        match &body[pat] {
+            Pat::Bind { .. } => self.bind_pattern_to_value(pat, value),
+            Pat::Tuple(args) => {
+                let TyKind::Tuple(_, elements) = ty.interned() else {
+                    return;
+                };
+                for (idx, (&arg, element_ty)) in args.iter().zip(elements.iter()).enumerate() {
+                    let element = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), idx as u32, "element")
+                        .expect("tuple element index checked by inference");
+                    self.gen_pat_bind(arg, element, element_ty);
+                }
+            }
+            Pat::Wild | Pat::Missing | Pat::Literal(_) | Pat::Path(_) | Pat::TupleStruct { .. } => {
             }
         }
     }
