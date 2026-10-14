@@ -13,8 +13,8 @@ use clap::{Parser, Subcommand};
 /// `codira-launcher` binary runs.
 pub use ops::exe;
 use ops::{
-    bindgen, build, check, daemon, import_c, init, language_server, new, quantum, query, run,
-    start, synth, test,
+    bindgen, build, certify, check, daemon, import_c, init, language_server, new, quantum, query,
+    run, start, synth, test,
 };
 
 #[derive(Parser)]
@@ -32,6 +32,10 @@ enum Command {
 
     /// Compiles a local Codira file into a module
     Build(build::Args),
+
+    /// Checks the proof certificates of a library, directory or executable
+    /// built with `--certify`, without the compiler's front end
+    Certify(certify::Args),
 
     /// Type-checks Codira sources and reports diagnostics, emitting nothing
     Check(check::Args),
@@ -99,6 +103,7 @@ where
     let args = Args::parse_from(args);
     match args.command {
         Command::Build(args) => build::build(args),
+        Command::Certify(args) => certify::certify(args),
         Command::Check(args) => check::check(args),
         Command::Daemon(args) => daemon::daemon(args),
         Command::Bindgen(args) => bindgen::bindgen(args),

@@ -6,6 +6,7 @@
 //! - Part of the Codira compiler and runtime toolchain.
 pub mod bindgen;
 pub mod build;
+pub mod certify;
 pub mod check;
 pub mod counterexample;
 pub mod daemon;

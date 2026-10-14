@@ -1009,3 +1009,58 @@ fn an_impossible_contract_is_not_synthesized() {
     .unwrap_err();
     assert!(err.contains("no candidate"), "{err}");
 }
+
+/// The queries a certificate records decide every obligation the same way
+/// when read back into a context that shares nothing with the verifier: a
+/// postcondition checked at two returns has two queries, all `unsat`; a
+/// refuted one has a `sat` query.
+#[test]
+fn recorded_queries_re_decide_each_obligation_on_their_own() {
+    use codira_smt::{CheckOutcome, Context};
+
+    let source = r#"
+    func clamp(x: i64) -> i64
+        ensures result >= 0 && result <= 100
+    {
+        if x < 0 { return 0 }
+        if x > 100 { 100 } else { x }
+    }
+    func abs(x: i64) -> i64
+        ensures result >= 0
+    {
+        if x < 0 { -x } else { x }
+    }
+    "#;
+    let (db, _) = MockDatabase::with_single_file(source);
+    let function = |name: &str| {
+        Package::all(&db)
+            .iter()
+            .flat_map(|pkg| pkg.modules(&db))
+            .flat_map(|module| module.declarations(&db))
+            .find_map(|def| match def {
+                ModuleDef::Function(f) if f.name(&db).to_string() == name => Some(f),
+                _ => None,
+            })
+            .unwrap()
+    };
+    let decide = |text: &str| {
+        let ctx = Context::new();
+        let solver = ctx.solver();
+        for assertion in ctx.parse_smtlib2(text).unwrap() {
+            solver.assert(assertion);
+        }
+        solver.check_detailed()
+    };
+
+    let clamp = super::certify_function(&db, function("clamp"));
+    assert_eq!(clamp.len(), 1);
+    assert_eq!(clamp[0].obligation.verdict, Verdict::Proven);
+    assert_eq!(clamp[0].queries.len(), 2, "one per return point");
+    for query in &clamp[0].queries {
+        assert_eq!(decide(query), CheckOutcome::Unsat);
+    }
+
+    let abs = super::certify_function(&db, function("abs"));
+    assert!(matches!(abs[0].obligation.verdict, Verdict::Refuted(_)));
+    assert_eq!(decide(abs[0].queries.last().unwrap()), CheckOutcome::Sat);
+}

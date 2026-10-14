@@ -375,9 +375,20 @@ impl Driver {
         }
     }
 
+    /// Turns proof certificates on or off (`codira build --certify`): every
+    /// library written gets a `<library>.cert.json` beside it with each
+    /// function's code and source hashes and its verified obligations as
+    /// SMT-LIB2 queries (see `codira_certificate`). Functions keep their
+    /// symbols in the library so the certificate can name their code.
+    pub fn set_certify(&mut self, enabled: bool) {
+        if self.db.keep_function_symbols() != enabled {
+            self.db.set_keep_function_symbols(enabled);
+        }
+    }
+
     /// Turns fuel instrumentation on or off for the code this driver
     /// generates (`codira build --fuel`): a counter decrement at every
-    /// function entry and loop back-edge, checked against zero.
+    /// function entry and loop back-edge.
     pub fn set_fuel_instrumentation(&mut self, enabled: bool) {
         if self.db.fuel_instrumentation() != enabled {
             self.db.set_fuel_instrumentation(enabled);
@@ -885,6 +896,15 @@ impl Driver {
 
         // It did change or we are forced, so write it to disk
         assembly.copy_to(&assembly_path)?;
+
+        // A certificate describes exactly one build of the library: write
+        // this one's, or remove one left by an earlier certified build.
+        let certificate = codira_certificate::sidecar_path(&assembly_path);
+        if self.db.keep_function_symbols() {
+            crate::certify::write_certificate(&self.db, module_group_id, &assembly_path)?;
+        } else if certificate.is_file() {
+            std::fs::remove_file(&certificate)?;
+        }
 
         // Store the information so we maybe don't have to write it next time
         self.module_to_temp_assembly_path

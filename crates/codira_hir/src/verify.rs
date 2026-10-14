@@ -385,6 +385,36 @@ pub(crate) fn verify_function_query(
     Arc::new(exec::verify(db, func))
 }
 
+/// One obligation of a function, with the queries that decided it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CertifiedObligation {
+    pub obligation: Obligation,
+    /// Every Z3 query asked for this obligation, as a self-contained
+    /// SMT-LIB2 script: the premise (path condition, `requires`, parameter
+    /// refinements, callee `ensures`) asserted first, the negated goal
+    /// last. The obligation is proven exactly when every one is `unsat`.
+    /// Empty when the obligation could not be encoded.
+    pub queries: Vec<String>,
+}
+
+/// Verifies `func` again, keeping the text of every Z3 query: what a proof
+/// certificate (`codira build --certify`) records so that a checker can
+/// re-decide each obligation without this crate. Verdicts are those of
+/// [`HirDatabase::verify_function`]; the queries are not cached, so this
+/// costs a second verification of the function.
+pub fn certify_function(db: &dyn HirDatabase, func: Function) -> Vec<CertifiedObligation> {
+    let (report, queries) = exec::verify_recording(db, func, true);
+    report
+        .obligations
+        .into_iter()
+        .zip(queries)
+        .map(|(obligation, queries)| CertifiedObligation {
+            obligation,
+            queries,
+        })
+        .collect()
+}
+
 /// Pushes a diagnostic for every obligation of `func` that was not proven,
 /// plus the ghost-code checks.
 pub(crate) fn contract_diagnostics(

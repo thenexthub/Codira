@@ -583,6 +583,58 @@ unpacks them once into a temporary directory named after their hash; later
 runs load them directly. `main` may return nothing (exit code 0), an integer
 (the exit code) or `bool` (true is success). Host target only for now.
 
+### Proof certificates: `codira build --certify`, `codira certify`
+
+```bash
+codira build --certify                     # also writes target/mod.codiralib.cert.json
+codira certify target/mod.codiralib        # re-checks it without the compiler
+codira certify target/                     # every library in a directory
+codira build --exe --certify -o app.exe    # the certificates travel inside the executable
+codira certify app.exe
+codira certify target/mod.codiralib --source-dir src   # also match the source text
+```
+
+The certificate (a JSON sidecar, `<library>.cert.json`) lists every function
+of the library with: its symbol; the byte range of its machine code in the
+library and a SHA-256 of those bytes; the file, line, byte range and SHA-256
+of its source; and every proof obligation the contract verifier generated
+for it, each as the self-contained SMT-LIB2 queries Z3 decided (premise
+asserted, then the negated goal; `unsat` = proven) or the reason it is not
+proven. The whole library file is hashed too.
+
+`codira certify` uses Z3 and the certificate reader only -- no parser, type
+checker, verifier or code generator. It fails (exit 1) when the library is not
+the hashed file, when a function's code bytes or symbol position differ (the
+failing function is named), when a query contains anything but declarations
+and assertions, or when Z3 under the checker's own `--rlimit` does not answer
+`unsat` for a query recorded as proven. It reports, without failing,
+obligations the certificate records as unproven (a `@runtime_checked`
+`requires` the solver could not decide; `--deny-unproven` makes them fail) and
+proofs that hold only because their path condition is unsatisfiable.
+
+What a passing check establishes, and what it does not:
+
+- It re-proves the recorded obligations and binds them, by hash, to the
+  library's bytes. It does **not** show the obligations are the right ones:
+  the verification-condition generator that turned source and contracts into
+  queries is trusted, as is Z3. Nothing relates the machine code to the
+  source beyond sitting in one certificate: the queries are about the source
+  program, so a miscompilation is not detected.
+- The certificate is not signed. Whoever can rewrite both the library and its
+  certificate can make them agree; keep the certificate somewhere the library
+  cannot change it (or sign it by other means) if that matters.
+- Translation validation does not run during builds, so the certificate
+  contains no translation-validation results (it says so). The Codira runtime
+  that loads the library is not covered.
+- Code ranges: ELF gives each function's exact size; on PE and Mach-O a
+  function's range runs to the next symbol, so it includes alignment padding.
+  A certified build keeps every function's symbol (internal instead of
+  private linkage, and `/DEBUG:SYMTAB` on Windows) -- the generated code is
+  the same. A function the optimizer inlined away has no code range (noted).
+
+Cost: certifying verifies each function with a contract a second time and
+writes its queries; it is opt-in for that reason.
+
 ### Targets
 
 `--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,
@@ -803,6 +855,10 @@ Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
 `codira check` and `codira build`; see "Contracts and verification" above for
 what the checker models and what it reports as uncheckable.
+`codira build --certify` writes a proof certificate per library (obligations
+as SMT-LIB2 queries, source and machine-code hashes) and `codira certify`
+re-checks it with Z3 alone; see "Proof certificates" for exactly what that
+establishes.
 
 Runtime (hosts embedding `codira_runtime`):
 

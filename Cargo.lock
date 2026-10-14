@@ -674,6 +674,7 @@ dependencies = [
  "cargo-husky",
  "clap",
  "codira_abi",
+ "codira_certificate",
  "codira_compiler",
  "codira_compiler_daemon",
  "codira_cranelift",
@@ -707,6 +708,18 @@ name = "codira_capi_utils"
 version = "0.6.0-dev"
 dependencies = [
  "insta",
+]
+
+[[package]]
+name = "codira_certificate"
+version = "0.6.0-dev"
+dependencies = [
+ "codira_smt",
+ "object 0.36.5",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -764,12 +777,14 @@ version = "0.6.0-dev"
 dependencies = [
  "annotate-snippets",
  "anyhow",
+ "codira_certificate",
  "codira_codegen",
  "codira_diagnostics",
  "codira_hir",
  "codira_hir_input",
  "codira_paths",
  "codira_project",
+ "codira_smt",
  "codira_syntax",
  "codira_target",
  "insta",

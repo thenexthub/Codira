@@ -232,6 +232,19 @@ struct Exec<'a, 'ctx> {
 
 /// Verifies one function. See the module docs of `crate::verify`.
 pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport {
+    verify_recording(db, func, false).0
+}
+
+/// [`verify`], also returning, for each obligation (in the report's order),
+/// the SMT-LIB2 text of every query Z3 was asked for it when `record` is
+/// set: one per place the obligation arises (a postcondition is checked at
+/// every return point), in the order they were checked. An obligation that
+/// could not be encoded has none.
+pub(crate) fn verify_recording(
+    db: &dyn HirDatabase,
+    func: Function,
+    record: bool,
+) -> (VerificationReport, Vec<Vec<String>>) {
     let frame = Frame::new(db, func);
     let params: Vec<ParamInfo> = frame
         .body
@@ -243,9 +256,14 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
             ty: scalar_of(db, &frame.infer[*pat]),
         })
         .collect();
-    let empty = || VerificationReport {
-        params: params.clone(),
-        obligations: Vec::new(),
+    let empty = || {
+        (
+            VerificationReport {
+                params: params.clone(),
+                obligations: Vec::new(),
+            },
+            Vec::new(),
+        )
     };
 
     if func.is_extern(db) || matches!(frame.body[frame.body.body_expr()], Expr::Missing) {
@@ -278,10 +296,14 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
     if let Some(value) = exec.eval(&mut state, body_expr) {
         exec.check_return(&state, value);
     }
-    VerificationReport {
-        params,
-        obligations: exec.solve(),
-    }
+    let (obligations, queries) = exec.solve(record);
+    (
+        VerificationReport {
+            params,
+            obligations,
+        },
+        queries,
+    )
 }
 
 /// The proof obligations of `func` with its synthesis holes given values:
@@ -1398,9 +1420,14 @@ impl<'ctx> Exec<'_, 'ctx> {
     /// single solver. Obligations that share a kind, a site and a clause
     /// (one postcondition checked at several returns) are reported once,
     /// with the first failure found.
-    fn solve(self) -> Vec<Obligation> {
+    ///
+    /// With `record`, also returns the SMT-LIB2 text of each query, grouped
+    /// per reported obligation (see [`verify_recording`]); otherwise the
+    /// second vector is empty.
+    fn solve(self, record: bool) -> (Vec<Obligation>, Vec<Vec<String>>) {
         let solver = self.ctx.solver();
         let mut results: Vec<Obligation> = Vec::new();
+        let mut queries: Vec<Vec<String>> = Vec::new();
         let mut index: FxHashMap<(ObligationKind, InFile<SyntaxNodePtr>, String), usize> =
             FxHashMap::default();
 
@@ -1415,9 +1442,15 @@ impl<'ctx> Exec<'_, 'ctx> {
                     continue;
                 }
             }
+            let mut query = None;
             let verdict = match pending.goal {
                 Err(reason) => Verdict::Unknown(UnknownCause::Unsupported(reason)),
                 Ok(goal) => {
+                    if record {
+                        // Exactly what is asserted below: the premise, then
+                        // the negated goal. `unsat` is the proof.
+                        query = Some(self.ctx.to_smtlib2(&[pending.premise], goal.not()));
+                    }
                     solver.push();
                     solver.assert(pending.premise);
                     solver.assert(goal.not());
@@ -1464,6 +1497,9 @@ impl<'ctx> Exec<'_, 'ctx> {
             };
             if let Some(&existing) = index.get(&key) {
                 results[existing].verdict = verdict;
+                if record {
+                    queries[existing].extend(query);
+                }
             } else {
                 index.insert(key, results.len());
                 results.push(Obligation {
@@ -1473,9 +1509,12 @@ impl<'ctx> Exec<'_, 'ctx> {
                     verdict,
                     runtime_checked: pending.runtime_checked,
                 });
+                if record {
+                    queries.push(query.into_iter().collect());
+                }
             }
         }
-        results
+        (results, queries)
     }
 }
 

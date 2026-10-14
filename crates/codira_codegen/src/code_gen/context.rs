@@ -37,6 +37,8 @@ pub struct CodeGenContext<'db, 'ink> {
     pub native: std::sync::Arc<crate::NativeInputs>,
     /// Whether generated code is fuel-instrumented (`--fuel`).
     pub fuel: bool,
+    /// Whether every function keeps its symbol (`--certify`).
+    pub keep_function_symbols: bool,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
@@ -53,6 +55,7 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
             eidos: db.eidos_options().optimizer(&db.target()),
             native: db.native_inputs(),
             fuel: db.fuel_instrumentation(),
+            keep_function_symbols: db.keep_function_symbols(),
             db,
         }
     }

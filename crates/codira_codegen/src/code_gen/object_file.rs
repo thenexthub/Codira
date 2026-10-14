@@ -15,6 +15,9 @@ use crate::{code_gen::CodeGenerationError, linker};
 pub struct ObjectFile {
     target: spec::Target,
     obj_file: NamedTempFile,
+    /// Whether the linked shared object keeps a symbol table with every
+    /// function in it; see [`ObjectFile::with_symbol_table`].
+    symbol_table: bool,
 }
 
 impl ObjectFile {
@@ -37,7 +40,17 @@ impl ObjectFile {
         Ok(Self {
             target: target.clone(),
             obj_file,
+            symbol_table: false,
         })
+    }
+
+    /// Makes the linked shared object keep a symbol table naming every
+    /// function, local ones included (`codira build --certify`). ELF and
+    /// Mach-O linkers keep one by default; see
+    /// `linker::Linker::keep_symbol_table`.
+    pub fn with_symbol_table(mut self, enabled: bool) -> Self {
+        self.symbol_table = enabled;
+        self
     }
 
     /// Returns where the object file was written.
@@ -63,6 +76,10 @@ impl ObjectFile {
         linker.add_object(self.obj_file.path())?;
         if let Some(native) = native {
             linker.add_native(native)?;
+        }
+
+        if self.symbol_table {
+            linker.keep_symbol_table();
         }
 
         // Link the object
