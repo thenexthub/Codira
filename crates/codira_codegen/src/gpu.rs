@@ -189,6 +189,7 @@ pub fn compile_gpu_kernels(
         hir_types: HirTypeCache::new(&context, db, machine.get_target_data()),
         optimization_level: db.optimization_level(),
         eidos: db.eidos_options().optimizer(&target),
+        codegen_db: db,
         // C and C++ in the package are host code; a GPU function that calls
         // them is refused below like any other host call.
         native: db.native_inputs(),

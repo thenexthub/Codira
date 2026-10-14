@@ -70,6 +70,8 @@ llvm-sys = "221.0.1"
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
 codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
+# Proves `@rewrite` rules before Eidos may use them (`rewrite.rs`).
+codira_tv = { version = "0.6.0-dev", path = "../codira_tv" }
 # Reads the symbols a package's assembled native objects define (`native`),
 # and the objects `test_targets` builds for every target.
 object = "0.36.5"

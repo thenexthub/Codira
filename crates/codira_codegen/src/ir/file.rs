@@ -114,6 +114,9 @@ pub(crate) fn gen_file_ir<'ink>(
         }
     };
 
+    // What Eidos runs with, read once for every body below.
+    let eidos = code_gen.eidos_run();
+
     // Generate the function bodies
     for (hir_function, llvm_function) in functions.iter() {
         let mut code_gen = BodyIrGenerator::new(
@@ -127,7 +130,7 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
-            code_gen.eidos,
+            eidos.clone(),
         );
 
         code_gen.gen_fn_body();
@@ -145,7 +148,7 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
-            code_gen.eidos,
+            eidos.clone(),
         );
 
         code_gen.gen_fn_wrapper();

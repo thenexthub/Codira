@@ -138,6 +138,7 @@ pub(crate) fn collect_matches(graph: &EGraph) -> Vec<Match> {
             }
         }
     }
+    crate::pattern::collect_rule_matches(graph, &graph.rules, &mut out);
     // Several rules can produce the same conclusion; deduping keeps the
     // "nothing new this round" fixpoint check honest.
     out.sort_by_key(|a| a.0);

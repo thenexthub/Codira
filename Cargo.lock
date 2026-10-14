@@ -734,6 +734,7 @@ dependencies = [
  "codira_syntax",
  "codira_target",
  "codira_test",
+ "codira_tv",
  "inkwell",
  "insta",
  "itertools 0.12.1",

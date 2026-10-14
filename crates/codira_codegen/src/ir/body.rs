@@ -84,9 +84,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     hir_function: codira_hir::Function,
     external_globals: ExternalGlobals<'ink>,
     module_group: &'t ModuleGroup,
-    /// The e-graph optimizer Eidos runs with; `None` skips Eidos entirely
-    /// (`--mode=dev`). See `crate::EidosOptions`.
-    eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// The optimizer and proven rules Eidos runs with; `None` skips Eidos
+    /// entirely (`--mode=dev`). See `crate::EidosOptions`.
+    eidos: Option<crate::EidosRun>,
     /// Evidence in scope, `handle` frames and the arm being generated. See
     /// `effects`.
     effects: effects::EffectState<'ink>,
@@ -108,7 +108,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         external_globals: ExternalGlobals<'ink>,
         hir_types: &'t HirTypeCache<'db, 'ink>,
         module_group: &'t ModuleGroup,
-        eidos: Option<codira_egraph::EGraphOptimizer>,
+        eidos: Option<crate::EidosRun>,
     ) -> Self {
         let (hir_function, ir_function) = function;
 
@@ -161,12 +161,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // below produces correct code either way. This is the one place
         // Eidos enters a build, so `--mode=dev` (no optimizer) skips it
         // here and nowhere else.
-        if let Some(optimizer) = self.eidos.as_ref().filter(|_| !runtime_checks) {
+        if let Some(eidos) = self.eidos.as_ref().filter(|_| !runtime_checks) {
             if let Some(value) = crate::eidos_fold::fold_to_constant(
                 self.db,
                 self.hir_function,
                 self.fn_value,
-                optimizer,
+                eidos,
             ) {
                 self.builder
                     .build_return(Some(&value))

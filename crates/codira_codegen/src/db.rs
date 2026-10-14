@@ -59,6 +59,11 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     #[salsa::invoke(crate::assembly::build_assembly_ir)]
     fn assembly_ir(&self, module_group: ModuleGroupId) -> Arc<AssemblyIr>;
 
+    /// The package's `@rewrite` rules: those `codira_tv` proved, and why the
+    /// others were refused (see `crate::rewrite`).
+    #[salsa::invoke(crate::rewrite::rewrite_rules_query)]
+    fn rewrite_rules(&self) -> Arc<crate::rewrite::RewriteRules>;
+
     /// PTX for the group's `@target(gpu)` functions, `None` when it has none,
     /// or why they cannot run on a GPU (see `crate::gpu`).
     #[salsa::invoke(crate::gpu::gpu_kernels_query)]

@@ -692,6 +692,28 @@ addresses as `usize`:
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
 loads and stores). As with `load_*`/`store_*`, nothing checks the address.
 
+### Proven rewrite rules: `@rewrite`
+
+A library can teach the optimizer an equation over a function's parameters:
+
+```codira
+@rewrite(from: 3 * a + 2 * a, to: 5 * a)
+func five(a: i64) -> i64 { 5 * a }
+```
+
+`from` and `to` (or two positional arguments) are expressions over the
+parameters using literals and operators. The function only names the
+variables and their types. Each rule is proven by the translation validator
+(`codira_tv`) when the package is built, and only a proven rule is used.
+A false rule fails the build with a counterexample (`the two sides differ for
+a = 1`). So does a rule the validator cannot prove: it decides linear integer
+arithmetic, so a rule that multiplies two parameters, uses bitwise operators
+or uses floats is refused for now. A rule proven only in the absence of
+overflow is accepted when it uses nothing but `+`, `-` and `*` (it then holds
+for wrapping `i64` too) and refused otherwise. Proven rules are applied by the
+e-graph during Eidos optimization. Today that only feeds whole-function
+constant folding, so a rule cannot yet change the code that is generated.
+
 ### GPU kernels: `@target(gpu)`
 
 A function marked `@target(gpu)` is also compiled for NVIDIA GPUs. `codira

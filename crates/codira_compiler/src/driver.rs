@@ -865,6 +865,14 @@ impl Driver {
             anyhow::bail!("{reason}");
         }
 
+        // A library rewrite rule that `codira_tv` could not prove fails the
+        // build: an unproven rule is never used, and silently dropping it
+        // would hide that (`codira_codegen::rewrite`).
+        let rewrite_rules = self.db.rewrite_rules();
+        if !rewrite_rules.refused.is_empty() {
+            anyhow::bail!("{}", rewrite_rules.refused.join("\n"));
+        }
+
         // `@target(gpu)` functions are also compiled for the GPU, to PTX
         // written next to the library (`codira_codegen::gpu`). A kernel that
         // cannot run on a GPU fails the build with the reason.

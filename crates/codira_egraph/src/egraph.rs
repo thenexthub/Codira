@@ -162,6 +162,9 @@ pub struct EGraph {
     pub(crate) opaque: Vec<Op>,
     /// What the caller knows about argument types (see [`TypeEnv`]).
     types: TypeEnv,
+    /// Rules supplied as data (`crate::pattern`), applied with the built-in
+    /// ones.
+    pub(crate) rules: std::sync::Arc<[crate::PatternRule]>,
     /// The number of e-nodes across all classes, kept exact on every
     /// change rather than recounted. It is what the node cap is checked
     /// against before *each* rewrite is applied, so it has to be O(1).
@@ -183,6 +186,7 @@ impl EGraph {
     pub fn with_types(types: TypeEnv) -> Self {
         EGraph {
             types,
+            rules: std::sync::Arc::from(Vec::new()),
             parents: Vec::new(),
             ranks: Vec::new(),
             classes: FxHashMap::default(),
@@ -568,7 +572,8 @@ impl EGraph {
             .map(|r| {
                 // Nested regions inherit the caller's type knowledge:
                 // `core.arg` means the same thing at every depth.
-                let (optimized, _) = opt.optimize_body_with(&r.body, &self.types);
+                let (optimized, _) =
+                    opt.optimize_body_with_rules(&r.body, &self.types, &self.rules);
                 Region::with_args(r.num_args, optimized)
             })
             .collect();
