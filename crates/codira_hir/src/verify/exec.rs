@@ -222,6 +222,12 @@ struct Exec<'a, 'ctx> {
     /// Read by [`return_paths`] (semantic search); verification itself
     /// checks postconditions at each return and does not need the list.
     returns: Vec<(BoolExpr<'ctx>, Sym<'ctx>)>,
+    /// Values for synthesis holes (`??` and `choose`), keyed by their
+    /// `Expr::Missing`. Empty outside synthesis: a hole is then unknown.
+    hole_values: FxHashMap<ExprId, Sym<'ctx>>,
+    /// Concrete parameter values, for the synthesiser's "does the candidate
+    /// work on this counterexample" step. `None` means symbolic inputs.
+    fixed_inputs: Option<Vec<Option<Value>>>,
 }
 
 /// Verifies one function. See the module docs of `crate::verify`.
@@ -264,6 +270,8 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
         fresh: 0,
         own_requires_checked: super::is_runtime_checked(db, func),
         returns: Vec::new(),
+        hole_values: FxHashMap::default(),
+        fixed_inputs: None,
     };
     let mut state = exec.entry_state();
     let body_expr = exec.frame.body.body_expr();
@@ -274,6 +282,58 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
         params,
         obligations: exec.solve(),
     }
+}
+
+/// The proof obligations of `func` with its synthesis holes given values:
+/// `holes` receives the parameters (as symbolic values, or the constants of
+/// `fixed_inputs`) and returns a value for every hole. Returns each
+/// obligation as `(premise, goal)`, unsolved, plus the parameters; an
+/// obligation that cannot be encoded is an `Err` naming why.
+#[allow(clippy::type_complexity)]
+pub(crate) fn synthesis_obligations<'ctx>(
+    db: &dyn HirDatabase,
+    func: Function,
+    ctx: &'ctx Context,
+    fixed_inputs: Option<Vec<Option<Value>>>,
+    holes: impl FnOnce(&[(String, Sym<'ctx>)]) -> FxHashMap<ExprId, Sym<'ctx>>,
+) -> Result<
+    (
+        Vec<(String, Sym<'ctx>)>,
+        Vec<(BoolExpr<'ctx>, BoolExpr<'ctx>)>,
+    ),
+    String,
+> {
+    let frame = Frame::new(db, func);
+    let mut exec = Exec {
+        db,
+        ctx,
+        ret_refinement: refinement::return_refinement(db, func),
+        frame,
+        check_own: true,
+        entry_vars: FxHashMap::default(),
+        inputs: Vec::new(),
+        pending: Vec::new(),
+        breaks: Vec::new(),
+        fresh: 0,
+        own_requires_checked: false,
+        returns: Vec::new(),
+        hole_values: FxHashMap::default(),
+        fixed_inputs,
+    };
+    let mut state = exec.entry_state();
+    exec.hole_values = holes(&exec.inputs);
+    let body_expr = exec.frame.body.body_expr();
+    if let Some(value) = exec.eval(&mut state, body_expr) {
+        exec.check_return(&state, value);
+    }
+    let mut obligations = Vec::with_capacity(exec.pending.len());
+    for pending in exec.pending {
+        match pending.goal {
+            Ok(goal) => obligations.push((pending.premise, goal)),
+            Err(reason) => return Err(format!("`{}`: {reason}", pending.clause)),
+        }
+    }
+    Ok((exec.inputs, obligations))
 }
 
 /// What a function can return, as symbolic values over its parameters.
@@ -314,6 +374,8 @@ pub(crate) fn return_paths<'ctx>(
         fresh: 0,
         own_requires_checked: false,
         returns: Vec::new(),
+        hole_values: FxHashMap::default(),
+        fixed_inputs: None,
     };
     let mut state = exec.entry_state();
     if has_body {
@@ -459,7 +521,21 @@ impl<'ctx> Exec<'_, 'ctx> {
         for (idx, (pat, _)) in body.params().iter().enumerate() {
             let name = pat_name(&body, *pat, idx);
             let ty = self.frame.infer[*pat].clone();
-            let value = self.fresh_for_ty(&ty, &name);
+            let fixed = self
+                .fixed_inputs
+                .as_ref()
+                .and_then(|values| values.get(idx).copied().flatten());
+            let value = match (fixed, kind_of(self.db, &ty)) {
+                (Some(Value::Int { bits, width, .. }), Kind::Int(int)) => {
+                    Sym::Int(self.ctx.bv_lit(bits, width), int)
+                }
+                (Some(Value::Bool(b)), Kind::Bool) => Sym::Bool(if b {
+                    self.ctx.bool_true()
+                } else {
+                    self.ctx.bool_false()
+                }),
+                _ => self.fresh_for_ty(&ty, &name),
+            };
             vars.insert(*pat, value);
             self.inputs.push((name, value));
             if let Some(Some(refinement)) = refinements.get(idx) {
@@ -652,7 +728,28 @@ impl<'ctx> Exec<'_, 'ctx> {
     fn eval(&mut self, state: &mut State<'ctx>, expr: ExprId) -> Option<Sym<'ctx>> {
         let body = Arc::clone(&self.frame.body);
         match &body[expr] {
-            Expr::Missing => Some(Sym::Opaque),
+            Expr::Missing => {
+                let Some(&value) = self.hole_values.get(&expr) else {
+                    return Some(Sym::Opaque);
+                };
+                // A `choose`'s value must satisfy its predicate wherever the
+                // expression is reached.
+                if let Some(choose) = self.frame.body.contracts().chooses.get(&expr).copied() {
+                    let mut vars = state.vars.clone();
+                    vars.insert(choose.binder, value);
+                    let goal = self.pure(&self.frame, &vars, choose.predicate);
+                    let text = self.frame.text(self.db, choose.predicate);
+                    self.oblige(
+                        state,
+                        ObligationKind::ChoosePredicate,
+                        self.frame.site(expr),
+                        text,
+                        goal,
+                        vec![],
+                    );
+                }
+                Some(value)
+            }
             Expr::Literal(lit) => {
                 let frame = &self.frame;
                 Some(self.literal(frame, expr, lit).unwrap_or(Sym::Opaque))

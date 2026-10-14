@@ -65,6 +65,7 @@ pub(crate) mod flow;
 mod ghost;
 pub mod query;
 pub(crate) mod refinement;
+pub mod synth;
 pub mod testgen;
 #[cfg(test)]
 mod tests;
@@ -168,6 +169,8 @@ pub enum ObligationKind {
     /// One of this function's own clauses, which the verifier cannot
     /// encode; reported so it is never silently ignored.
     UncheckableClause,
+    /// The predicate of a `choose x where pred` (synthesis only).
+    ChoosePredicate,
 }
 
 /// What Z3 said.
@@ -340,6 +343,9 @@ impl Obligation {
             ObligationKind::UncheckableClause => {
                 format!("contract clause `{}` cannot be checked", self.clause)
             }
+            ObligationKind::ChoosePredicate => {
+                format!("the chosen value might not satisfy `{}`", self.clause)
+            }
         };
         match &self.verdict {
             Verdict::Proven | Verdict::Refuted(_) => what,
@@ -388,6 +394,12 @@ pub(crate) fn contract_diagnostics(
 ) {
     ghost::ghost_diagnostics(db, func, sink);
     flow::flow_diagnostics(db, func, sink);
+
+    // A function with an unfilled synthesis hole has no meaning to verify
+    // yet: report the holes and nothing else.
+    if synth::report_holes(db, func, sink) {
+        return;
+    }
 
     let report = db.verify_function(func);
     let name = func.name(db).to_string();

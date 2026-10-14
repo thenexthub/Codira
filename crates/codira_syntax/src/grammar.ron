@@ -176,6 +176,10 @@ Grammar(
         // stays an ordinary identifier everywhere else (`if scope { .. }`
         // still tests a variable named `scope`).
         "scope",
+        // Synthesis: `choose x where pred` (see `codira_hir`'s
+        // `verify::synth`). `??`, the other synthesis hole, is two `?`
+        // tokens and needs no keyword.
+        "choose",
     ],
     literals: [
         "INT_NUMBER",
@@ -287,6 +291,8 @@ Grammar(
         "HANDLER_ARM_LIST",
         "HANDLER_ARM",
         "TRY_EXPR",
+        "HOLE_EXPR",
+        "CHOOSE_EXPR",
 
         "TRANSFER_EXPR",
         "CHANNEL_RECV_EXPR",
@@ -597,6 +603,15 @@ Grammar(
             options: [ "Path", "ParamList", ["body", "Expr"] ]
         ),
         "TryExpr": (options: ["Expr"]),
+        // `??` -- a hole `codira synth` fills with an expression proven to
+        // meet the function's contract.
+        "HoleExpr": (),
+        // `choose x where pred` -- a value `codira synth` replaces with an
+        // expression proven to satisfy `pred`.
+        "ChooseExpr": (
+            traits: ["NameOwner"],
+            options: [["predicate", "Expr"]],
+        ),
 
         "Expr": (
             enum: [
@@ -630,6 +645,8 @@ Grammar(
                 "TransferExpr",
                 "ChannelRecvExpr",
                 "ChannelSendExpr",
+                "HoleExpr",
+                "ChooseExpr",
             ]
         ),
 

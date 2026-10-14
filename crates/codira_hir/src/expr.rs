@@ -108,6 +108,19 @@ pub struct BodyContracts {
     pub ghost_exprs: FxHashSet<ExprId>,
     /// Every pattern bound by a `ghost let`.
     pub ghost_pats: FxHashSet<PatId>,
+    /// `??` synthesis holes, in source order. Each is an `Expr::Missing` in
+    /// the executable tree; `codira synth` replaces the source text.
+    pub holes: Vec<ExprId>,
+    /// `choose x where pred` expressions, keyed by their `Expr::Missing`.
+    pub chooses: FxHashMap<ExprId, Choose>,
+}
+
+/// One `choose binder where predicate` expression.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Choose {
+    /// The chosen value, as a binding the predicate can name.
+    pub binder: PatId,
+    pub predicate: ExprId,
 }
 
 /// The `invariant` and `decreases` clauses of one loop.
@@ -124,6 +137,8 @@ impl BodyContracts {
             && self.ensures.is_empty()
             && self.loops.is_empty()
             && self.ghost_lets.is_empty()
+            && self.holes.is_empty()
+            && self.chooses.is_empty()
     }
 }
 
@@ -1288,6 +1303,24 @@ impl<'a> ExprCollector<'a> {
             // parsed but lowers to a `Missing` placeholder: the HIR has no
             // move/borrow model yet.
             | ast::ExprKind::TransferExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
+            // Synthesis holes have no code until `codira synth` writes some;
+            // they lower to `Missing` and are listed in the contract table,
+            // where the verifier and the synthesiser find them.
+            ast::ExprKind::HoleExpr(_) => {
+                let id = self.alloc_expr(Expr::Missing, syntax_ptr);
+                self.contracts.holes.push(id);
+                id
+            }
+            ast::ExprKind::ChooseExpr(e) => {
+                let id = self.alloc_expr(Expr::Missing, syntax_ptr);
+                let name = e.name().map_or_else(Name::missing, |n| n.as_name());
+                let binder = self.pats.alloc(Pat::Bind { name });
+                let predicate = self.collect_ghost_expr(e.predicate());
+                self.contracts
+                    .chooses
+                    .insert(id, Choose { binder, predicate });
+                id
+            }
         }
     }
 

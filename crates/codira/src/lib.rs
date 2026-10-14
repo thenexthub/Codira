@@ -14,7 +14,7 @@ use clap::{Parser, Subcommand};
 pub use ops::exe;
 use ops::{
     bindgen, build, check, daemon, import_c, init, language_server, new, quantum, query, run,
-    start, test,
+    start, synth, test,
 };
 
 #[derive(Parser)]
@@ -69,6 +69,10 @@ enum Command {
     /// Read a C header with Clang and write Codira `extern "C"` declarations
     /// for its functions
     ImportC(import_c::Args),
+
+    /// Fill `??` holes and `choose` expressions with expressions proven to
+    /// meet the contract, by search or by asking an external `--oracle`
+    Synth(synth::Args),
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq)]
@@ -106,6 +110,7 @@ where
         Command::Quantum(args) => quantum::quantum(args),
         Command::Test(args) => test::test(args),
         Command::Query(args) => query::query(args),
+        Command::Synth(args) => synth::synth(args),
         Command::ImportC(args) => import_c::import_c(args),
     }
 }

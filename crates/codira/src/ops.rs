@@ -18,4 +18,5 @@ pub mod quantum;
 pub mod query;
 pub mod run;
 pub mod start;
+pub mod synth;
 pub mod test;

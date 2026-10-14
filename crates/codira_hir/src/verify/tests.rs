@@ -888,3 +888,124 @@ fn ct_select_is_an_ite_to_the_verifier() {
     );
     assert!(all_proven(&r), "{r:#?}");
 }
+
+// ---- synthesis (`verify::synth`)
+// ---------------------------------------------
+
+fn synthesized(source: &str, name: &str) -> Result<Vec<String>, String> {
+    let (db, _) = MockDatabase::with_single_file(source);
+    let func = Package::all(&db)
+        .iter()
+        .flat_map(|pkg| pkg.modules(&db))
+        .flat_map(|module| module.declarations(&db))
+        .find_map(|def| match def {
+            ModuleDef::Function(f) if f.name(&db).to_string() == name => Some(f),
+            _ => None,
+        })
+        .unwrap();
+    super::synth::synthesize(&db, func).map(|fills| fills.into_iter().map(|f| f.text).collect())
+}
+
+#[test]
+fn holes_are_reported_until_filled() {
+    let diags = diagnostics(
+        r#"
+    func f(x: i64) -> i64
+        ensures result > x
+    {
+        ??
+    }
+    func g(n: i64) -> i64 {
+        choose y where y > n
+    }
+    "#,
+    );
+    assert!(diags.contains("unfilled synthesis hole `??`"), "{diags}");
+    assert!(
+        diags.contains("unfilled synthesis hole `choose`"),
+        "{diags}"
+    );
+    assert!(!diags.contains("postcondition"), "{diags}");
+}
+
+#[test]
+fn a_linear_hole_is_synthesized_against_the_postcondition() {
+    let fills = synthesized(
+        r#"
+    func inc(x: i64) -> i64
+        requires x < 1000
+        ensures result == x + 1
+    {
+        ??
+    }
+    "#,
+        "inc",
+    )
+    .unwrap();
+    assert_eq!(fills, ["(x + 1)"]);
+}
+
+#[test]
+fn a_guarded_hole_synthesizes_max() {
+    let fills = synthesized(
+        r#"
+    func max(a: i64, b: i64) -> i64
+        ensures result >= a && result >= b && (result == a || result == b)
+    {
+        ??
+    }
+    "#,
+        "max",
+    )
+    .unwrap();
+    assert_eq!(fills.len(), 1);
+    assert!(fills[0].starts_with("(if a < b {"), "{fills:?}");
+}
+
+#[test]
+fn a_boolean_hole_synthesizes_a_comparison() {
+    let fills = synthesized(
+        r#"
+    func is_negative(x: i64) -> bool
+        ensures result == (x < 0)
+    {
+        ??
+    }
+    "#,
+        "is_negative",
+    )
+    .unwrap();
+    assert_eq!(fills, ["(x < 0)"]);
+}
+
+#[test]
+fn choose_finds_a_value_satisfying_its_predicate() {
+    let fills = synthesized(
+        r#"
+    func complement(n: i64) -> i64
+        requires n >= 0 && n <= 10
+    {
+        choose y where y + n == 10
+    }
+    "#,
+        "complement",
+    )
+    .unwrap();
+    assert_eq!(fills, ["(-n + 10)"]);
+}
+
+#[test]
+fn an_impossible_contract_is_not_synthesized() {
+    let err = synthesized(
+        r#"
+    func impossible(x: i64) -> i64
+        ensures result > x && result < x
+    {
+        ??
+    }
+    "#,
+        "impossible",
+    )
+    .unwrap_err();
+    assert!(err.contains("no candidate"), "{err}");
+}

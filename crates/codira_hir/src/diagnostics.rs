@@ -835,6 +835,34 @@ impl Diagnostic for SecretFlow {
     }
 }
 
+/// A synthesis hole (`??` or `choose`) that has not been filled: the
+/// program has no code there until `codira synth` writes some.
+#[derive(Debug)]
+pub struct UnfilledHole {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    /// `` `??` `` or `` `choose` ``.
+    pub what: String,
+}
+
+impl Diagnostic for UnfilledHole {
+    fn message(&self) -> String {
+        format!(
+            "unfilled synthesis hole {}: run `codira synth` to fill it with an expression proven \
+             to meet the contract",
+            self.what
+        )
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A `@test` function the test runner could not call: see
 /// `expr::validator::test_fn` for the required shape.
 #[derive(Debug)]

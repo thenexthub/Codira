@@ -8,12 +8,12 @@ use super::{
     error_block, expressions, generics, name_ref, name_ref_or_index, params, paths, patterns,
     types, BlockLike, CompletedMarker, Marker, Parser, SyntaxKind, TokenSet, ARG_LIST, ARRAY_EXPR,
     BIN_EXPR, BLOCK_EXPR, BREAK_EXPR, CALL_EXPR, CAST_EXPR, CHANNEL_RECV_EXPR, CHANNEL_SEND_EXPR,
-    CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, DECREASES_CLAUSE, EOF, ERROR, EXPR_STMT, FIELD_EXPR,
-    FLOAT_NUMBER, HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR,
-    INT_NUMBER, INVARIANT_CLAUSE, LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST,
-    MATCH_EXPR, PARAM, PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR,
-    RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SCOPE_EXPR, SPAWN_EXPR,
-    STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
+    CHOOSE_EXPR, CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, DECREASES_CLAUSE, EOF, ERROR, EXPR_STMT,
+    FIELD_EXPR, FLOAT_NUMBER, HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, HOLE_EXPR, IDENT,
+    IF_EXPR, INDEX, INDEX_EXPR, INT_NUMBER, INVARIANT_CLAUSE, LET_STMT, LITERAL, LOOP_EXPR,
+    MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, PARAM, PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE,
+    PERFORM_EXPR, PREFIX_EXPR, RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE,
+    SCOPE_EXPR, SPAWN_EXPR, STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
 };
 use crate::{parsing::grammar::paths::PATH_FIRST, SyntaxKind::METHOD_CALL_EXPR};
 
@@ -44,6 +44,8 @@ const ATOM_EXPR_FIRST: TokenSet = LITERAL_FIRST.union(PATH_FIRST).union(TokenSet
     T![handle],
     T![spawn],
     T![func],
+    // `??`, a synthesis hole.
+    T![?],
 ]));
 
 const LHS_FIRST: TokenSet = ATOM_EXPR_FIRST.union(TokenSet::new(&[T![!], T![-], T![~], T![<-]]));
@@ -501,6 +503,27 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
     // tests a variable called `scope`).
     if !r.forbid_structs && p.at_contextual_kw("scope") && p.nth_at(1, T!['{']) {
         return Some((scope_expr(p), BlockLike::Block));
+    }
+
+    // `??` -- a hole for `codira synth` to fill. Two `?` tokens; a single
+    // `?` never starts an expression.
+    if p.at(T![?]) && p.nth_at(1, T![?]) {
+        let m = p.start();
+        p.bump(T![?]);
+        p.bump(T![?]);
+        return Some((m.complete(p, HOLE_EXPR), BlockLike::NotBlock));
+    }
+
+    // `choose x where pred` -- a value for `codira synth` to find. `choose`
+    // is contextual: only `choose IDENT where` is promoted, so a function or
+    // binding called `choose` is unaffected.
+    if p.at_contextual_kw("choose") && p.nth(1) == IDENT && p.nth_at(2, T![where]) {
+        let m = p.start();
+        p.bump_remap(T![choose]);
+        super::name(p);
+        p.bump(T![where]);
+        expr_bp(p, r, 1);
+        return Some((m.complete(p, CHOOSE_EXPR), BlockLike::NotBlock));
     }
 
     if paths::is_path_start(p) {

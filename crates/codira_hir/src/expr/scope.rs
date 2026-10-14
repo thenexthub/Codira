@@ -213,6 +213,13 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
         }
         e => e.walk_child_exprs(|e| compute_expr_scopes(e, body, scopes, scope)),
     };
+    // `choose x where pred`: the predicate sees everything the expression
+    // does, plus `x`.
+    if let Some(choose) = body.contracts().chooses.get(&expr) {
+        let inner = scopes.new_scope(scope);
+        scopes.add_bindings(body, inner, choose.binder);
+        compute_expr_scopes(choose.predicate, body, scopes, inner);
+    }
     // A loop's `invariant`/`decreases` clauses are evaluated at the loop
     // head, so they see exactly what the loop expression itself sees.
     if let Some(contract) = body.contracts().loops.get(&expr) {

@@ -415,6 +415,35 @@ impl ChildDef {
     }
 }
 
+// ChooseExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ChooseExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ChooseExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, CHOOSE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ChooseExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ast::NameOwner for ChooseExpr {}
+impl ChooseExpr {
+    pub fn predicate(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // ClosureExpr
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -833,6 +862,8 @@ impl AstNode for Expr {
                 | TRANSFER_EXPR
                 | CHANNEL_RECV_EXPR
                 | CHANNEL_SEND_EXPR
+                | HOLE_EXPR
+                | CHOOSE_EXPR
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -878,6 +909,8 @@ pub enum ExprKind {
     TransferExpr(TransferExpr),
     ChannelRecvExpr(ChannelRecvExpr),
     ChannelSendExpr(ChannelSendExpr),
+    HoleExpr(HoleExpr),
+    ChooseExpr(ChooseExpr),
 }
 impl From<Literal> for Expr {
     fn from(n: Literal) -> Expr {
@@ -1029,6 +1062,16 @@ impl From<ChannelSendExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<HoleExpr> for Expr {
+    fn from(n: HoleExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<ChooseExpr> for Expr {
+    fn from(n: ChooseExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 
 impl Expr {
     pub fn kind(&self) -> ExprKind {
@@ -1073,6 +1116,8 @@ impl Expr {
             CHANNEL_SEND_EXPR => {
                 ExprKind::ChannelSendExpr(ChannelSendExpr::cast(self.syntax.clone()).unwrap())
             }
+            HOLE_EXPR => ExprKind::HoleExpr(HoleExpr::cast(self.syntax.clone()).unwrap()),
+            CHOOSE_EXPR => ExprKind::ChooseExpr(ChooseExpr::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }
     }
@@ -1620,6 +1665,30 @@ impl HandlerArmList {
         super::children(self)
     }
 }
+
+// HoleExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HoleExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for HoleExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, HOLE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(HoleExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl HoleExpr {}
 
 // IfExpr
 

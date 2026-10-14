@@ -679,6 +679,7 @@ dependencies = [
  "codira_cranelift",
  "codira_healing",
  "codira_hir",
+ "codira_hir_input",
  "codira_language_server",
  "codira_project",
  "codira_quantum",

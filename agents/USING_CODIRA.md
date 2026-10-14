@@ -366,6 +366,39 @@ func sum_to(n: i64) -> i64
   (a violation traps), so a call site the solver cannot *decide* is accepted.
   A call site it *refutes* is still an error.
 
+### Synthesis: `??` and `choose`
+
+```codira
+func inc(x: i64) -> i64
+    requires x < 1000
+    ensures result == x + 1
+{
+    ??                          // codira synth writes `(x + 1)` here
+}
+
+func complement(n: i64) -> i64
+    requires n >= 0 && n <= 10
+{
+    choose y where y + n == 10  // codira synth writes `(-n + 10)`
+}
+```
+
+```bash
+codira synth                                  # search, prove, rewrite the source
+codira synth --function inc --dry-run         # print instead of writing
+codira synth --oracle "my-llm-cli --model x"  # ask an external program
+```
+
+A hole is a compile error until it is filled. `codira synth` searches small
+expression shapes (constants, linear combinations of parameters, `if a < b`
+with linear arms, comparisons for `bool` holes) by counterexample-guided
+synthesis, and writes a candidate only after Z3 proves every contract
+obligation of the function with it. With `--oracle` the command receives the
+function and every rejected answer on stdin and prints one expression; each
+answer is spliced in and re-verified, and only a proven one is kept
+(`--attempts`, default 3). The compiler opens no network connection itself.
+Holes are integer or `bool`; templates use only the function's parameters.
+
 ### Secrets and constant-time code
 
 ```codira

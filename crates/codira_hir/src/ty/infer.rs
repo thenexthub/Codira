@@ -450,6 +450,19 @@ impl InferenceResultBuilder<'_> {
         check_params: &CheckParams,
     ) -> Ty {
         let ty = match &self.body[tgt_expr] {
+            // A synthesis hole takes the type its context expects; a
+            // `choose` also gives that type to its binder and checks its
+            // predicate.
+            Expr::Missing if self.body.contracts().holes.contains(&tgt_expr) => expected.ty.clone(),
+            Expr::Missing if self.body.contracts().chooses.contains_key(&tgt_expr) => {
+                let choose = self.body.contracts().chooses[&tgt_expr];
+                self.set_pat_type(choose.binder, expected.ty.clone());
+                self.infer_expr(
+                    choose.predicate,
+                    &Expectation::has_type(TyKind::Bool.intern()),
+                );
+                expected.ty.clone()
+            }
             Expr::Missing => error_type(),
             Expr::Path(p) => {
                 // FIXME this could be more efficient...

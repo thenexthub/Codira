@@ -135,6 +135,7 @@ pub enum SyntaxKind {
     SECRET_KW,
     OBLIVIOUS_KW,
     SCOPE_KW,
+    CHOOSE_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -227,6 +228,8 @@ pub enum SyntaxKind {
     HANDLER_ARM_LIST,
     HANDLER_ARM,
     TRY_EXPR,
+    HOLE_EXPR,
+    CHOOSE_EXPR,
     TRANSFER_EXPR,
     CHANNEL_RECV_EXPR,
     CHANNEL_SEND_EXPR,
@@ -596,6 +599,9 @@ macro_rules! T {
     (scope) => {
         $crate::SyntaxKind::SCOPE_KW
     };
+    (choose) => {
+        $crate::SyntaxKind::CHOOSE_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -676,6 +682,7 @@ impl SyntaxKind {
         | SECRET_KW
         | OBLIVIOUS_KW
         | SCOPE_KW
+        | CHOOSE_KW
         )
     }
 
@@ -858,6 +865,7 @@ impl SyntaxKind {
             SECRET_KW => &SyntaxInfo { name: "SECRET_KW" },
             OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
             SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
+            CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -950,6 +958,8 @@ impl SyntaxKind {
             HANDLER_ARM_LIST => &SyntaxInfo { name: "HANDLER_ARM_LIST" },
             HANDLER_ARM => &SyntaxInfo { name: "HANDLER_ARM" },
             TRY_EXPR => &SyntaxInfo { name: "TRY_EXPR" },
+            HOLE_EXPR => &SyntaxInfo { name: "HOLE_EXPR" },
+            CHOOSE_EXPR => &SyntaxInfo { name: "CHOOSE_EXPR" },
             TRANSFER_EXPR => &SyntaxInfo { name: "TRANSFER_EXPR" },
             CHANNEL_RECV_EXPR => &SyntaxInfo { name: "CHANNEL_RECV_EXPR" },
             CHANNEL_SEND_EXPR => &SyntaxInfo { name: "CHANNEL_SEND_EXPR" },
