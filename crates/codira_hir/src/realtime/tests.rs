@@ -480,7 +480,7 @@ fn realtime_needs_proven_measures_and_no_recursion() {
 }
 
 #[test]
-fn realtime_distrusts_measures_where_the_verifier_does_not_model_continue() {
+fn realtime_uses_proofs_through_for_and_continue() {
     let diags = diagnostics(
         r#"
     @realtime
@@ -497,15 +497,25 @@ fn realtime_distrusts_measures_where_the_verifier_does_not_model_continue() {
         }
         i
     }
+    @realtime
+    func ranged(n: i64) -> i64
+        requires n > 0
+    {
+        var s = 0
+        for i in 0..n { s += 100 / (i + 1) }
+        s
+    }
     "#,
     );
+    // `continue` at `i == 3` skips the decrement, so the measure is refuted;
+    // the division by `i + 1` inside the `for` is proven from the range.
     assert!(
         diags.contains(
-            "`skips` is `@realtime` but may not terminate here: loop whose `decreases` measure \
-             cannot be trusted"
+            "`skips` is `@realtime` but may not terminate here: loop whose `decreases` measure is not proven"
         ),
         "{diags}"
     );
+    assert!(!diags.contains("`ranged`"), "{diags}");
 }
 
 #[test]

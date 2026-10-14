@@ -378,6 +378,13 @@ func sum_to(n: i64) -> i64
 - Integers are checked with the semantics the compiled code has: fixed
   width, wrapping. `ensures result > x` for `x + 1` fails at `x = i64::MAX`.
 - Inside `ensures`, a parameter means its value on entry.
+- Loops are checked from an arbitrary iteration: every local a loop assigns
+  is unknown at its head. A `while`/`loop` recovers facts through its
+  `invariant`s, which must hold at the end of the body and at every
+  `continue`; its `decreases` measure must drop on both paths too. A `for`
+  loop takes no clauses: inside it the variable is known to lie in its range
+  (an array element is unknown), and after it every local it assigns is
+  unknown.
 - A function with any contract must also prove its divisions safe (no zero
   divisor, no signed `MIN / -1`).
 - `ghost let` bindings and all clauses are erased before code generation;
@@ -550,9 +557,7 @@ What counts, exactly (today's code generator and runtime):
   c_mix(a: i64) -> i64;`, also inside `extern "C" { .. }` blocks.
   `extern "codira-intrinsic"` operations have no effects.
 
-Limits: stack overflow is not ruled out (there is no stack bound). The
-verifier does not model `for` loops or `continue` yet, so in a function that
-has either, no division and no loop measure counts as proven. `@realtime`
+Limits: stack overflow is not ruled out (there is no stack bound). `@realtime`
 proves termination, not a time bound: `@deadline(..)` is rejected, because a
 worst-case execution time needs a cycle model of the target CPU that the
 compiler does not have. `codira build --fuel` lets any call stop when its fuel

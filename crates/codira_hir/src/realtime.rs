@@ -86,10 +86,6 @@
 //! * Stack overflow. Every call and every `stack_alloc` uses stack, and without
 //!   a stack bound the analysis cannot rule out running out of it, so
 //!   `@nopanic` and `@realtime` do not.
-//! * The verifier does not model `for` loops or `continue` yet (it treats a
-//!   `for` body as running once, and `continue` as falling through), so in a
-//!   function containing either, no division and no loop measure is counted as
-//!   proven.
 //! * A proven division relies on the function's `requires`, which every Codira
 //!   caller is proven to satisfy; a host calling through `Runtime::invoke` is
 //!   trusted to.
@@ -391,16 +387,9 @@ pub(crate) fn effect_sources_query(db: &dyn HirDatabase, func: Function) -> Arc<
     if matches!(frame.body[root], Expr::Missing) {
         return Arc::new(out);
     }
-    // See the module docs: the verifier mis-models `for` and `continue`,
-    // so its proofs are not used in a function that has either.
-    let verifier_trusted = !frame
-        .body
-        .exprs()
-        .any(|(_, e)| matches!(e, Expr::For { .. } | Expr::Continue));
     let mut collector = Collector {
         db,
         frame,
-        verifier_trusted,
         report: None,
         out,
     };
@@ -439,7 +428,6 @@ fn name_site(db: &dyn HirDatabase, func: Function) -> InFile<SyntaxNodePtr> {
 struct Collector<'a> {
     db: &'a dyn HirDatabase,
     frame: Frame,
-    verifier_trusted: bool,
     report: Option<Arc<VerificationReport>>,
     out: EffectSources,
 }
@@ -652,7 +640,7 @@ impl Collector<'_> {
     }
 
     fn report(&mut self) -> Option<Arc<VerificationReport>> {
-        if !self.verifier_trusted || !crate::verify::is_participating(self.db, self.frame.func) {
+        if !crate::verify::is_participating(self.db, self.frame.func) {
             return None;
         }
         Some(Arc::clone(self.report.get_or_insert_with(|| {
@@ -731,15 +719,6 @@ impl Collector<'_> {
             self.source(expr, unbounded, "loop without a `decreases` measure");
             return;
         };
-        if !self.verifier_trusted {
-            self.source(
-                expr,
-                unbounded,
-                "loop whose `decreases` measure cannot be trusted: the verifier does not model \
-                 `for` loops or `continue` yet, and this function has one",
-            );
-            return;
-        }
         if !self.proven(
             measure,
             &[
