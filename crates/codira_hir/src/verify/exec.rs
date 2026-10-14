@@ -186,6 +186,17 @@ struct State<'ctx> {
     vars: FxHashMap<PatId, Sym<'ctx>>,
 }
 
+/// The ways out of one enclosing loop, collected while its body is
+/// evaluated.
+#[derive(Default)]
+struct LoopFrame<'ctx> {
+    /// The states (and values) `break` leaves the loop with.
+    breaks: Vec<(State<'ctx>, Sym<'ctx>)>,
+    /// The states `continue` starts the next iteration from: back-edges,
+    /// exactly like reaching the end of the body.
+    continues: Vec<State<'ctx>>,
+}
+
 /// An obligation before it has been handed to Z3.
 struct Pending<'ctx> {
     kind: ObligationKind,
@@ -210,9 +221,9 @@ struct Exec<'a, 'ctx> {
     inputs: Vec<(String, Sym<'ctx>)>,
     ret_refinement: Option<Refinement>,
     pending: Vec<Pending<'ctx>>,
-    /// One entry per enclosing loop: the states (and values) `break`
-    /// leaves it with.
-    breaks: Vec<Vec<(State<'ctx>, Sym<'ctx>)>>,
+    /// One entry per enclosing loop (`while`, `loop` and `for`), innermost
+    /// last: where its `break`s and `continue`s go.
+    loops: Vec<LoopFrame<'ctx>>,
     fresh: u32,
     /// Whether this function's own `requires` clauses are enforced at run
     /// time (`@runtime_checked`), so one the verifier cannot encode is not
@@ -266,7 +277,7 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
         entry_vars: FxHashMap::default(),
         inputs: Vec::new(),
         pending: Vec::new(),
-        breaks: Vec::new(),
+        loops: Vec::new(),
         fresh: 0,
         own_requires_checked: super::is_runtime_checked(db, func),
         returns: Vec::new(),
@@ -313,7 +324,7 @@ pub(crate) fn synthesis_obligations<'ctx>(
         entry_vars: FxHashMap::default(),
         inputs: Vec::new(),
         pending: Vec::new(),
-        breaks: Vec::new(),
+        loops: Vec::new(),
         fresh: 0,
         own_requires_checked: false,
         returns: Vec::new(),
@@ -370,7 +381,7 @@ pub(crate) fn return_paths<'ctx>(
         entry_vars: FxHashMap::default(),
         inputs: Vec::new(),
         pending: Vec::new(),
-        breaks: Vec::new(),
+        loops: Vec::new(),
         fresh: 0,
         own_requires_checked: false,
         returns: Vec::new(),
@@ -784,11 +795,25 @@ impl<'ctx> Exec<'_, 'ctx> {
                     Some(v) => self.eval(state, *v)?,
                     None => Sym::Unit,
                 };
-                if let Some(frame) = self.breaks.last_mut() {
-                    frame.push((state.clone(), value));
+                if let Some(frame) = self.loops.last_mut() {
+                    frame.breaks.push((state.clone(), value));
                 }
                 None
             }
+            // The next iteration starts from here: `eval_loop`/`eval_for`
+            // check the back-edge obligations on this state, as at the end
+            // of the body.
+            Expr::Continue => {
+                if let Some(frame) = self.loops.last_mut() {
+                    frame.continues.push(state.clone());
+                }
+                None
+            }
+            Expr::For {
+                pat,
+                iterable,
+                body: loop_body,
+            } => self.eval_for(state, expr, *pat, *iterable, *loop_body),
             Expr::Loop { body: loop_body } => self.eval_loop(state, expr, None, *loop_body),
             Expr::While {
                 condition,
@@ -1121,7 +1146,8 @@ impl<'ctx> Exec<'_, 'ctx> {
     ///    arbitrary iteration";
     /// 3. from there, with the condition true, one pass of the body must
     ///    re-establish the invariants and strictly decrease the measure, which
-    ///    must not be negative at the head;
+    ///    must not be negative at the head -- at the end of the body and at
+    ///    every `continue`, both of which start the next iteration;
     /// 4. after the loop: the head state with the condition false, merged with
     ///    every `break`.
     fn eval_loop(
@@ -1205,11 +1231,15 @@ impl<'ctx> Exec<'_, 'ctx> {
             );
         }
 
-        self.breaks.push(Vec::new());
+        self.loops.push(LoopFrame::default());
         let end = self.eval(&mut body_state, loop_body);
-        let breaks = self.breaks.pop().unwrap_or_default();
+        let LoopFrame { breaks, continues } = self.loops.pop().unwrap_or_default();
 
-        if end.is_some() {
+        // Every way into the next iteration: the end of the body and each
+        // `continue`. Each must re-establish the invariants and decrease the
+        // measure.
+        let back_edges = end.map(|_| body_state).into_iter().chain(continues);
+        for body_state in back_edges {
             if self.check_own {
                 for &inv in &contract.invariants {
                     let goal = self.pure(&self.frame, &body_state.vars, inv);
@@ -1224,7 +1254,8 @@ impl<'ctx> Exec<'_, 'ctx> {
                     );
                 }
             }
-            if let Some((measure, Ok(Sym::Int(before, ty)))) = measure_at_head {
+            if let Some((measure, Ok(Sym::Int(before, ty)))) = &measure_at_head {
+                let (measure, before, ty) = (*measure, *before, *ty);
                 let after = self.pure(&self.frame, &body_state.vars, measure);
                 let goal = match after {
                     Ok(Sym::Int(after, _)) if ty.signedness.is_signed() => {
@@ -1266,6 +1297,86 @@ impl<'ctx> Exec<'_, 'ctx> {
         } else {
             value
         })
+    }
+
+    /// A `for` loop. The grammar gives it no `invariant` or `decreases`, so
+    /// it is cut like a `while` without them:
+    ///
+    /// 1. the iterable is evaluated once, before the first iteration (a range's
+    ///    bounds, or the array);
+    /// 2. every local the body assigns is replaced by a fresh value: this state
+    ///    stands for the head of an arbitrary iteration, and also for the state
+    ///    after the last one (including after none);
+    /// 3. the loop variable is a fresh value -- for a range, one assumed to lie
+    ///    in it (`start <= i < end`, or `<= end` for `..=`), which is all a
+    ///    counted loop guarantees; for an array, an unknown element -- and one
+    ///    pass of the body is evaluated from there, for the obligations inside
+    ///    it;
+    /// 4. after the loop: the havocked head state. It already covers every
+    ///    `break` (each leaves with values the fresh ones can take), and the
+    ///    body's `break`s and `continue`s bind to this loop, not an outer one.
+    ///
+    /// A `for` loop always terminates (its iteration count is fixed before
+    /// the first iteration), so it has no measure to check.
+    fn eval_for(
+        &mut self,
+        state: &mut State<'ctx>,
+        for_expr: ExprId,
+        pat: PatId,
+        iterable: ExprId,
+        loop_body: ExprId,
+    ) -> Option<Sym<'ctx>> {
+        let body = Arc::clone(&self.frame.body);
+        let range = if let Expr::Range {
+            start,
+            end,
+            inclusive,
+        } = &body[iterable]
+        {
+            let start = self.eval(state, *start)?;
+            let end = self.eval(state, *end)?;
+            Some((start, end, *inclusive))
+        } else {
+            self.eval(state, iterable)?;
+            None
+        };
+
+        let mut assigned: Vec<PatId> = self.assigned_locals(for_expr).into_iter().collect();
+        assigned.sort_by_key(|pat| u32::from(pat.into_raw()));
+        for local in assigned {
+            if let Some(old) = state.vars.get(&local).copied() {
+                let name = pat_name(&self.frame.body, local, 0);
+                let fresh = self.havoc(old, &name);
+                state.vars.insert(local, fresh);
+            }
+        }
+
+        let mut body_state = state.clone();
+        let element = self.fresh_for_ty(&self.frame.infer[pat].clone(), "for");
+        if let (Some((Sym::Int(start, ty), Sym::Int(end, _), inclusive)), Sym::Int(i, _)) =
+            (range, element)
+        {
+            if start.width() == i.width() && end.width() == i.width() {
+                let signed = ty.signedness.is_signed();
+                let from = if signed { start.sle(i) } else { start.ule(i) };
+                let to = match (inclusive, signed) {
+                    (false, true) => i.slt(end),
+                    (false, false) => i.ult(end),
+                    (true, true) => i.sle(end),
+                    (true, false) => i.ule(end),
+                };
+                body_state.pc = body_state.pc.and(from).and(to);
+            }
+        }
+        self.bind(&mut body_state, pat, element);
+
+        // The end of the body and every `continue` lead to the next
+        // iteration, whose head the havocked state already stands for:
+        // nothing is checked there.
+        self.loops.push(LoopFrame::default());
+        self.eval(&mut body_state, loop_body);
+        self.loops.pop();
+        Some(Sym::Unit)
     }
 
     /// A call: the callee's `requires` and parameter refinements are

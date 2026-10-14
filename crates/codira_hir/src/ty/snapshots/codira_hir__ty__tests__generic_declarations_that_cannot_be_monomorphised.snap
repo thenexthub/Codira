@@ -1,0 +1,36 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    struct Box[T] { v: T }\n\n    effect Ask {\n        func ask(hint: i32) -> i32\n    }\n\n    @export(\"C\")\n    public func exported[T](x: T) -> T { x }\n\n    func asks[T](x: T) uses Ask -> T { x }\n\n    func grow[T](x: T, n: i64) -> i64 {\n        if n == 0 { 0 } else { grow(Box { v: x }, n - 1) }\n    }\n\n    func main() -> i64 {\n        grow(1, 3)\n    }\"#,)"
+snapshot_kind: text
+---
+96..104: `@export` cannot be applied to the generic function `exported`: it has one body per instantiation and so no single symbol to export; export a non-generic function that calls it at the types the host needs
+131..135: the generic function `asks` with a `uses` clause is not supported by the code generator yet: effect evidence is passed to one body per function, and a generic function has one per instantiation
+265..269: instantiating the generic functions `main` calls does not terminate: `grow` calls `grow` at an ever larger type (its type arguments nest more than 32 deep and keep growing), so there is no finite set of instances to generate
+108..109 'x': T
+119..124 '{ x }': T
+121..122 'x': T
+139..140 'x': T
+159..164 '{ x }': T
+161..162 'x': T
+179..180 'x': T
+185..186 'n': i64
+200..258 '{     ...1) } }': i64
+206..256 'if n =...- 1) }': i64
+209..210 'n': i64
+209..215 'n == 0': bool
+214..215 '0': i64
+216..221 '{ 0 }': i64
+218..219 '0': i64
+227..256 '{ grow...- 1) }': i64
+229..233 'grow': function grow(T, i64) -> i64
+229..254 'grow(B...n - 1)': i64
+234..246 'Box { v: x }': Box[T]
+243..244 'x': T
+248..249 'n': i64
+248..253 'n - 1': i64
+252..253 '1': i64
+279..297 '{     ..., 3) }': i64
+285..289 'grow': function grow(T, i64) -> i64
+285..295 'grow(1, 3)': i64
+290..291 '1': i32
+293..294 '3': i64

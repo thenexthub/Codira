@@ -8,6 +8,7 @@ mod apple_base;
 mod freebsd_base;
 mod linux_base;
 mod linux_musl_base;
+mod nvptx64_nvidia_cuda;
 mod wasm_base;
 mod windows_msvc_base;
 
@@ -166,6 +167,12 @@ supported_targets!(
 impl Target {
     pub fn search(target_triple: &str) -> Option<Target> {
         load_specific(target_triple)
+    }
+
+    /// The device target `@target(gpu)` functions are compiled for (64-bit
+    /// NVIDIA PTX). Deliberately not a `--target`: see the module.
+    pub fn gpu_target() -> Target {
+        nvptx64_nvidia_cuda::target()
     }
 
     pub fn host_target() -> Option<Target> {

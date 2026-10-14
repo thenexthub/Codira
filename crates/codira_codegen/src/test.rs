@@ -1795,6 +1795,30 @@ fn static_member_access() {
     );
 }
 
+/// A generic function becomes one LLVM function per instantiation, named by
+/// the instance -- `id[i64]`, `id[f64]` -- and private to the module; the
+/// generic declaration itself produces no code. An instantiated generic
+/// struct gets a layout of its own (`Pair[f64, i64]`), and a generic body
+/// calling another generic function calls the matching instance of it.
+#[test]
+fn generic_instantiations() {
+    test_snapshot_unoptimized(
+        "generic_instantiations",
+        r#"
+    struct Pair[A, B] { a: A, b: B }
+
+    func id[T](x: T) -> T { x }
+
+    func first[A, B](p: Pair[A, B]) -> A { id(p.a) }
+
+    public func main() -> f64 {
+        let i: i64 = id(1)
+        let p = Pair { a: 2.5, b: i }
+        id(first(p))
+    }"#,
+    );
+}
+
 /// Tuple patterns destructure with `extractvalue` and no branch: the arity is
 /// fixed by the type and inference has already checked it, so there is no
 /// test to emit. Nesting falls out by recursion, and `_` binds nothing.

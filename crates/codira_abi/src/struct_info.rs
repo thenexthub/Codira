@@ -27,6 +27,10 @@ pub struct StructDefinition<'a> {
     // TODO: Add struct accessibility level
     /// Struct memory kind
     pub memory_kind: StructMemoryKind,
+    /// Struct fields' previous names (`@renamed(from: "old")`): null if no
+    /// field was renamed, otherwise one entry per field that is null for a
+    /// field that was not.
+    pub(crate) field_previous_names: *const *const c_char,
 }
 
 /// Represents the kind of memory management a struct uses.
@@ -69,6 +73,29 @@ impl<'a> StructDefinition<'a> {
         } else {
             unsafe { slice::from_raw_parts(self.field_types, self.num_fields as usize) }
         }
+    }
+
+    /// Returns the previous name of every field, `None` for fields that were
+    /// not renamed.
+    pub fn field_previous_names(&self) -> impl Iterator<Item = Option<&str>> {
+        let names: &[*const c_char] = if self.num_fields == 0 || self.field_previous_names.is_null()
+        {
+            &[]
+        } else {
+            unsafe { slice::from_raw_parts(self.field_previous_names, self.num_fields as usize) }
+        };
+        let missing = if names.is_empty() {
+            self.num_fields as usize
+        } else {
+            0
+        };
+        names
+            .iter()
+            .map(|&name| {
+                (!name.is_null())
+                    .then(|| unsafe { str::from_utf8_unchecked(CStr::from_ptr(name).to_bytes()) })
+            })
+            .chain(std::iter::repeat_n(None, missing))
     }
 
     /// Returns the struct's field offsets.

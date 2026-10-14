@@ -33,6 +33,12 @@ pub struct CodeGenContext<'db, 'ink> {
     /// skips Eidos (`--mode=dev`). Read once from the salsa inputs here so
     /// every function body of the group sees the same answer.
     pub eidos: Option<codira_egraph::EGraphOptimizer>,
+
+    /// The same database as `db`, seen as a `CodeGenDatabase`, for the
+    /// queries that only code generation answers (the package's proven
+    /// rewrite rules, read when bodies are generated -- see
+    /// [`CodeGenContext::eidos_run`]).
+    pub codegen_db: &'db dyn CodeGenDatabase,
     /// The package's native code (see `crate::native`)
     pub native: std::sync::Arc<crate::NativeInputs>,
     /// Whether generated code is fuel-instrumented (`--fuel`).
@@ -51,10 +57,24 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
             optimization_level: db.optimization_level(),
             target_machine,
             eidos: db.eidos_options().optimizer(&db.target()),
+            codegen_db: db,
             native: db.native_inputs(),
             fuel: db.fuel_instrumentation(),
             db,
         }
+    }
+
+    /// What Eidos runs with while this context generates function bodies:
+    /// the optimizer and the package's proven rewrite rules, or `None` when
+    /// the build skips Eidos. The rules are read here rather than in
+    /// [`CodeGenContext::new`], which also serves contexts that generate no
+    /// bodies (and databases with no packages to read rules from).
+    pub fn eidos_run(&self) -> Option<crate::EidosRun> {
+        let optimizer = self.eidos?;
+        Some(crate::EidosRun {
+            optimizer,
+            rules: std::sync::Arc::from(self.codegen_db.rewrite_rules().admitted.clone()),
+        })
     }
 
     /// Constructs a new `Module` with the specified name and initialized for

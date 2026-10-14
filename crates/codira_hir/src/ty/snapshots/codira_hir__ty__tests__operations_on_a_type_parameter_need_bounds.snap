@@ -1,0 +1,31 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r\"\n    func ops[T](a: T, b: T) -> T {\n        let s = a + b;\n        let c = a < b;\n        let n = -a;\n        let m = a.len();\n        var x = a;\n        x = b;\n        x\n    }\",)"
+snapshot_kind: text
+---
+43..48: cannot apply `+` to a value of generic type `T`: an operation on a type parameter needs a bound (`where T: ...`), and bounds are not supported yet; generic code can only move, copy, pass, return and store a `T`
+62..67: cannot apply `<` to a value of generic type `T`: an operation on a type parameter needs a bound (`where T: ...`), and bounds are not supported yet; generic code can only move, copy, pass, return and store a `T`
+81..83: cannot negate a value of generic type `T`: an operation on a type parameter needs a bound (`where T: ...`), and bounds are not supported yet; generic code can only move, copy, pass, return and store a `T`
+97..104: cannot call method `len` on a value of generic type `T`: an operation on a type parameter needs a bound (`where T: ...`), and bounds are not supported yet; generic code can only move, copy, pass, return and store a `T`
+12..13 'a': T
+18..19 'b': T
+29..139 '{     ...   x }': T
+39..40 's': {unknown}
+43..44 'a': T
+43..48 'a + b': {unknown}
+47..48 'b': T
+58..59 'c': bool
+62..63 'a': T
+62..67 'a < b': bool
+66..67 'b': T
+77..78 'n': {unknown}
+82..83 'a': T
+93..94 'm': {unknown}
+97..98 'a': T
+97..104 'a.len()': {unknown}
+114..115 'x': T
+118..119 'a': T
+125..126 'x': T
+125..130 'x = b': ()
+129..130 'b': T
+136..137 'x': T

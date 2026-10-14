@@ -1,0 +1,17 @@
+[package]
+name = "codira_gpu"
+description = "Host side of Codira's @target(gpu) kernels: loads PTX and launches kernels through the CUDA driver API, opened at run time"
+keywords = ["codira", "gpu", "cuda", "ptx", "compiler"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+libloading = { workspace = true }
+thiserror = { workspace = true }

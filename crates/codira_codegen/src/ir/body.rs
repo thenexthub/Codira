@@ -4,16 +4,13 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use codira_abi as abi;
 use codira_hir::{
-    ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase, HirDisplay,
-    InferenceResult, Literal, LogicOp, Name, Ordering, Pat, PatId, Path, ResolveBitness, Resolver,
-    Statement, Ty, TyKind, UnaryOp, ValueNs,
+    mono::Instance, ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase,
+    HirDisplay, InferenceResult, Literal, LogicOp, Name, Ordering, Pat, PatId, Path,
+    ResolveBitness, Resolver, Statement, Ty, TyKind, UnaryOp, ValueNs,
 };
 use inkwell::{
     basic_block::BasicBlock,
@@ -31,7 +28,7 @@ use crate::{
     intrinsics,
     ir::{
         dispatch_table::DispatchTable, intrinsic_ops, ty::HirTypeCache, type_table::TypeTable,
-        RuntimeArrayValue, RuntimeReferenceValue,
+        FunctionMap, RuntimeArrayValue, RuntimeReferenceValue,
     },
     module_group::ModuleGroup,
     value::Global,
@@ -76,17 +73,21 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     pat_to_param: HashMap<PatId, inkwell::values::BasicValueEnum<'ink>>,
     pat_to_local: HashMap<PatId, inkwell::values::PointerValue<'ink>>,
     pat_to_name: HashMap<PatId, String>,
-    function_map: &'t BTreeMap<codira_hir::Function, FunctionValue<'ink>>,
+    function_map: &'t FunctionMap<'ink>,
     dispatch_table: &'t DispatchTable<'ink>,
     type_table: &'t TypeTable<'ink>,
     hir_types: &'t HirTypeCache<'db, 'ink>,
     active_loop: Option<LoopInfo<'ink>>,
     hir_function: codira_hir::Function,
+    /// The instance of `hir_function` being generated: the function itself
+    /// when it is not generic. `infer` is the function's inference result
+    /// read at this instance, so every type in it is concrete.
+    instance: Instance,
     external_globals: ExternalGlobals<'ink>,
     module_group: &'t ModuleGroup,
-    /// The e-graph optimizer Eidos runs with; `None` skips Eidos entirely
-    /// (`--mode=dev`). See `crate::EidosOptions`.
-    eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// The optimizer and proven rules Eidos runs with; `None` skips Eidos
+    /// entirely (`--mode=dev`). See `crate::EidosOptions`.
+    eidos: Option<crate::EidosRun>,
     /// Evidence in scope, `handle` frames and the arm being generated. See
     /// `effects`.
     effects: effects::EffectState<'ink>,
@@ -101,20 +102,20 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         context: &'ink Context,
         module: &'t inkwell::module::Module<'ink>,
         db: &'db dyn HirDatabase,
-        function: (codira_hir::Function, FunctionValue<'ink>),
-        function_map: &'t BTreeMap<codira_hir::Function, FunctionValue<'ink>>,
+        function: (Instance, Arc<InferenceResult>, FunctionValue<'ink>),
+        function_map: &'t FunctionMap<'ink>,
         dispatch_table: &'t DispatchTable<'ink>,
         type_table: &'t TypeTable<'ink>,
         external_globals: ExternalGlobals<'ink>,
         hir_types: &'t HirTypeCache<'db, 'ink>,
         module_group: &'t ModuleGroup,
-        eidos: Option<codira_egraph::EGraphOptimizer>,
+        eidos: Option<crate::EidosRun>,
     ) -> Self {
-        let (hir_function, ir_function) = function;
+        let (instance, infer, ir_function) = function;
+        let hir_function = instance.function();
 
         // Get the type information from the `codira_hir::Function`
         let body = hir_function.body(db);
-        let infer = hir_function.infer(db);
 
         // Construct a builder for the IR function
         let builder = context.create_builder();
@@ -137,6 +138,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             type_table,
             active_loop: None,
             hir_function,
+            instance,
             external_globals,
             hir_types,
             module_group,
@@ -161,12 +163,19 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // below produces correct code either way. This is the one place
         // Eidos enters a build, so `--mode=dev` (no optimizer) skips it
         // here and nowhere else.
-        if let Some(optimizer) = self.eidos.as_ref().filter(|_| !runtime_checks) {
+        //
+        // Not for an instance of a generic function: the fold lowers the
+        // declaration's body, which is written in terms of its parameters.
+        if let Some(eidos) = self
+            .eidos
+            .as_ref()
+            .filter(|_| !runtime_checks && !self.instance.is_generic())
+        {
             if let Some(value) = crate::eidos_fold::fold_to_constant(
                 self.db,
                 self.hir_function,
                 self.fn_value,
-                optimizer,
+                eidos,
             ) {
                 self.builder
                     .build_return(Some(&value))
@@ -256,13 +265,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // is expected in the first place. If the return type of the body is
         // `never` there is no need to generate a return statement.
         let block_ret_type = &self.infer[self.body.body_expr()];
-        let fn_ret_type = self
-            .hir_function
-            .ty(self.db)
-            .callable_sig(self.db)
-            .unwrap()
-            .ret()
-            .clone();
+        let fn_ret_type = self.instance.sig(self.db).ret().clone();
         if !block_ret_type.is_never() {
             if fn_ret_type.is_empty() {
                 self.builder
@@ -324,7 +327,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 let param = self.fn_value.get_nth_param(idx as u32).unwrap();
                 if let Some(s) = ty.as_struct() {
                     if s.data(self.db).memory_kind == abi::StructMemoryKind::Value {
-                        deref_heap_value(&self.builder, param, self.hir_types.get_struct_type(s))
+                        deref_heap_value(&self.builder, param, self.hir_types.get_struct_type(ty))
                     } else {
                         param
                     }
@@ -335,7 +338,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             })
             .collect();
 
-        let ret_value = self.gen_call(self.hir_function, &args);
+        let ret_value = self.gen_call(None, self.hir_function, &args);
 
         let call_return_type = &self.infer[self.body.body_expr()];
         if !call_return_type.is_never() {
@@ -354,7 +357,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             } else if let Some(value) = ret_value {
                 let ret_value = if let Some(hir_struct) = fn_ret_type.as_struct() {
                     if hir_struct.data(self.db).memory_kind == codira_hir::StructMemoryKind::Value {
-                        self.gen_struct_alloc_on_heap(hir_struct, value.into_struct_value())
+                        self.gen_struct_alloc_on_heap(&fn_ret_type, value.into_struct_value())
                     } else {
                         value
                     }
@@ -422,7 +425,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                             return self.gen_inline_asm_call(expr, def, &args);
                         }
 
-                        self.gen_call(def, &args)
+                        self.gen_call(Some(expr), def, &args)
                             // If the called function is a void function it doesn't return anything.
                             // If this method (`gen_expr`) returns None we assume the return value
                             // is `never`. We return a const unit struct here to ensure that at
@@ -1046,11 +1049,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// type of the struct.
     fn gen_struct_alloc(
         &mut self,
-        hir_struct: codira_hir::Struct,
+        hir_ty: &Ty,
         args: Vec<BasicValueEnum<'ink>>,
     ) -> BasicValueEnum<'ink> {
+        let hir_struct = hir_ty.as_struct().expect("a struct type");
         // Construct the struct literal
-        let struct_ty = self.hir_types.get_struct_type(hir_struct);
+        let struct_ty = self.hir_types.get_struct_type(hir_ty);
         let mut value: AggregateValueEnum<'_> = struct_ty.get_undef().into();
         for (i, arg) in args.into_iter().enumerate() {
             value = self
@@ -1064,17 +1068,17 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             codira_hir::StructMemoryKind::Value => struct_lit.into(),
             codira_hir::StructMemoryKind::Gc => {
                 // TODO: Root memory in GC
-                self.gen_struct_alloc_on_heap(hir_struct, struct_lit)
+                self.gen_struct_alloc_on_heap(hir_ty, struct_lit)
             }
         }
     }
 
     fn gen_struct_alloc_on_heap(
         &mut self,
-        hir_struct: codira_hir::Struct,
+        hir_ty: &Ty,
         struct_lit: StructValue<'_>,
     ) -> BasicValueEnum<'ink> {
-        let struct_ir_ty = self.hir_types.get_struct_type(hir_struct);
+        let struct_ir_ty = self.hir_types.get_struct_type(hir_ty);
         let (new_fn_ty, new_fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
             self.external_globals.dispatch_table,
             &self.builder,
@@ -1087,7 +1091,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let type_info_ptr = self.type_table.gen_type_info_lookup(
             self.context,
             &self.builder,
-            &self.hir_types.type_id(&hir_struct.ty(self.db)),
+            &self.hir_types.type_id(hir_ty),
             self.external_globals.type_table,
         );
 
@@ -1128,13 +1132,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         fields: &[codira_hir::RecordLitField],
     ) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
         let fields: Vec<BasicValueEnum<'ink>> = fields
             .iter()
             .map(|field| self.gen_expr(field.expr).expect("expected a field value"))
             .collect();
 
-        self.gen_struct_alloc(hir_struct, fields)
+        self.gen_struct_alloc(&struct_ty, fields)
     }
 
     /// Generates IR for `receiver.method(args...)`.
@@ -1182,7 +1185,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             call_args.push(self.gen_expr(*arg)?.into());
         }
 
-        self.gen_call(function, &call_args)
+        self.gen_call(Some(tgt_expr), function, &call_args)
             // Same convention as `Expr::Call`: a void method returns the unit
             // struct so callers always get *something*, while a `never`
             // method genuinely returns nothing.
@@ -1195,13 +1198,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// Generates IR for a named tuple literal, e.g. `Foo(1.23, 4)`
     fn gen_named_tuple_lit(&mut self, type_expr: ExprId, args: &[ExprId]) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
         let args: Vec<BasicValueEnum<'ink>> = args
             .iter()
             .map(|expr| self.gen_expr(*expr).expect("expected a field value"))
             .collect();
 
-        self.gen_struct_alloc(hir_struct, args)
+        self.gen_struct_alloc(&struct_ty, args)
     }
 
     /// Generates IR for a tuple literal, e.g. `(1.23, 4)`.
@@ -1242,8 +1244,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// Generates IR for a unit struct literal, e.g `Foo`
     fn gen_unit_struct_lit(&mut self, type_expr: ExprId) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
-        self.gen_struct_alloc(hir_struct, Vec::new())
+        self.gen_struct_alloc(&struct_ty, Vec::new())
     }
 
     /// Generates IR for the specified block expression.
@@ -1444,7 +1445,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let ty = &self.infer[expr];
         if let Some(s) = ty.as_struct() {
             if s.data(self.db).memory_kind == codira_hir::StructMemoryKind::Gc {
-                return deref_heap_value(&self.builder, value, self.hir_types.get_struct_type(s));
+                return deref_heap_value(&self.builder, value, self.hir_types.get_struct_type(ty));
             }
         }
         value
@@ -1462,7 +1463,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let ty = &self.infer[expr];
         if let Some(s) = ty.as_struct() {
             if s.data(self.db).memory_kind == codira_hir::StructMemoryKind::Gc {
-                let struct_ty = self.hir_types.get_struct_type(s);
+                let struct_ty = self.hir_types.get_struct_type(ty);
                 let handle = self
                     .builder
                     .build_load(
@@ -2210,12 +2211,25 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         }
     }
 
+    ///
+    /// `call` is the call expression, which says -- through its recorded
+    /// instantiation -- which instance of a generic `function` is called.
+    /// It is `None` only for the host wrapper's call of its own function,
+    /// which is never generic.
     fn gen_call(
         &mut self,
+        call: Option<ExprId>,
         function: codira_hir::Function,
         args: &[BasicMetadataValueEnum<'ink>],
     ) -> Option<BasicValueEnum<'ink>> {
-        let sig = function.ty(self.db).callable_sig(self.db).unwrap();
+        let instance = call
+            .and_then(|call| Instance::callee(self.db, &self.infer, call, function))
+            .unwrap_or_else(|| Instance::of(function));
+        let sig = instance.sig(self.db);
+        // A function this module has code for -- its own, an instance of a
+        // generic one, or a copy of another module's private helper -- is
+        // called directly, never through the dispatch table.
+        let local = self.function_map.get(&instance).copied();
 
         // A `uses` callee takes the innermost evidence for each of its
         // effects after its ordinary arguments, and may then abort to a
@@ -2233,7 +2247,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             &with_evidence[..]
         };
 
-        let call_site = if self.should_use_dispatch_table(function) {
+        let through_table = local.is_none() && self.should_use_dispatch_table(function);
+        let call_site = if through_table {
             let boxed_args: Vec<BasicMetadataValueEnum<'ink>> = args
                 .iter()
                 .zip(sig.params().iter())
@@ -2243,7 +2258,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                             == codira_hir::StructMemoryKind::Value
                         {
                             return self
-                                .gen_struct_alloc_on_heap(hir_struct, arg.into_struct_value())
+                                .gen_struct_alloc_on_heap(param_ty, arg.into_struct_value())
                                 .into();
                         }
                     }
@@ -2266,8 +2281,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 )
                 .expect("failed to build indirect call")
         } else {
-            let llvm_function = match self.function_map.get(&function) {
-                Some(function) => *function,
+            let llvm_function = match local {
+                Some(function) => function,
                 // An `extern` declaration of a function the package's native
                 // code defines: declared here, on first use, under its own
                 // name, so the linker -- or, for C and C++, the bitcode linked
@@ -2279,8 +2294,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                         crate::ir::function::gen_prototype(
                             self.db,
                             self.hir_types,
-                            function,
+                            &instance,
                             self.module,
+                            false,
                         )
                     })
                 }
@@ -2299,10 +2315,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             self.gen_abort_check();
         }
 
-        if self.should_use_dispatch_table(function) {
+        if through_table {
             if let Some(hir_struct) = sig.ret().as_struct() {
                 if hir_struct.data(self.db).memory_kind == codira_hir::StructMemoryKind::Value {
-                    let struct_ty = self.hir_types.get_struct_type(hir_struct);
+                    let struct_ty = self.hir_types.get_struct_type(sig.ret());
                     return ret_value
                         .map(|value| deref_heap_value(&self.builder, value, struct_ty));
                 }
@@ -2845,9 +2861,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_tuple_field(receiver_expr, name, substs.as_ref());
         }
 
-        let hir_struct = self.infer[receiver_expr]
-            .as_struct()
-            .expect("expected a struct");
+        let receiver_ty = self.infer[receiver_expr].clone();
+        let hir_struct = receiver_ty.as_struct().expect("expected a struct");
 
         let hir_struct_name = hir_struct.name(self.db);
 
@@ -2858,7 +2873,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
         let field_ir_name = &format!("{hir_struct_name}.{name}");
         if self.is_place_expr(receiver_expr) {
-            let struct_ty = self.hir_types.get_struct_type(hir_struct);
+            let struct_ty = self.hir_types.get_struct_type(&receiver_ty);
             let receiver_ptr = self.gen_place_expr(receiver_expr)?;
             let receiver_ptr = self.opt_deref_place(receiver_expr, receiver_ptr);
             let field_ptr = self
@@ -2971,9 +2986,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             );
         }
 
-        let hir_struct = self.infer[receiver_expr]
-            .as_struct()
-            .expect("expected a struct");
+        let receiver_ty = self.infer[receiver_expr].clone();
+        let hir_struct = receiver_ty.as_struct().expect("expected a struct");
 
         let hir_struct_name = hir_struct.name(self.db);
 
@@ -2987,7 +3001,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         Some(
             self.builder
                 .build_struct_gep(
-                    self.hir_types.get_struct_type(hir_struct),
+                    self.hir_types.get_struct_type(&receiver_ty),
                     receiver_ptr,
                     field_idx,
                     &format!("{hir_struct_name}->{name}"),
