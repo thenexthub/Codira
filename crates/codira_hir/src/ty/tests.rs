@@ -2418,3 +2418,52 @@ fn infer_builtin_print() {
     165..173 'print(1)': {unknown}
     "#);
 }
+
+/// `for` over a range binds the bounds' integer type; over an array, the
+/// element type, destructured by a tuple pattern. An array of tuples unifies
+/// element by element.
+#[test]
+fn infer_for_loops() {
+    insta::assert_snapshot!(infer(
+        r#"
+    func f(n: u8) -> i64 {
+        let ps = [(1, 10), (2, 20)]
+        var total: i64 = 0
+        for (a, b) in ps { total += a * b }
+        for i in 0..n { continue }
+        total
+    }
+    "#),
+    @"
+    7..8 'n': u8
+    21..160 '{     ...otal }': i64
+    31..33 'ps': [(i64, i64)]
+    36..54 '[(1, 1..., 20)]': [(i64, i64)]
+    37..44 '(1, 10)': (i64, i64)
+    38..39 '1': i64
+    41..43 '10': i64
+    46..53 '(2, 20)': (i64, i64)
+    47..48 '2': i64
+    50..52 '20': i64
+    63..68 'total': i64
+    76..77 '0': i64
+    82..117 'for (a... * b }': ()
+    86..92 '(a, b)': (i64, i64)
+    87..88 'a': i64
+    90..91 'b': i64
+    96..98 'ps': [(i64, i64)]
+    99..117 '{ tota... * b }': ()
+    101..106 'total': i64
+    101..115 'total += a * b': ()
+    110..111 'a': i64
+    110..115 'a * b': i64
+    114..115 'b': i64
+    122..148 'for i ...inue }': ()
+    126..127 'i': u8
+    131..132 '0': u8
+    134..135 'n': u8
+    136..148 '{ continue }': never
+    138..146 'continue': never
+    153..158 'total': i64
+    ");
+}

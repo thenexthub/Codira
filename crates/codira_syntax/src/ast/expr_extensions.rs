@@ -279,3 +279,24 @@ impl ast::IndexExpr {
         children(self).nth(1)
     }
 }
+
+impl ast::RangeExpr {
+    /// The lower bound, `a` in `a..b`.
+    pub fn start(&self) -> Option<ast::Expr> {
+        children(self).next()
+    }
+
+    /// The upper bound, `b` in `a..b`.
+    pub fn end(&self) -> Option<ast::Expr> {
+        children(self).nth(1)
+    }
+
+    /// Whether the range includes its upper bound: `a..=b` rather than
+    /// `a..b`.
+    pub fn is_inclusive(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .any(|token| token.kind() == T![..=])
+    }
+}

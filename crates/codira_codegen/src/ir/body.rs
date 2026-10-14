@@ -47,6 +47,9 @@ type BreakSources<'ink> = Vec<Option<(BasicValueEnum<'ink>, BasicBlock<'ink>)>>;
 struct LoopInfo<'ink> {
     break_values: BreakSources<'ink>,
     exit_block: BasicBlock<'ink>,
+    /// Where `continue` jumps: a `while` loop's condition, a `loop`'s top,
+    /// a `for` loop's increment.
+    continue_block: BasicBlock<'ink>,
 }
 
 #[derive(Clone)]
@@ -446,6 +449,15 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Return { expr: ret_expr } => self.gen_return(expr, *ret_expr),
             Expr::Loop { body } => self.gen_loop(expr, *body),
             Expr::While { condition, body } => self.gen_while(expr, *condition, *body),
+            Expr::For {
+                pat,
+                iterable,
+                body: loop_body,
+            } => self.gen_for(*pat, *iterable, *loop_body),
+            Expr::Continue => self.gen_continue(),
+            Expr::Range { .. } => unreachable!(
+                "inference rejects a range anywhere but a `for` loop's iterable, which `gen_for` lowers itself"
+            ),
             Expr::Break { expr: break_expr } => self.gen_break(expr, *break_expr),
             Expr::Field {
                 expr: receiver_expr,
@@ -486,6 +498,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     ) -> Option<BasicValueEnum<'ink>> {
         match builtin {
             BuiltinFn::Channel => unreachable!("lowered by `gen_channel_new`"),
+            BuiltinFn::ArrayLen | BuiltinFn::ArrayUncheckedGet | BuiltinFn::StrLen => {
+                unreachable!("method builtins are lowered by `gen_builtin_method`")
+            }
             BuiltinFn::Print | BuiltinFn::Println => {
                 let mut values = Vec::with_capacity(args.len());
                 for &arg in args {
@@ -543,6 +558,131 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 .expect("an empty node is valid `!unpredictable` metadata");
         }
         Some(selected)
+    }
+
+    /// Generates IR for a builtin method: `len()` on an array or `str`, or
+    /// `unchecked_get(i)` on an array.
+    fn gen_builtin_method(
+        &mut self,
+        builtin: BuiltinFn,
+        receiver: ExprId,
+        args: &[ExprId],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let receiver_value = self.gen_expr(receiver)?;
+        match builtin {
+            BuiltinFn::StrLen => Some(
+                self.builder
+                    .build_extract_value(receiver_value.into_struct_value(), 1, "str.len")
+                    .expect("a str has a length"),
+            ),
+            BuiltinFn::ArrayLen => {
+                let array = self.array_value(receiver, receiver_value);
+                Some(
+                    self.builder
+                        .build_load(
+                            array.length_ty(),
+                            array.get_length_ptr(&self.builder),
+                            "len",
+                        )
+                        .expect("failed to load an array's length"),
+                )
+            }
+            BuiltinFn::ArrayUncheckedGet => {
+                let array = self.array_value(receiver, receiver_value);
+                let index = self.gen_expr(args[0])?.into_int_value();
+                let index = self.index_to_length_type(args[0], index, array.length_ty());
+                let elements = array.get_elements(&self.builder);
+                // Safety: none -- that is this builtin's contract with its
+                // caller, who has established `index < len` some other way.
+                let element_ptr = unsafe {
+                    self.builder
+                        .build_gep(array.element_ty(), elements, &[index], "element_ptr")
+                        .expect("failed to build GEP for an unchecked element")
+                };
+                Some(
+                    self.builder
+                        .build_load(array.element_ty(), element_ptr, "element")
+                        .expect("failed to load an unchecked element"),
+                )
+            }
+            BuiltinFn::Print
+            | BuiltinFn::Println
+            | BuiltinFn::Declassify
+            | BuiltinFn::CtSelect
+            | BuiltinFn::Channel => {
+                unreachable!("free-function builtins are lowered by `gen_builtin_call`")
+            }
+        }
+    }
+
+    /// Views `value`, the result of the array-typed expression `expr`, as an
+    /// array.
+    fn array_value(&self, expr: ExprId, value: BasicValueEnum<'ink>) -> RuntimeArrayValue<'ink> {
+        let element_ty = self.infer[expr]
+            .as_array()
+            .expect("expected an array-typed expression");
+        let array_ty = self.hir_types.get_array_type(element_ty);
+        // Safety: the expression's type is an array, so its value is one.
+        unsafe { RuntimeArrayValue::from_ptr_unchecked(value.into_pointer_value(), array_ty) }
+    }
+
+    /// Converts an index of the integer type of `index_expr` to the array
+    /// length's type, extending by the index's signedness. GEP itself
+    /// sign-extends a narrow index, which turned a `u8` index of 200 into -56.
+    fn index_to_length_type(
+        &self,
+        index_expr: ExprId,
+        index: IntValue<'ink>,
+        length_type: inkwell::types::IntType<'ink>,
+    ) -> IntValue<'ink> {
+        let signed = self.is_signed_int(index_expr);
+        let index_bits = index.get_type().get_bit_width();
+        let length_bits = length_type.get_bit_width();
+        if index_bits == length_bits {
+            index
+        } else if index_bits > length_bits {
+            self.builder
+                .build_int_truncate(index, length_type, "index")
+                .expect("failed to truncate an index")
+        } else if signed {
+            self.builder
+                .build_int_s_extend(index, length_type, "index")
+                .expect("failed to extend an index")
+        } else {
+            self.builder
+                .build_int_z_extend(index, length_type, "index")
+                .expect("failed to extend an index")
+        }
+    }
+
+    /// Whether `expr`'s type is a signed integer.
+    fn is_signed_int(&self, expr: ExprId) -> bool {
+        matches!(
+            self.infer[expr].interned(),
+            TyKind::Int(int_ty) if int_ty.signedness == codira_hir::Signedness::Signed
+        )
+    }
+
+    /// The source location of `expr` as a `str` constant naming the file,
+    /// and 1-based line and column, for a runtime panic report.
+    ///
+    /// The file is named relative to the package's source directory, the
+    /// same way diagnostics name it. A compiler-generated expression has no
+    /// location; it reports `<unknown>:0:0` rather than a wrong one.
+    fn source_location(&mut self, expr: ExprId) -> (StructValue<'ink>, u32, u32) {
+        let (file, line, column) = match self.hir_function.expr_source_range(self.db, expr) {
+            Some((file_id, range)) => {
+                let line_col = self.db.line_index(file_id).line_col(range.start());
+                (
+                    self.db.file_relative_path(file_id).to_string(),
+                    line_col.line + 1,
+                    line_col.col_utf16 + 1,
+                )
+            }
+            None => ("<unknown>".to_string(), 0, 0),
+        };
+        let file = self.gen_string_literal(&file).into_struct_value();
+        (file, line, column)
     }
 
     /// Emits the runtime call that prints one already-evaluated value,
@@ -1021,6 +1161,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         receiver: ExprId,
         args: &[ExprId],
     ) -> Option<BasicValueEnum<'ink>> {
+        if let Some(builtin) = self.infer.builtin_call(tgt_expr) {
+            return self.gen_builtin_method(builtin, receiver, args);
+        }
+
         let resolved = self
             .infer
             .method_resolution(tgt_expr)
@@ -1369,6 +1513,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         rhs: ExprId,
         op: BinaryOp,
     ) -> Option<BasicValueEnum<'ink>> {
+        if let BinaryOp::LogicOp(op) = op {
+            return self.gen_short_circuit(lhs, rhs, op);
+        }
         let lhs_type = self.infer[lhs].clone();
         match lhs_type.interned() {
             TyKind::Bool => self.gen_binary_op_bool(lhs, rhs, op),
@@ -1390,6 +1537,62 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 )
             }
         }
+    }
+
+    /// Generates IR for `lhs && rhs` and `lhs || rhs`, evaluating `rhs` only
+    /// when `lhs` does not already decide the result.
+    ///
+    /// Both operands used to be evaluated unconditionally, which made
+    /// `i < a.len() && a[i] > 0` index out of range exactly when the guard
+    /// said not to, and ran any call in `rhs` for its side effects even when
+    /// the result was already known.
+    fn gen_short_circuit(
+        &mut self,
+        lhs_expr: ExprId,
+        rhs_expr: ExprId,
+        op: LogicOp,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let lhs = self
+            .gen_expr(lhs_expr)
+            .map(|value| self.opt_deref_value(lhs_expr, value))?
+            .into_int_value();
+        let lhs_block = self.builder.get_insert_block().unwrap();
+        let rhs_block = self.context.append_basic_block(self.fn_value, "logic.rhs");
+        let merge_block = self
+            .context
+            .append_basic_block(self.fn_value, "logic.merge");
+
+        // `&&` only needs `rhs` when `lhs` is true, `||` only when it is
+        // false; otherwise `lhs` is the answer.
+        let (if_true, if_false) = match op {
+            LogicOp::And => (rhs_block, merge_block),
+            LogicOp::Or => (merge_block, rhs_block),
+        };
+        self.builder
+            .build_conditional_branch(lhs, if_true, if_false)
+            .expect("failed to build short-circuit branch");
+
+        self.builder.position_at_end(rhs_block);
+        let rhs = self
+            .gen_expr(rhs_expr)
+            .map(|value| self.opt_deref_value(rhs_expr, value));
+        let rhs_end_block = self.builder.get_insert_block().unwrap();
+        if rhs.is_some() {
+            self.builder
+                .build_unconditional_branch(merge_block)
+                .expect("failed to build short-circuit merge");
+        }
+
+        self.builder.position_at_end(merge_block);
+        let phi = self
+            .builder
+            .build_phi(self.context.bool_type(), "logic")
+            .expect("failed to build short-circuit phi");
+        phi.add_incoming(&[(&lhs, lhs_block)]);
+        if let Some(rhs) = rhs {
+            phi.add_incoming(&[(&rhs, rhs_end_block)]);
+        }
+        Some(phi.as_basic_value())
     }
 
     /// Generates IR to calculate a unary operation on an expression.
@@ -2265,6 +2468,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         &mut self,
         block: ExprId,
         exit_block: BasicBlock<'ink>,
+        continue_block: BasicBlock<'ink>,
     ) -> (
         BasicBlock<'ink>,
         BreakSources<'ink>,
@@ -2274,6 +2478,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let loop_info = LoopInfo {
             exit_block,
             break_values: Vec::new(),
+            continue_block,
         };
 
         // Replace previous loop info
@@ -2287,6 +2492,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let LoopInfo {
             exit_block,
             break_values,
+            ..
         } = std::mem::replace(&mut self.active_loop, prev_loop).unwrap();
 
         (exit_block, break_values, value)
@@ -2322,7 +2528,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
         // Generate loop block
         self.builder.position_at_end(loop_block);
-        let (exit_block, _, value) = self.gen_loop_block_expr(body_expr, exit_block);
+        let (exit_block, _, value) = self.gen_loop_block_expr(body_expr, exit_block, cond_block);
         if value.is_some() {
             // Every iteration costs one unit of fuel (when instrumented)
             self.gen_fuel_check();
@@ -2349,7 +2555,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
         // Generate the body of the loop
         self.builder.position_at_end(loop_block);
-        let (exit_block, break_values, value) = self.gen_loop_block_expr(body_expr, exit_block);
+        let (exit_block, break_values, value) =
+            self.gen_loop_block_expr(body_expr, exit_block, loop_block);
         if value.is_some() {
             // Every iteration costs one unit of fuel (when instrumented)
             self.gen_fuel_check();
@@ -2388,6 +2595,240 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 Some(self.gen_empty())
             }
         }
+    }
+
+    /// Generates IR for `continue`: a jump to the innermost loop's
+    /// `continue_block`. Like `break`, it never yields a value.
+    fn gen_continue(&mut self) -> Option<BasicValueEnum<'ink>> {
+        let continue_block = self
+            .active_loop
+            .as_ref()
+            .expect("inference rejects `continue` outside a loop")
+            .continue_block;
+        self.builder
+            .build_unconditional_branch(continue_block)
+            .expect("failed to build branch for continue");
+        None
+    }
+
+    /// Generates IR for `for pat in iterable { body }`.
+    fn gen_for(
+        &mut self,
+        pat: PatId,
+        iterable: ExprId,
+        body_expr: ExprId,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let body = self.body.clone();
+        if let Expr::Range {
+            start,
+            end,
+            inclusive,
+        } = body[iterable]
+        {
+            self.gen_for_range(pat, start, end, inclusive, body_expr)
+        } else {
+            self.gen_for_array(pat, iterable, body_expr)
+        }
+    }
+
+    /// Emits the condition/body/step/exit skeleton shared by both kinds of
+    /// `for` loop, around a counter stored in `counter`.
+    ///
+    /// `in_range` builds the loop condition from the current index;
+    /// `element` turns the index into the value bound to the pattern; and
+    /// `last` -- for an inclusive range -- is the index after which the loop
+    /// stops *before* stepping, so a range ending at its type's maximum never
+    /// wraps around.
+    #[allow(clippy::too_many_arguments)]
+    fn gen_counted_loop(
+        &mut self,
+        pat: PatId,
+        body_expr: ExprId,
+        counter: PointerValue<'ink>,
+        int_type: inkwell::types::IntType<'ink>,
+        in_range: &dyn Fn(&Self, IntValue<'ink>) -> IntValue<'ink>,
+        element: &dyn Fn(&Self, IntValue<'ink>) -> BasicValueEnum<'ink>,
+        last: Option<IntValue<'ink>>,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let context = self.context;
+        let cond_block = context.append_basic_block(self.fn_value, "for.cond");
+        let body_block = context.append_basic_block(self.fn_value, "for.body");
+        let step_block = context.append_basic_block(self.fn_value, "for.step");
+        let exit_block = context.append_basic_block(self.fn_value, "for.end");
+
+        self.builder
+            .build_unconditional_branch(cond_block)
+            .expect("failed to branch to a for loop condition");
+
+        // cond: is the index still in range?
+        self.builder.position_at_end(cond_block);
+        let index = self
+            .builder
+            .build_load(int_type, counter, "i")
+            .expect("failed to load a for loop index")
+            .into_int_value();
+        let condition = in_range(self, index);
+        self.builder
+            .build_conditional_branch(condition, body_block, exit_block)
+            .expect("failed to branch on a for loop condition");
+
+        // body: bind the element, run the body.
+        self.builder.position_at_end(body_block);
+        let value = element(self, index);
+        self.bind_pattern_to_value(pat, value);
+        let (exit_block, _, value) = self.gen_loop_block_expr(body_expr, exit_block, step_block);
+        if value.is_some() {
+            self.builder
+                .build_unconditional_branch(step_block)
+                .expect("failed to branch to a for loop step");
+        }
+
+        // step: advance the index.
+        self.builder.position_at_end(step_block);
+        let index = self
+            .builder
+            .build_load(int_type, counter, "i")
+            .expect("failed to load a for loop index")
+            .into_int_value();
+        if let Some(last) = last {
+            let is_last = self
+                .builder
+                .build_int_compare(IntPredicate::EQ, index, last, "is_last")
+                .expect("failed to compare a for loop index");
+            let increment_block = context.append_basic_block(self.fn_value, "for.increment");
+            self.builder
+                .build_conditional_branch(is_last, exit_block, increment_block)
+                .expect("failed to branch on the last iteration");
+            self.builder.position_at_end(increment_block);
+        }
+        let next = self
+            .builder
+            .build_int_add(index, int_type.const_int(1, false), "next")
+            .expect("failed to increment a for loop index");
+        self.builder
+            .build_store(counter, next)
+            .expect("failed to store a for loop index");
+        self.builder
+            .build_unconditional_branch(cond_block)
+            .expect("failed to branch back to a for loop condition");
+
+        self.builder.position_at_end(exit_block);
+        Some(self.gen_empty())
+    }
+
+    /// `for i in start..end` / `start..=end`: a counted loop over an integer.
+    ///
+    /// Both bounds are evaluated once, before the first iteration. The
+    /// half-open form tests `i < end` and steps `i + 1`, which cannot
+    /// overflow because `i < end`. The inclusive form tests `i <= end` and
+    /// leaves *before* stepping when `i == end`, so `0..=255` over a `u8`
+    /// runs 256 times and stops instead of wrapping around forever.
+    fn gen_for_range(
+        &mut self,
+        pat: PatId,
+        start: ExprId,
+        end: ExprId,
+        inclusive: bool,
+        body_expr: ExprId,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let start_value = self.gen_expr(start)?.into_int_value();
+        let end_value = self.gen_expr(end)?.into_int_value();
+        let signed = match self.infer[start].interned() {
+            TyKind::Int(int_ty) => int_ty.signedness == codira_hir::Signedness::Signed,
+            _ => true,
+        };
+        let int_type = start_value.get_type();
+
+        let counter = self
+            .new_alloca_builder()
+            .build_alloca(int_type, "for.index")
+            .expect("failed to build alloca for a for loop index");
+        self.builder
+            .build_store(counter, start_value)
+            .expect("failed to initialize a for loop index");
+
+        let predicate = match (inclusive, signed) {
+            (false, true) => IntPredicate::SLT,
+            (false, false) => IntPredicate::ULT,
+            (true, true) => IntPredicate::SLE,
+            (true, false) => IntPredicate::ULE,
+        };
+        self.gen_counted_loop(
+            pat,
+            body_expr,
+            counter,
+            int_type,
+            &|this, index| {
+                this.builder
+                    .build_int_compare(predicate, index, end_value, "in_range")
+                    .expect("failed to compare a for loop index")
+            },
+            &|_, index| index.into(),
+            inclusive.then_some(end_value),
+        )
+    }
+
+    /// `for x in array`: visits each element in order.
+    ///
+    /// The array and its length are read once, before the first iteration;
+    /// the index never leaves `0..len`, so the element loads need no bounds
+    /// check -- the loop costs what hand-written unchecked indexing would.
+    fn gen_for_array(
+        &mut self,
+        pat: PatId,
+        iterable: ExprId,
+        body_expr: ExprId,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let element_ty = self.infer[iterable]
+            .as_array()
+            .expect("inference accepts only ranges and arrays as iterables")
+            .clone();
+        let array_ty = self.hir_types.get_array_type(&element_ty);
+        let array_value = self.gen_expr(iterable)?;
+        // Safety: the iterable's type is an array, so its value is one.
+        let array = unsafe {
+            RuntimeArrayValue::from_ptr_unchecked(array_value.into_pointer_value(), array_ty)
+        };
+        let length_type = array.length_ty();
+        let length = self
+            .builder
+            .build_load(length_type, array.get_length_ptr(&self.builder), "len")
+            .expect("failed to load an array's length")
+            .into_int_value();
+
+        let counter = self
+            .new_alloca_builder()
+            .build_alloca(length_type, "for.index")
+            .expect("failed to build alloca for a for loop index");
+        self.builder
+            .build_store(counter, length_type.const_zero())
+            .expect("failed to initialize a for loop index");
+
+        self.gen_counted_loop(
+            pat,
+            body_expr,
+            counter,
+            length_type,
+            &|this, index| {
+                this.builder
+                    .build_int_compare(IntPredicate::ULT, index, length, "in_range")
+                    .expect("failed to compare a for loop index")
+            },
+            &|this, index| {
+                let elements = array.get_elements(&this.builder);
+                let element_basic_ty = array.element_ty();
+                // Safety: `index < length`, checked by the loop condition.
+                let element_ptr = unsafe {
+                    this.builder
+                        .build_gep(element_basic_ty, elements, &[index], "element_ptr")
+                        .expect("failed to build GEP for a for loop element")
+                };
+                this.builder
+                    .build_load(element_basic_ty, element_ptr, "element")
+                    .expect("failed to load a for loop element")
+            },
+            None,
+        )
     }
 
     fn gen_field(
@@ -2666,36 +3107,121 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         )
     }
 
-    /// Generates an index into an array
+    /// Generates the address of `base[index]`, checking that the index is
+    /// in range first.
+    ///
+    /// An out-of-range index -- including a negative one, which the unsigned
+    /// comparison sees as huge -- calls `codira.panic_index_out_of_bounds`
+    /// with the index, the length and this expression's source location,
+    /// which ends the program; the access itself is never executed. The
+    /// check is one compare and a branch the optimizer knows is unlikely
+    /// (the failing side never returns), and LLVM removes it outright where
+    /// it can prove the index in range. `unchecked_get` skips it.
     fn gen_place_index(
         &mut self,
-        _expr: ExprId,
+        expr: ExprId,
         base: ExprId,
         index: ExprId,
     ) -> Option<PointerValue<'ink>> {
-        let element_ty = self.infer[base]
-            .as_array()
-            .expect("indexing base must be an array");
-        let array_ty = self.hir_types.get_array_type(element_ty);
+        let base_value = self.gen_expr(base)?;
+        let base = self.array_value(base, base_value);
+        let index_value = self.gen_expr(index)?.into_int_value();
 
-        // Safety: place expression can only be generated if the base expression is an
-        // array.
-        let base = unsafe {
-            RuntimeArrayValue::from_ptr_unchecked(
-                self.gen_expr(base)?.into_pointer_value(),
-                array_ty,
+        let length_type = base.length_ty();
+        let length = self
+            .builder
+            .build_load(length_type, base.get_length_ptr(&self.builder), "len")
+            .expect("failed to load an array's length")
+            .into_int_value();
+
+        // Compare in whichever of the two widths is wider, so an `i128`
+        // index is not truncated into range before it is checked.
+        let signed = self.is_signed_int(index);
+        let index_bits = index_value.get_type().get_bit_width();
+        let (wide_index, wide_length) = if index_bits > length_type.get_bit_width() {
+            let wide_length = self
+                .builder
+                .build_int_z_extend(length, index_value.get_type(), "len.wide")
+                .expect("failed to widen an array length");
+            (index_value, wide_length)
+        } else {
+            (
+                self.index_to_length_type(index, index_value, length_type),
+                length,
             )
         };
-        let index = self.gen_expr(index)?.into_int_value();
+        let in_bounds = self
+            .builder
+            .build_int_compare(IntPredicate::ULT, wide_index, wide_length, "in_bounds")
+            .expect("failed to build a bounds check");
 
+        let ok_block = self.context.append_basic_block(self.fn_value, "index.ok");
+        let fail_block = self
+            .context
+            .append_basic_block(self.fn_value, "index.out_of_bounds");
+        self.builder
+            .build_conditional_branch(in_bounds, ok_block, fail_block)
+            .expect("failed to branch on a bounds check");
+
+        // The failing side: report and never return.
+        self.builder.position_at_end(fail_block);
+        let i64_type = self.context.i64_type();
+        let reported_index = if index_bits > 64 {
+            self.builder
+                .build_int_truncate(index_value, i64_type, "index")
+        } else if signed {
+            self.builder
+                .build_int_s_extend_or_bit_cast(index_value, i64_type, "index")
+        } else {
+            self.builder
+                .build_int_z_extend_or_bit_cast(index_value, i64_type, "index")
+        }
+        .expect("failed to widen an index for a panic report");
+        let reported_length = self
+            .builder
+            .build_int_z_extend_or_bit_cast(length, i64_type, "len")
+            .expect("failed to widen a length for a panic report");
+        let (file, line, column) = self.source_location(expr);
+        let file_data = self
+            .builder
+            .build_extract_value(file, 0, "file.data")
+            .expect("a str has a data pointer");
+        let file_len = self
+            .builder
+            .build_extract_value(file, 1, "file.len")
+            .expect("a str has a length");
+        let u32_type = self.context.i32_type();
+        self.gen_runtime_call(
+            &intrinsics::panic_index_out_of_bounds,
+            &[
+                reported_index.into(),
+                self.context
+                    .i8_type()
+                    .const_int(u64::from(signed), false)
+                    .into(),
+                reported_length.into(),
+                file_data.into(),
+                file_len.into(),
+                u32_type.const_int(u64::from(line), false).into(),
+                u32_type.const_int(u64::from(column), false).into(),
+            ],
+        );
+        self.builder
+            .build_unreachable()
+            .expect("failed to build unreachable after a panic");
+
+        // The in-range side: the access itself.
+        self.builder.position_at_end(ok_block);
+        let index_value = self.index_to_length_type(index, index_value, length_type);
         let elements = base.get_elements(&self.builder);
         let element_basic_ty = base.element_ty();
+        // Safety: `index < len`, checked above.
         Some(unsafe {
             self.builder
                 .build_gep(
                     element_basic_ty,
                     elements,
-                    &[index],
+                    &[index_value],
                     &format!("{}+index", elements.get_name().to_string_lossy()),
                 )
                 .expect("failed to build GEP for array index")

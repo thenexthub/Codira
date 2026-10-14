@@ -125,6 +125,7 @@ macro_rules! impl_scalar_ir_type {
 
 impl_scalar_ir_type! {
     u8 => IntType::i8_type,
+    u32 => IntType::i32_type,
     i64 => IntType::i64_type,
     u64 => IntType::i64_type,
     f32 => FloatType::f32_type,

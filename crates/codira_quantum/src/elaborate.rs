@@ -672,6 +672,14 @@ impl Elaborator<'_> {
                 }
             }
             Expr::Call { callee, args } => self.eval_call(frame, id, *callee, args),
+            // `for`/`continue` (and ranges, which exist only as `for`
+            // iterables) are not modelled by the elaborator yet.
+            Expr::For { .. } | Expr::Continue | Expr::Range { .. } => Err(self.error(
+                frame,
+                id,
+                "quantum elaboration does not support `for` loops or `continue` yet; use `while`"
+                    .into(),
+            )),
             Expr::MethodCall { .. }
             | Expr::Index { .. }
             | Expr::Array(_)

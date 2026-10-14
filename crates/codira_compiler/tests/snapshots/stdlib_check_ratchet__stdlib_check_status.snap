@@ -1,10 +1,9 @@
 ---
 source: crates/codira_compiler/tests/stdlib_check_ratchet.rs
 expression: summary
-snapshot_kind: text
 ---
 8 of 79 std files check clean
-0 syntax, 3349 semantic
+0 syntax, 3339 semantic
 
    0 syntax     0 semantic  ai/algorithm/functional.code
    0 syntax    10 semantic  ai/algorithm/reduction.code
@@ -17,7 +16,7 @@ snapshot_kind: text
    0 syntax    10 semantic  ai/tensor/raw.code
    0 syntax     1 semantic  ai/tensor/shape.code
    0 syntax    10 semantic  atomic/atomic.code
-   0 syntax    83 semantic  base64/base64.code
+   0 syntax    82 semantic  base64/base64.code
    0 syntax    10 semantic  bit/bit.code
    0 syntax    20 semantic  bit/mask.code
    0 syntax     9 semantic  builtin/bool.code
@@ -39,17 +38,17 @@ snapshot_kind: text
    0 syntax    30 semantic  collections/bitset.code
    0 syntax    74 semantic  collections/counter.code
    0 syntax    36 semantic  collections/deque.code
-   0 syntax   133 semantic  collections/dict.code
+   0 syntax   130 semantic  collections/dict.code
    0 syntax   124 semantic  collections/linked_list.code
    0 syntax    77 semantic  collections/list.code
    0 syntax    13 semantic  collections/optional.code
    0 syntax   118 semantic  collections/set.code
    0 syntax    51 semantic  collections/span.code
-   0 syntax    56 semantic  collections/string.code
+   0 syntax    55 semantic  collections/string.code
    0 syntax     3 semantic  complex/complex.code
    0 syntax    44 semantic  ffi/cstring.code
    0 syntax    23 semantic  ffi/unsafe_union.code
-   0 syntax    87 semantic  format/format.code
+   0 syntax    84 semantic  format/format.code
    0 syntax    61 semantic  format/repr.code
    0 syntax    30 semantic  gpu/globals.code
    0 syntax    52 semantic  gpu/host_info.code
@@ -72,8 +71,8 @@ snapshot_kind: text
    0 syntax     0 semantic  memory/region.code
    0 syntax    56 semantic  memory/unsafe_pointer.code
    0 syntax    13 semantic  os/env.code
-   0 syntax    42 semantic  os/os.code
-   0 syntax    50 semantic  os/path.code
+   0 syntax    41 semantic  os/os.code
+   0 syntax    49 semantic  os/path.code
    0 syntax     4 semantic  os/process.code
    0 syntax    63 semantic  pathlib/path.code
    0 syntax     0 semantic  prelude.code

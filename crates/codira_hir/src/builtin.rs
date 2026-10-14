@@ -4,7 +4,8 @@
 //!
 //! Functionality:
 //! - Functions the compiler provides itself, with no declaration in any source
-//!   file: `print`, `println` and `channel`.
+//!   file: `print`, `println` and `channel`, and the `len`/`unchecked_get`
+//!   methods of arrays and `str`.
 //!
 //! # Why these are built in rather than library functions
 //!
@@ -53,11 +54,22 @@ pub enum BuiltinFn {
     /// `channel(capacity)` creates a bounded `Channel[T]`, owned by the
     /// enclosing `scope` (see `expr::validator::tasks`).
     Channel,
+    /// `array.len()`: the number of elements, as `usize`.
+    ArrayLen,
+    /// `array.unchecked_get(i)`: the element at `i` with no bounds check.
+    ///
+    /// Indexing (`array[i]`) checks the index and panics with the source
+    /// location when it is out of range. This is the escape hatch for a hot
+    /// loop whose index is already known to be in range; an out-of-range
+    /// index here reads arbitrary memory.
+    ArrayUncheckedGet,
+    /// `s.len()` on a `str`: its length in bytes, as `usize`.
+    StrLen,
 }
 
 impl BuiltinFn {
-    /// Every builtin, for lookup by name.
-    const ALL: &'static [BuiltinFn] = &[
+    /// Every builtin called as a free function, for lookup by name.
+    const FREE_FUNCTIONS: &'static [BuiltinFn] = &[
         BuiltinFn::Print,
         BuiltinFn::Println,
         BuiltinFn::Declassify,
@@ -73,12 +85,17 @@ impl BuiltinFn {
             BuiltinFn::Declassify => "declassify",
             BuiltinFn::CtSelect => "ct_select",
             BuiltinFn::Channel => "channel",
+            BuiltinFn::ArrayLen | BuiltinFn::StrLen => "len",
+            BuiltinFn::ArrayUncheckedGet => "unchecked_get",
         }
     }
 
-    /// The builtin called `name`, if there is one.
+    /// The builtin free function called `name`, if there is one.
     pub fn from_name(name: &Name) -> Option<BuiltinFn> {
         let text = name.as_str()?;
-        Self::ALL.iter().copied().find(|it| it.name() == text)
+        Self::FREE_FUNCTIONS
+            .iter()
+            .copied()
+            .find(|it| it.name() == text)
     }
 }

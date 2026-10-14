@@ -570,6 +570,29 @@ impl InferenceResultBuilder<'_> {
             Expr::While { condition, body } => {
                 self.infer_while_expr(tgt_expr, *condition, *body, expected)
             }
+            Expr::For {
+                pat,
+                iterable,
+                body,
+            } => self.infer_for_expr(*pat, *iterable, *body),
+            Expr::Continue => {
+                if self.active_loop.is_none() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: "`continue` outside of a loop".to_string(),
+                    });
+                }
+                TyKind::Never.intern()
+            }
+            Expr::Range { start, end, .. } => {
+                self.infer_range_bounds(*start, *end);
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: "a range can only be used as the iterable of a `for` loop for now; there is no range value type yet"
+                        .to_string(),
+                });
+                error_type()
+            }
             Expr::RecordLit {
                 type_id,
                 fields,
@@ -951,6 +974,13 @@ impl InferenceResultBuilder<'_> {
                 resolved
             }
             Err(None) => {
+                // `len()` and friends on arrays and `str` are builtins.
+                if let Some(ty) =
+                    self.infer_builtin_method(tgt_expr, &receiver_ty, method_name, args)
+                {
+                    return ty;
+                }
+
                 // Check if there is a field with the same name.
                 let field_with_same_name = self
                     .lookup_field(receiver_ty.clone(), method_name)
@@ -1306,7 +1336,54 @@ impl InferenceResultBuilder<'_> {
                 ty
             }
             BuiltinFn::Channel => self.infer_channel_new(tgt_expr, args),
+            BuiltinFn::ArrayLen | BuiltinFn::ArrayUncheckedGet | BuiltinFn::StrLen => {
+                unreachable!("method builtins are resolved by `infer_builtin_method`")
+            }
         }
+    }
+
+    /// Infers a builtin method call -- `len()` on an array or `str`,
+    /// `unchecked_get(i)` on an array -- or returns `None` when
+    /// `method_name` names no builtin method of `receiver_ty`.
+    fn infer_builtin_method(
+        &mut self,
+        tgt_expr: ExprId,
+        receiver_ty: &Ty,
+        method_name: &Name,
+        args: &[ExprId],
+    ) -> Option<Ty> {
+        let receiver_ty = self.normalize(receiver_ty);
+        let builtin = match (receiver_ty.interned(), method_name.as_str()?) {
+            (TyKind::Array(_), "len") => BuiltinFn::ArrayLen,
+            (TyKind::Array(_), "unchecked_get") => BuiltinFn::ArrayUncheckedGet,
+            (TyKind::Str, "len") => BuiltinFn::StrLen,
+            _ => return None,
+        };
+        self.builtin_calls.insert(tgt_expr, builtin);
+
+        let expected_args = usize::from(builtin == BuiltinFn::ArrayUncheckedGet);
+        if args.len() != expected_args {
+            self.diagnostics
+                .push(InferenceDiagnostic::ParameterCountMismatch {
+                    id: tgt_expr,
+                    found: args.len(),
+                    expected: expected_args,
+                });
+        }
+
+        Some(match builtin {
+            BuiltinFn::ArrayUncheckedGet => {
+                for &arg in args {
+                    let index_ty = self.type_variables.new_integer_var();
+                    self.infer_expr(arg, &Expectation::has_type(index_ty));
+                }
+                match receiver_ty.interned() {
+                    TyKind::Array(elem) => elem.clone(),
+                    _ => error_type(),
+                }
+            }
+            _ => TyKind::Int(IntTy::usize()).intern(),
+        })
     }
 
     /// Checks whether the specified struct type is a unit struct.
@@ -1719,6 +1796,76 @@ impl InferenceResultBuilder<'_> {
         self.infer_loop_contract(tgt_expr);
         self.infer_loop_block(body, ActiveLoop::While);
         Ty::unit()
+    }
+
+    /// Infers the two bounds of a range, which must be the same integer
+    /// type, and returns that type.
+    fn infer_range_bounds(&mut self, start: ExprId, end: ExprId) -> Ty {
+        let start_ty = self.infer_expr(start, &Expectation::none());
+        let end_ty = self.infer_expr_coerce(end, &Expectation::has_type(start_ty.clone()));
+        let elem_ty = self.normalize(&end_ty);
+        match elem_ty.interned() {
+            TyKind::Int(_) | TyKind::InferenceVar(InferTy::Int(_)) | TyKind::Unknown => elem_ty,
+            _ => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: start.into(),
+                    message: format!(
+                        "a range's bounds must be integers, found `{}`",
+                        elem_ty.display(self.db)
+                    ),
+                });
+                error_type()
+            }
+        }
+    }
+
+    /// Infers `for pat in iterable { body }`.
+    ///
+    /// The iterable is a range, whose element is its bounds' integer type,
+    /// or an array, whose element is the array's. The pattern must be
+    /// irrefutable -- a binding, `_` or a tuple of those -- because there is
+    /// no "skip this element" path for a pattern that fails to match.
+    fn infer_for_expr(&mut self, pat: PatId, iterable: ExprId, body: ExprId) -> Ty {
+        let elem_ty = if let Expr::Range { start, end, .. } = self.body[iterable] {
+            self.infer_range_bounds(start, end)
+        } else {
+            let iterable_ty = self.infer_expr(iterable, &Expectation::none());
+            match self.normalize(&iterable_ty).interned() {
+                TyKind::Array(elem) => elem.clone(),
+                TyKind::Unknown => error_type(),
+                _ => {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: iterable.into(),
+                        message: format!(
+                            "cannot iterate over a value of type `{}`: a `for` loop iterates over a range (`a..b`, `a..=b`) or an array",
+                            iterable_ty.display(self.db)
+                        ),
+                    });
+                    error_type()
+                }
+            }
+        };
+
+        if !self.is_irrefutable(pat) {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message:
+                    "a `for` loop's pattern must always match: use a name, `_` or a tuple of those"
+                        .to_string(),
+            });
+        }
+        self.infer_pat(pat, elem_ty);
+        self.infer_loop_block(body, ActiveLoop::For);
+        Ty::unit()
+    }
+
+    /// Whether `pat` matches every value of its type.
+    fn is_irrefutable(&self, pat: PatId) -> bool {
+        match &self.body[pat] {
+            Pat::Bind { .. } | Pat::Wild | Pat::Missing => true,
+            Pat::Tuple(args) => args.iter().all(|&arg| self.is_irrefutable(arg)),
+            Pat::Path(_) | Pat::Literal(_) | Pat::TupleStruct { .. } => false,
+        }
     }
 
     /// Records that inference could not determine the type of `pat`.

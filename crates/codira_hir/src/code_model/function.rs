@@ -462,6 +462,24 @@ impl Function {
         })
     }
 
+    /// The file and text range an expression of this function's body was
+    /// written at, or `None` for an expression the compiler made up.
+    ///
+    /// Code generation uses this to give a runtime panic (an out-of-range
+    /// index, say) the source location the language promises it.
+    pub fn expr_source_range(
+        self,
+        db: &dyn HirDatabase,
+        expr: crate::ExprId,
+    ) -> Option<(FileId, codira_syntax::TextRange)> {
+        let source = self.body_source_map(db).expr_syntax(expr)?;
+        let range = source
+            .value
+            .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+            .range();
+        Some((source.file_id, range))
+    }
+
     pub fn diagnostics(self, db: &dyn HirDatabase, sink: &mut DiagnosticSink<'_>) {
         let body = self.body(db);
         body.add_diagnostics(db, self.into(), sink);

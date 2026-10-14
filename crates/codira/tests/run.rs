@@ -118,3 +118,34 @@ public func main() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+/// An out-of-range index stops the program with a panic naming the index,
+/// the length and the source location -- after flushing what was already
+/// printed -- and exits with status 101. A negative index reads as negative.
+#[test]
+fn out_of_bounds_index_panics_with_its_location() {
+    let dir = package_with(
+        r#"
+public func main() {
+    let xs = [1, 2, 3]
+    println("before")
+    var i: i32 = 0
+    for _ in 0..5 { i -= 1 }
+    println(xs[i + 4])
+    println(xs[i])
+    println("after")
+}
+"#,
+    );
+    let output = codira_run(dir.path(), &[]);
+    let stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(101), "stderr: {stderr}");
+    assert_eq!(stdout, "before\n");
+    assert!(
+        stderr.contains(
+            "panic at mod.code:7:13: index out of bounds: the length is 3 but the index is -1"
+        ),
+        "stderr: {stderr}"
+    );
+}

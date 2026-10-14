@@ -124,6 +124,31 @@ counter += 1
 
 `var` replaces `let mut`; there is no standalone `mut` keyword.
 
+### Loops and arrays
+
+```codira
+for i in 0..10 { }            // 0, 1, ..., 9
+for i in 1..=n { }            // 1, ..., n (stops at the type's max, never wraps)
+for x in xs { }               // each element of the array `xs`
+for (a, b) in pairs { }       // tuple patterns destructure each element
+while cond { if skip { continue } }
+loop { if done { break } }
+
+let xs = [3, 1, 4]
+xs.len()                      // 3, as usize
+xs[i]                         // bounds-checked: an out-of-range index panics
+xs.unchecked_get(i)           // no check, for hot loops with a proven index
+```
+
+A range (`a..b`, `a..=b`) is only valid as a `for` loop's iterable for now --
+there is no range value type. `continue` is a contextual keyword: it means
+"next iteration" only when it stands alone (before `}`, `;` or a line break).
+`&&` and `||` short-circuit.
+
+An out-of-range index prints `panic at mod.code:7:13: index out of bounds: the
+length is 3 but the index is -1` to stderr and ends the program with exit
+status 101. A panic cannot be caught from Codira yet.
+
 ### Records (value) vs classes (reference)
 
 ```codira
@@ -764,9 +789,12 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 
 - `struct`, `class`, `func`, `let`/`var`, tuples and tuple patterns
 - field access, arithmetic, comparisons, `as` casts
-- `if`/`else`, `while`, `loop`/`break`, function calls, methods via `extend`,
+- `if`/`else`, `while`, `loop`, `for` over ranges and arrays, `break`,
+  `continue`, short-circuit `&&`/`||`, function calls, methods via `extend`,
   `Type.assoc_fn()` static calls
-- arrays: literals, indexing, element assignment
+- arrays: literals, bounds-checked indexing and element assignment, `len()`,
+  `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
+  runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
@@ -813,7 +841,7 @@ between tasks (scalars and channels only). No `select` yet.
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
 postfix `!`, postfix `^`. Not available at
-all yet: `for` loops, `enum`, `trait`, `T?`/`nil` at runtime, generic
+all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
 instantiation (generic code type-checks but does not build), `String`, and
 using the standard library from a program.
 

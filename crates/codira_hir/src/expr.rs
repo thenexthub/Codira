@@ -431,6 +431,22 @@ pub enum Expr {
         condition: ExprId,
         body: ExprId,
     },
+    /// `for pat in iterable { body }`. The iterable is a range (`a..b`,
+    /// `a..=b`) or an array; the loop is unit-typed.
+    For {
+        pat: PatId,
+        iterable: ExprId,
+        body: ExprId,
+    },
+    /// `continue`: on to the next iteration of the innermost loop.
+    Continue,
+    /// `start..end`, or `start..=end` when `inclusive`. Valid only as a
+    /// `for` loop's iterable for now; there is no range value type.
+    Range {
+        start: ExprId,
+        end: ExprId,
+        inclusive: bool,
+    },
     RecordLit {
         type_id: LocalTypeRefId,
         fields: Vec<RecordLitField>,
@@ -551,7 +567,7 @@ pub enum ArithOp {
 impl Expr {
     pub fn walk_child_exprs(&self, mut f: impl FnMut(ExprId)) {
         match self {
-            Expr::Missing | Expr::Path(_) | Expr::Literal(_) => {}
+            Expr::Missing | Expr::Path(_) | Expr::Literal(_) | Expr::Continue => {}
             Expr::Block { statements, tail } => {
                 for stmt in statements {
                     match stmt {
@@ -608,6 +624,14 @@ impl Expr {
             Expr::While { condition, body } => {
                 f(*condition);
                 f(*body);
+            }
+            Expr::For { iterable, body, .. } => {
+                f(*iterable);
+                f(*body);
+            }
+            Expr::Range { start, end, .. } => {
+                f(*start);
+                f(*end);
             }
             Expr::RecordLit { fields, spread, .. } => {
                 for field in fields {
@@ -932,6 +956,21 @@ impl<'a> ExprCollector<'a> {
         match expr.kind() {
             ast::ExprKind::LoopExpr(expr) => self.collect_loop(expr),
             ast::ExprKind::WhileExpr(expr) => self.collect_while(expr),
+            ast::ExprKind::ForExpr(expr) => self.collect_for(expr),
+            ast::ExprKind::ContinueExpr(_) => self.alloc_expr(Expr::Continue, syntax_ptr),
+            ast::ExprKind::RangeExpr(e) => {
+                let start = self.collect_expr_opt(e.start());
+                let end = self.collect_expr_opt(e.end());
+                let inclusive = e.is_inclusive();
+                self.alloc_expr(
+                    Expr::Range {
+                        start,
+                        end,
+                        inclusive,
+                    },
+                    syntax_ptr,
+                )
+            }
             ast::ExprKind::ReturnExpr(r) => self.collect_return(r),
             ast::ExprKind::BreakExpr(r) => self.collect_break(r),
             ast::ExprKind::BlockExpr(b) => self.collect_block(b),
@@ -1414,6 +1453,21 @@ impl<'a> ExprCollector<'a> {
         let id = self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr);
         self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
         id
+    }
+
+    fn collect_for(&mut self, expr: ast::ForExpr) -> ExprId {
+        let syntax_node_ptr = AstPtr::new(&expr.clone().into());
+        let pat = self.collect_pat_opt(expr.pat());
+        let iterable = self.collect_expr_opt(expr.iterable());
+        let body = self.collect_block_opt(expr.loop_body());
+        self.alloc_expr(
+            Expr::For {
+                pat,
+                iterable,
+                body,
+            },
+            syntax_node_ptr,
+        )
     }
 
     fn finish(mut self) -> (Body, BodySourceMap) {

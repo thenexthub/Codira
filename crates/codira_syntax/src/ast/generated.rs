@@ -577,6 +577,30 @@ impl ConstDef {
     }
 }
 
+// ContinueExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ContinueExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ContinueExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, CONTINUE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ContinueExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ContinueExpr {}
+
 // DecreasesClause
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -846,6 +870,9 @@ impl AstNode for Expr {
                 | WHILE_EXPR
                 | RETURN_EXPR
                 | BREAK_EXPR
+                | FOR_EXPR
+                | CONTINUE_EXPR
+                | RANGE_EXPR
                 | BLOCK_EXPR
                 | ARRAY_EXPR
                 | TUPLE_EXPR
@@ -893,6 +920,9 @@ pub enum ExprKind {
     WhileExpr(WhileExpr),
     ReturnExpr(ReturnExpr),
     BreakExpr(BreakExpr),
+    ForExpr(ForExpr),
+    ContinueExpr(ContinueExpr),
+    RangeExpr(RangeExpr),
     BlockExpr(BlockExpr),
     ArrayExpr(ArrayExpr),
     TupleExpr(TupleExpr),
@@ -979,6 +1009,21 @@ impl From<ReturnExpr> for Expr {
 }
 impl From<BreakExpr> for Expr {
     fn from(n: BreakExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<ForExpr> for Expr {
+    fn from(n: ForExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<ContinueExpr> for Expr {
+    fn from(n: ContinueExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<RangeExpr> for Expr {
+    fn from(n: RangeExpr) -> Expr {
         Expr { syntax: n.syntax }
     }
 }
@@ -1092,6 +1137,11 @@ impl Expr {
             WHILE_EXPR => ExprKind::WhileExpr(WhileExpr::cast(self.syntax.clone()).unwrap()),
             RETURN_EXPR => ExprKind::ReturnExpr(ReturnExpr::cast(self.syntax.clone()).unwrap()),
             BREAK_EXPR => ExprKind::BreakExpr(BreakExpr::cast(self.syntax.clone()).unwrap()),
+            FOR_EXPR => ExprKind::ForExpr(ForExpr::cast(self.syntax.clone()).unwrap()),
+            CONTINUE_EXPR => {
+                ExprKind::ContinueExpr(ContinueExpr::cast(self.syntax.clone()).unwrap())
+            }
+            RANGE_EXPR => ExprKind::RangeExpr(RangeExpr::cast(self.syntax.clone()).unwrap()),
             BLOCK_EXPR => ExprKind::BlockExpr(BlockExpr::cast(self.syntax.clone()).unwrap()),
             ARRAY_EXPR => ExprKind::ArrayExpr(ArrayExpr::cast(self.syntax.clone()).unwrap()),
             TUPLE_EXPR => ExprKind::TupleExpr(TupleExpr::cast(self.syntax.clone()).unwrap()),
@@ -1395,6 +1445,39 @@ impl FieldExpr {
     }
 
     pub fn name_ref(&self) -> Option<NameRef> {
+        super::child_opt(self)
+    }
+}
+
+// ForExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ForExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ForExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, FOR_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ForExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ast::LoopBodyOwner for ForExpr {}
+impl ForExpr {
+    pub fn pat(&self) -> Option<Pat> {
+        super::child_opt(self)
+    }
+
+    pub fn iterable(&self) -> Option<Expr> {
         super::child_opt(self)
     }
 }
@@ -2793,6 +2876,30 @@ impl PrefixExpr {
         super::child_opt(self)
     }
 }
+
+// RangeExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RangeExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for RangeExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, RANGE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(RangeExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl RangeExpr {}
 
 // RecordField
 

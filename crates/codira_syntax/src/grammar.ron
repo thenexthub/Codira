@@ -180,6 +180,10 @@ Grammar(
         // `verify::synth`). `??`, the other synthesis hole, is two `?`
         // tokens and needs no keyword.
         "choose",
+        // `continue`, promoted only where it stands alone as an expression
+        // (followed by `}`, `;`, a line break or the end of input), so a
+        // binding named `continue` is still an ordinary identifier.
+        "continue",
     ],
     literals: [
         "INT_NUMBER",
@@ -276,6 +280,9 @@ Grammar(
         "WHILE_EXPR",
         "LOOP_EXPR",
         "BREAK_EXPR",
+        "FOR_EXPR",
+        "CONTINUE_EXPR",
+        "RANGE_EXPR",
         "ARRAY_EXPR",
         "TUPLE_EXPR",
         "CLOSURE_EXPR",
@@ -545,6 +552,16 @@ Grammar(
             options: [ "Condition" ]
         ),
         "BreakExpr": (options: ["Expr"]),
+        // `for pat in iterable { .. }`. The iterable is the first `Expr`
+        // child and the body the `BlockExpr` that follows it.
+        "ForExpr": (
+            traits: ["LoopBodyOwner"],
+            options: [ "Pat", ["iterable", "Expr"] ],
+        ),
+        "ContinueExpr": (),
+        // `a..b` (half-open) or `a..=b` (inclusive). The operands are read
+        // with `start`/`end` in `expr_extensions`, like `BinExpr`'s.
+        "RangeExpr": (),
         "ArrayExpr": (
             collections: [
                 [ "exprs", "Expr" ]
@@ -629,6 +646,9 @@ Grammar(
                 "WhileExpr",
                 "ReturnExpr",
                 "BreakExpr",
+                "ForExpr",
+                "ContinueExpr",
+                "RangeExpr",
                 "BlockExpr",
                 "ArrayExpr",
                 "TupleExpr",

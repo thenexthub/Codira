@@ -8,12 +8,13 @@ use super::{
     error_block, expressions, generics, name_ref, name_ref_or_index, params, paths, patterns,
     types, BlockLike, CompletedMarker, Marker, Parser, SyntaxKind, TokenSet, ARG_LIST, ARRAY_EXPR,
     BIN_EXPR, BLOCK_EXPR, BREAK_EXPR, CALL_EXPR, CAST_EXPR, CHANNEL_RECV_EXPR, CHANNEL_SEND_EXPR,
-    CHOOSE_EXPR, CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, DECREASES_CLAUSE, EOF, ERROR, EXPR_STMT,
-    FIELD_EXPR, FLOAT_NUMBER, HANDLER_ARM, HANDLER_ARM_LIST, HANDLE_EXPR, HOLE_EXPR, IDENT,
-    IF_EXPR, INDEX, INDEX_EXPR, INT_NUMBER, INVARIANT_CLAUSE, LET_STMT, LITERAL, LOOP_EXPR,
-    MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, PARAM, PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE,
-    PERFORM_EXPR, PREFIX_EXPR, RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE,
-    SCOPE_EXPR, SPAWN_EXPR, STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
+    CHOOSE_EXPR, CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, CONTINUE_EXPR, DECREASES_CLAUSE, EOF,
+    ERROR, EXPR_STMT, FIELD_EXPR, FLOAT_NUMBER, FOR_EXPR, HANDLER_ARM, HANDLER_ARM_LIST,
+    HANDLE_EXPR, HOLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR, INT_NUMBER, INVARIANT_CLAUSE,
+    LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, PARAM, PARAM_LIST,
+    PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR, RANGE_EXPR, RECORD_FIELD,
+    RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SCOPE_EXPR, SPAWN_EXPR, STRING,
+    TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
 };
 use crate::{parsing::grammar::paths::PATH_FIRST, SyntaxKind::METHOD_CALL_EXPR};
 
@@ -38,6 +39,7 @@ const ATOM_EXPR_FIRST: TokenSet = LITERAL_FIRST.union(PATH_FIRST).union(TokenSet
     T![return],
     T![break],
     T![while],
+    T![for],
     T![comptime],
     T![match],
     T![perform],
@@ -221,6 +223,8 @@ fn expr_bp(p: &mut Parser<'_>, r: Restrictions, bp: u8) -> (Option<CompletedMark
         expr_bp(p, r, op_bp + 1);
         let kind = if op == T![<-] {
             CHANNEL_SEND_EXPR
+        } else if op == T![..] || op == T![..=] {
+            RANGE_EXPR
         } else {
             BIN_EXPR
         };
@@ -239,16 +243,17 @@ fn expr_bp(p: &mut Parser<'_>, r: Restrictions, bp: u8) -> (Option<CompletedMark
 /// |-----|-------------------------------|
 /// |   1 | `=` and compound assignments  |
 /// |   2 | `<-` (channel send)           |
-/// |   3 | `\|\|`                        |
-/// |   4 | `&&`                          |
-/// |   5 | `==` `!=` `<` `>` `<=` `>=`   |
-/// |   6 | `\|`                          |
-/// |   7 | `^`                           |
-/// |   8 | `&`                           |
-/// |   9 | `<<` `>>`                     |
-/// |  10 | `+` `-`                       |
-/// |  11 | `*` `/` `%`                   |
-/// |  12 | `as`                          |
+/// |   3 | `..` `..=` (ranges)           |
+/// |   4 | `\|\|`                        |
+/// |   5 | `&&`                          |
+/// |   6 | `==` `!=` `<` `>` `<=` `>=`   |
+/// |   7 | `\|`                          |
+/// |   8 | `^`                           |
+/// |   9 | `&`                           |
+/// |  10 | `<<` `>>`                     |
+/// |  11 | `+` `-`                       |
+/// |  12 | `*` `/` `%`                   |
+/// |  13 | `as`                          |
 fn current_op(p: &Parser<'_>) -> (u8, SyntaxKind) {
     match p.current() {
         // `expr as Type` (see `expr_bp`). `as` sits at 12, one above `*`/`/`/`%`
@@ -262,40 +267,45 @@ fn current_op(p: &Parser<'_>) -> (u8, SyntaxKind) {
         // unary and postfix operators: `-x as i32` is `(-x) as i32`, and
         // `f() as u8` casts the call's result rather than the callee. That is
         // the layering Rust uses, and the one the stdlib's `as` uses assume.
-        T![as] => (12, T![as]),
+        T![as] => (13, T![as]),
+        // `a..b` and `a..=b`: looser than every arithmetic, comparison and
+        // logical operator, so `0..n + 1` is `0..(n + 1)`. `...` is not a
+        // range (it is the variadic-type token) and is left alone.
+        T![.] if p.at(T![..=]) => (3, T![..=]),
+        T![.] if p.at(T![..]) && !p.at(T![...]) => (3, T![..]),
         T![+] if p.at(T![+=]) => (1, T![+=]),
-        T![+] => (10, T![+]),
+        T![+] => (11, T![+]),
         T![-] if p.at(T![-=]) => (1, T![-=]),
-        T![-] => (10, T![-]),
+        T![-] => (11, T![-]),
         T![*] if p.at(T![*=]) => (1, T![*=]),
-        T![*] => (11, T![*]),
+        T![*] => (12, T![*]),
         T![/] if p.at(T![/=]) => (1, T![/=]),
-        T![/] => (11, T![/]),
+        T![/] => (12, T![/]),
         T![%] if p.at(T![%=]) => (1, T![%=]),
-        T![%] => (11, T![%]),
+        T![%] => (12, T![%]),
         T![&] if p.at(T![&=]) => (1, T![&=]),
-        T![&] if p.at(T![&&]) => (4, T![&&]),
-        T![&] => (8, T![&]),
-        T![|] if p.at(T![||]) => (3, T![||]),
+        T![&] if p.at(T![&&]) => (5, T![&&]),
+        T![&] => (9, T![&]),
+        T![|] if p.at(T![||]) => (4, T![||]),
         T![|] if p.at(T![|=]) => (1, T![|=]),
-        T![|] => (6, T![|]),
+        T![|] => (7, T![|]),
         T![^] if p.at(T![^=]) => (1, T![^=]),
-        T![^] => (7, T![^]),
-        T![=] if p.at(T![==]) => (5, T![==]),
+        T![^] => (8, T![^]),
+        T![=] if p.at(T![==]) => (6, T![==]),
         T![=] => (1, T![=]),
-        T![!] if p.at(T![!=]) => (5, T![!=]),
+        T![!] if p.at(T![!=]) => (6, T![!=]),
         T![>] if p.at(T![>>=]) => (1, T![>>=]),
-        T![>] if p.at(T![>>]) => (9, T![>>]),
-        T![>] if p.at(T![>=]) => (5, T![>=]),
-        T![>] => (5, T![>]),
-        T![<] if p.at(T![<=]) => (5, T![<=]),
+        T![>] if p.at(T![>>]) => (10, T![>>]),
+        T![>] if p.at(T![>=]) => (6, T![>=]),
+        T![>] => (6, T![>]),
+        T![<] if p.at(T![<=]) => (6, T![<=]),
         // `<-` channel send: binds looser than the arithmetic/logical
         // operators (so `ch <- x + 1` sends the whole sum) but tighter than
         // assignment, letting `ch <- x` appear as a standalone statement.
         T![<] if p.at(T![<-]) => (2, T![<-]),
         T![<] if p.at(T![<<=]) => (1, T![<<=]),
-        T![<] if p.at(T![<<]) => (9, T![<<]),
-        T![<] => (5, T![<]),
+        T![<] if p.at(T![<<]) => (10, T![<<]),
+        T![<] => (6, T![<]),
         _ => (0, T![_]),
     }
 }
@@ -354,7 +364,8 @@ fn postfix_expr(
         lhs = match p.current() {
             T!['('] if allow_calls && continues_line => call_expr(p, lhs),
             T!['['] if allow_calls && continues_line => index_expr(p, lhs),
-            T![.] => postfix_dot_expr(p, lhs),
+            // `x..y` is a range, not a field access on `x`.
+            T![.] if !p.at(T![..]) => postfix_dot_expr(p, lhs),
             INDEX => field_expr(p, lhs),
             T![!] if !p.at(T![!=]) => force_unwrap_expr(p, lhs),
             // Postfix `x^` transfers the value. Disambiguated from binary XOR
@@ -526,6 +537,10 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
         return Some((m.complete(p, CHOOSE_EXPR), BlockLike::NotBlock));
     }
 
+    if p.at_contextual_kw("continue") && continue_stands_alone(p) {
+        return Some((continue_expr(p), BlockLike::NotBlock));
+    }
+
     if paths::is_path_start(p) {
         return Some(path_expr(p, r));
     }
@@ -538,6 +553,7 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
         T![loop] => loop_expr(p),
         T![return] => ret_expr(p),
         T![while] => while_expr(p),
+        T![for] => for_expr(p),
         T![break] => break_expr(p, r),
         T![comptime] => comptime_expr(p),
         T![match] => match_expr(p),
@@ -551,7 +567,7 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
         }
     };
     let blocklike = match marker.kind() {
-        IF_EXPR | WHILE_EXPR | LOOP_EXPR | BLOCK_EXPR | COMPTIME_EXPR | MATCH_EXPR
+        IF_EXPR | WHILE_EXPR | FOR_EXPR | LOOP_EXPR | BLOCK_EXPR | COMPTIME_EXPR | MATCH_EXPR
         | HANDLE_EXPR => BlockLike::Block,
         _ => BlockLike::NotBlock,
     };
@@ -916,6 +932,34 @@ fn break_expr(p: &mut Parser<'_>, r: Restrictions) -> CompletedMarker {
         expr(p);
     }
     m.complete(p, BREAK_EXPR)
+}
+
+/// `for pat in iterable { .. }`. The iterable is parsed without struct
+/// literals, exactly like a `while` condition, so the loop body's `{` is never
+/// mistaken for one.
+fn for_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    assert!(p.at(T![for]));
+    let m = p.start();
+    p.bump(T![for]);
+    patterns::pattern(p);
+    p.expect(T![in]);
+    expr_no_struct(p);
+    block(p);
+    m.complete(p, FOR_EXPR)
+}
+
+/// Whether the `continue` at the cursor is the statement, rather than an
+/// identifier that happens to be spelled `continue`: it must stand alone,
+/// followed by `}`, `;`, a line break or the end of input.
+fn continue_stands_alone(p: &Parser<'_>) -> bool {
+    matches!(p.nth(1), T!['}'] | T![;] | EOF) || p.nth_at_start_of_line(1)
+}
+
+/// `continue`: skips to the next iteration of the innermost loop.
+fn continue_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    let m = p.start();
+    p.bump_remap(T![continue]);
+    m.complete(p, CONTINUE_EXPR)
 }
 
 fn while_expr(p: &mut Parser<'_>) -> CompletedMarker {

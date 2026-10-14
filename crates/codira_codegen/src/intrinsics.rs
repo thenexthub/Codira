@@ -104,6 +104,13 @@ pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
     ]
 }
 
+runtime_functions! {
+    /// Reports an out-of-range index into an array of length `len`, at
+    /// `file:line:column`, and terminates the program. Never returns. The
+    /// index travels as 64 bits plus its signedness, so `-1` reads as `-1`.
+    pub fn panic_index_out_of_bounds(index: u64, index_is_signed: u8, len: u64, file: *const u8, file_len: usize, line: u32, column: u32) -> () = "codira.panic_index_out_of_bounds";
+}
+
 /// Every runtime function a `print`/`println` call may need, collected
 /// together so the dispatch table has all of them whenever a module prints
 /// anything at all. Which ones a given call uses depends on its argument

@@ -336,7 +336,12 @@ impl Ty {
     pub fn equals_ctor(&self, other: &Ty) -> bool {
         match (self.interned(), other.interned()) {
             (TyKind::Struct(s1, _), TyKind::Struct(s2, _)) => s1 == s2,
-            (TyKind::Tuple(_, substs1), TyKind::Tuple(_, substs2)) => substs1 == substs2,
+            // Arity only: the elements are the constructor's *arguments*,
+            // which the caller unifies one by one. Comparing them here made
+            // `(1, 2)` fail to unify with `(3, 4)` while both elements were
+            // still distinct integer variables -- so an array of tuples
+            // reported "expected `'0`" on its second element.
+            (TyKind::Tuple(arity1, _), TyKind::Tuple(arity2, _)) => arity1 == arity2,
             (TyKind::Array(_), TyKind::Array(_))
             | (TyKind::Channel(_), TyKind::Channel(_))
             | (TyKind::Bool, TyKind::Bool) => true,
@@ -537,7 +542,9 @@ pub trait TypeWalk {
 impl TypeWalk for Ty {
     fn walk(&self, f: &mut impl FnMut(&Ty)) {
         match self.interned() {
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => f(elem_ty),
+            // Recurse, not just visit: an element type can itself contain
+            // types (`[(T, U)]`), which a resolution pass must reach too.
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk(f),
             _ => {
                 if let Some(substs) = self.type_parameters() {
                     substs.walk(f);
@@ -549,7 +556,7 @@ impl TypeWalk for Ty {
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Ty)) {
         match self.interned_mut() {
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => f(elem_ty),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk_mut(f),
             _ => {
                 if let Some(substs) = self.type_parameters_mut() {
                     substs.walk_mut(f);

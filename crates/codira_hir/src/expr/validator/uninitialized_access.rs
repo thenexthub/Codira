@@ -197,6 +197,22 @@ impl ExprValidator<'_> {
                     ExprKind::Normal,
                 );
             }
+            Expr::For {
+                pat,
+                iterable,
+                body,
+            } => {
+                self.validate_expr_access(sink, initialized_patterns, *iterable, ExprKind::Normal);
+                // The body may run zero times, so nothing it initializes
+                // counts afterwards -- the same rule as a `while` body.
+                let mut body_patterns = initialized_patterns.clone();
+                self.mark_initialized(&mut body_patterns, *pat);
+                self.validate_expr_access(sink, &mut body_patterns, *body, ExprKind::Normal);
+            }
+            Expr::Range { start, end, .. } => {
+                self.validate_expr_access(sink, initialized_patterns, *start, ExprKind::Normal);
+                self.validate_expr_access(sink, initialized_patterns, *end, ExprKind::Normal);
+            }
             Expr::RecordLit { fields, spread, .. } => {
                 for field in fields.iter() {
                     self.validate_expr_access(
@@ -257,7 +273,7 @@ impl ExprValidator<'_> {
                     );
                 }
             }
-            Expr::Literal(_) | Expr::Missing => {}
+            Expr::Literal(_) | Expr::Missing | Expr::Continue => {}
         }
     }
 

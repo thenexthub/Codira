@@ -35,9 +35,23 @@ pub struct Token {
 /// Break a string up into its component tokens
 pub fn tokenize(text: &str) -> Vec<Token> {
     let mut text = text;
-    let mut result = Vec::new();
+    let mut result: Vec<Token> = Vec::new();
     while !text.is_empty() {
-        let token = next_token(text);
+        // The second `.` of a range (`0..10`) must stay a `.`: on its own it
+        // would lex as the tuple-index token `.10` and the range would be
+        // unparseable. A `.` directly after another `.` is never the start
+        // of a tuple index, because `x..1` cannot mean `x.` then `.1`.
+        let after_dot = result
+            .last()
+            .is_some_and(|prev| prev.kind == SyntaxKind::DOT && u32::from(prev.len) == 1);
+        let token = if after_dot && text.starts_with('.') {
+            Token {
+                kind: SyntaxKind::DOT,
+                len: TextSize::from(1),
+            }
+        } else {
+            next_token(text)
+        };
         result.push(token);
         let len: u32 = token.len.into();
         text = &text[len as usize..];

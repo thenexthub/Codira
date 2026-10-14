@@ -92,6 +92,17 @@ fn collect_expr<'ink>(
         }
     }
 
+    // Indexing checks its bounds and panics through the runtime when the
+    // index is out of range.
+    if let Expr::Index { .. } = expr {
+        collect_intrinsic(
+            context,
+            target,
+            &intrinsics::panic_index_out_of_bounds,
+            intrinsics,
+        );
+    }
+
     if let Expr::Array(_) = expr {
         collect_intrinsic(context, target, &intrinsics::new_array, intrinsics);
         *needs_alloc = true;

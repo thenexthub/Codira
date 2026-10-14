@@ -136,6 +136,7 @@ pub enum SyntaxKind {
     OBLIVIOUS_KW,
     SCOPE_KW,
     CHOOSE_KW,
+    CONTINUE_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -213,6 +214,9 @@ pub enum SyntaxKind {
     WHILE_EXPR,
     LOOP_EXPR,
     BREAK_EXPR,
+    FOR_EXPR,
+    CONTINUE_EXPR,
+    RANGE_EXPR,
     ARRAY_EXPR,
     TUPLE_EXPR,
     CLOSURE_EXPR,
@@ -602,6 +606,9 @@ macro_rules! T {
     (choose) => {
         $crate::SyntaxKind::CHOOSE_KW
     };
+    (continue) => {
+        $crate::SyntaxKind::CONTINUE_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -683,6 +690,7 @@ impl SyntaxKind {
         | OBLIVIOUS_KW
         | SCOPE_KW
         | CHOOSE_KW
+        | CONTINUE_KW
         )
     }
 
@@ -866,6 +874,7 @@ impl SyntaxKind {
             OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
             SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
             CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
+            CONTINUE_KW => &SyntaxInfo { name: "CONTINUE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -943,6 +952,9 @@ impl SyntaxKind {
             WHILE_EXPR => &SyntaxInfo { name: "WHILE_EXPR" },
             LOOP_EXPR => &SyntaxInfo { name: "LOOP_EXPR" },
             BREAK_EXPR => &SyntaxInfo { name: "BREAK_EXPR" },
+            FOR_EXPR => &SyntaxInfo { name: "FOR_EXPR" },
+            CONTINUE_EXPR => &SyntaxInfo { name: "CONTINUE_EXPR" },
+            RANGE_EXPR => &SyntaxInfo { name: "RANGE_EXPR" },
             ARRAY_EXPR => &SyntaxInfo { name: "ARRAY_EXPR" },
             TUPLE_EXPR => &SyntaxInfo { name: "TUPLE_EXPR" },
             CLOSURE_EXPR => &SyntaxInfo { name: "CLOSURE_EXPR" },

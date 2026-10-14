@@ -211,6 +211,18 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
                 compute_expr_scopes(arm.body, body, scopes, arm_scope);
             }
         }
+        // The iterable is evaluated outside the loop, so it cannot see the
+        // loop variable; the body can.
+        Expr::For {
+            pat,
+            iterable,
+            body: loop_body,
+        } => {
+            compute_expr_scopes(*iterable, body, scopes, scope);
+            let loop_scope = scopes.new_scope(scope);
+            scopes.add_bindings(body, loop_scope, *pat);
+            compute_expr_scopes(*loop_body, body, scopes, loop_scope);
+        }
         e => e.walk_child_exprs(|e| compute_expr_scopes(e, body, scopes, scope)),
     };
     // `choose x where pred`: the predicate sees everything the expression

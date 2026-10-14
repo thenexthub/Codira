@@ -110,7 +110,7 @@ impl<'t> Parser<'t> {
             T![|=] => self.at_composite2(n, T![|], T![=]),
             T![||] => self.at_composite2(n, T![|], T![|]),
             T![...] => self.at_composite3(n, T![.], T![.], T![.]),
-            //T![..=] => self.at_composite3(n, T![.], T![.], T![=]),
+            T![..=] => self.at_composite3(n, T![.], T![.], T![=]),
             T![<<=] => self.at_composite3(n, T![<], T![<], T![=]),
             T![>>=] => self.at_composite3(n, T![>], T![>], T![=]),
             _ => self.token_source.lookahead_nth(n).kind == kind,
@@ -146,6 +146,11 @@ impl<'t> Parser<'t> {
     /// previous expression -- see `grammar::expressions::postfix_expr`.
     pub(crate) fn at_start_of_line(&self) -> bool {
         self.token_source.lookahead_nth(0).has_newline_before
+    }
+
+    /// Is the token `n` ahead on a different line from the one before it?
+    pub(crate) fn nth_at_start_of_line(&self, n: usize) -> bool {
+        self.token_source.lookahead_nth(n).has_newline_before
     }
 
     /// Checks if the current token is contextual keyword with text `t`.
@@ -255,7 +260,7 @@ impl<'t> Parser<'t> {
             => 2,
 
             T![...]
-            //| T![..=]
+            | T![..=]
             | T![<<=]
             | T![>>=]
             => 3,

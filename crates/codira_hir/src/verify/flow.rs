@@ -414,7 +414,15 @@ impl Checker<'_> {
                             }
                         }
                     }
-                    Some(BuiltinFn::Declassify | BuiltinFn::CtSelect | BuiltinFn::Channel) => {}
+                    // `len`/`unchecked_get` are methods, never a `Call`.
+                    Some(
+                        BuiltinFn::Declassify
+                        | BuiltinFn::CtSelect
+                        | BuiltinFn::Channel
+                        | BuiltinFn::ArrayLen
+                        | BuiltinFn::ArrayUncheckedGet
+                        | BuiltinFn::StrLen,
+                    ) => {}
                     None => self.check_call(id, args, None),
                 }
             }

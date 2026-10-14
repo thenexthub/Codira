@@ -1654,3 +1654,63 @@ fn secret_and_oblivious_are_contextual() {
         .count();
     assert_eq!(secret_types, 3);
 }
+
+/// `for x in a..b { .. }`, `a..=b`, `for (i, v) in xs`, and `continue`.
+#[test]
+fn for_loops_ranges_and_continue() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func f(xs: [i32], n: i32) {
+            for i in 0..10 {
+                if i == 3 { continue }
+                continue;
+            }
+            for i in 1..=n + 1 {}
+            for (a, _) in xs {}
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+/// A range binds looser than arithmetic and comparison, and its second `.`
+/// never lexes as a tuple index (`0..10` is not `0.` then `.10`).
+#[test]
+fn range_precedence_and_lexing() {
+    let expr = only_initializer("0..10");
+    assert_eq!(expr.syntax().kind(), SyntaxKind::RANGE_EXPR);
+    let ast::ExprKind::RangeExpr(range) = expr.kind() else {
+        panic!("expected a range")
+    };
+    assert!(!range.is_inclusive());
+    assert_eq!(range.end().unwrap().syntax().text().to_string(), "10");
+
+    let expr = only_initializer("a + 1..=b * 2");
+    let ast::ExprKind::RangeExpr(range) = expr.kind() else {
+        panic!("expected a range")
+    };
+    assert!(range.is_inclusive());
+    assert_eq!(range.start().unwrap().syntax().kind(), SyntaxKind::BIN_EXPR);
+    assert_eq!(range.end().unwrap().syntax().kind(), SyntaxKind::BIN_EXPR);
+
+    // A tuple index still lexes as one.
+    let expr = only_initializer("t.0");
+    assert_eq!(expr.syntax().kind(), SyntaxKind::FIELD_EXPR);
+}
+
+/// `continue` is contextual: as a binding or in an expression it is an
+/// ordinary identifier.
+#[test]
+fn continue_is_still_an_identifier() {
+    let parse = SourceFile::parse(
+        "func f() -> i32 {
+    let continue = 1
+    continue + 1
+}",
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    assert!(!parse
+        .syntax_node()
+        .descendants()
+        .any(|n| n.kind() == SyntaxKind::CONTINUE_EXPR));
+}

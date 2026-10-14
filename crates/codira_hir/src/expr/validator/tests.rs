@@ -219,3 +219,27 @@ fn test_unlowered_constructs_are_reported_not_crashed() {
     177..179: postfix `!` (force-unwrap) is not supported by the code generator yet: `Type?` optionals have no runtime representation yet
     ");
 }
+
+/// Misuses of `for`, ranges and `continue` are type errors with a message
+/// saying what is allowed.
+#[test]
+fn test_for_range_and_continue_errors() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func f(x: i32, b: bool) {
+        let r = 0..10
+        for i in x { }
+        for i in 0..b { }
+        for 1 in [1, 2] { }
+        continue
+    }
+    "#,
+    ), @"
+    38..43: a range can only be used as the iterable of a `for` loop for now; there is no range value type yet
+    57..58: cannot iterate over a value of type `i32`: a `for` loop iterates over a range (`a..b`, `a..=b`) or an array
+    79..80: mismatched type
+    76..77: a range's bounds must be integers, found `bool`
+    93..94: a `for` loop's pattern must always match: use a name, `_` or a tuple of those
+    113..121: `continue` outside of a loop
+    ");
+}
