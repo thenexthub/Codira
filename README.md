@@ -75,6 +75,157 @@ listed precisely in [`agents/USING_CODIRA.md`](agents/USING_CODIRA.md)
 Verilog output and experimental hardware memory safety (ARM MTE, a
 CHERI-style capability mode) are in progress.
 
+## Compiler architecture
+
+Each stage is a group of crates in `crates/`. Arrows into `codira_smt` (Z3)
+and `codira_tv` are proofs the compiler asks for before it trusts a
+contract, a transformation or a rewrite rule. The dashed box lists work on
+feature branches that has not reached `main` yet.
+
+```mermaid
+flowchart TD
+    %% ---------------------------------------------------------------- 5
+    subgraph TOOLS [" 5. Tooling and interop "]
+        direction LR
+        CLI["codira CLI<br/>new, build, check, run, start,<br/>test, query, synth, quantum"]
+        Daemon["codira_compiler_daemon<br/>warm salsa + LLVM, token-authenticated"]
+        LSP["codira_language_server"]
+        ImportC["codira import-c<br/>C headers via Clang"]
+    end
+    TOOLS ==>|drive| FRONTEND
+
+    %% ---------------------------------------------------------------- 1
+    subgraph FRONTEND [" 1. Front end: codira_syntax, codira_hir (salsa) "]
+        direction TB
+        Src["Codira source<br/>*.code, codira.toml"] --> Parse["codira_syntax<br/>lexer, parser, lossless CST<br/>contextual keywords"]
+        Parse --> ItemTree["Item tree and name resolution<br/>modules, visibility, imports"]
+        ItemTree --> Infer["Type inference<br/>generics, optionals, effects rows"]
+        Infer --> Mono["codira_hir::mono<br/>one instance per type argument"]
+        Comptime["codira_comptime<br/>compile-time interpreter<br/>fuel + depth limits"] <-->|folds comptime blocks| Infer
+
+        subgraph CHECKS [" Static checks, every one a diagnostic, never a crash "]
+            direction LR
+            Effects["Effect obligations<br/>uses / handle"]
+            Tasks["Structured concurrency<br/>scope, spawn, channels"]
+            Flow["Information flow<br/>secret, oblivious, ct_select"]
+            Units["Units of measure<br/>f64 unit(m / s)"]
+            Realtime["@noalloc @nopanic<br/>@noblock @realtime<br/>call-graph fixpoint,<br/>uses proven divisions"]
+            Codegen_ok["Codegen support<br/>honest refusals"]
+        end
+        Infer --> CHECKS
+
+        subgraph VERIFY [" Contract verification: codira_hir::verify "]
+            direction LR
+            Contracts["requires / ensures<br/>invariant / decreases / ghost<br/>refinement types"]
+            Synth["?? holes and choose x where p"]
+            TestGen["Counterexample to test<br/>codira test, codira query"]
+        end
+        Infer --> VERIFY
+    end
+
+    SMT["codira_smt<br/>Z3, deterministic rlimit"]
+    VERIFY <==>|bit-vector proof obligations| SMT
+
+    %% ---------------------------------------------------------------- 2
+    subgraph EIDOS [" 2. Eidos mid-end: codira_mir, codira_egraph, codira_tv "]
+        direction TB
+        MirLower["mir_lower<br/>HIR to region SSA"] --> MIR["Eidos MIR<br/>typed region SSA, memory states"]
+        MIR --> Passes["MIR passes<br/>const_fold, cse, dce, inline,<br/>unroll, simplify, rewrite"]
+        Passes --> EGraph["codira_egraph<br/>equality saturation<br/>hard node cap, exact extractor"]
+        Rewrite["@rewrite rules<br/>library equations"] -->|admitted only when proven| EGraph
+        EGraph --> Fold["eidos_fold<br/>whole-function constant result"]
+        TV["codira_tv<br/>translation validation<br/>counterexamples re-executed"]
+        Passes <==>|each transform checked| TV
+        Rewrite <==>|proof before use| TV
+    end
+    Mono ==>|"--mode=release"| MirLower
+    TV <==> SMT
+
+    %% ---------------------------------------------------------------- 3
+    subgraph BACKENDS [" 3. Back ends: codira_codegen and friends "]
+        direction TB
+        LLVMGen["codira_codegen<br/>HIR instance to LLVM IR via inkwell<br/>bounds checks, effects, tasks, fuel"]
+        Targets["codira_target<br/>14 targets held to LLVM data layouts<br/>--target-cpu"]
+        Native["[native] C, C++, asm in a package<br/>bitcode linked before optimization"]
+        LLD["codira_lld<br/>in-process LLD"]
+        Lib[".codiralib<br/>hot-reloadable shared library"]
+        Exe["codira build --exe<br/>standalone executable"]
+        Wasm["wasm32-unknown-unknown<br/>module that imports nothing"]
+        PTX["@target(gpu)<br/>NVPTX, launched by codira_gpu"]
+        CL["codira_cranelift<br/>codira run --jit, no LLVM, no linker"]
+        Quantum["codira_quantum<br/>@target(qpu): circuit IR, simulator,<br/>QIR, OpenQASM 2/3"]
+        Asm["@asm inline assembly<br/>machine memory intrinsics"]
+
+        LLVMGen --> Targets
+        Native --> LLVMGen
+        Asm --> LLVMGen
+        Targets --> LLD
+        LLD --> Lib
+        LLD --> Exe
+        Targets --> Wasm
+        LLVMGen --> PTX
+        Bindgen["codira bindgen<br/>C, Rust, Go, TypeScript"]
+        Bun["Bun plugin<br/>import a .code file"]
+        Lib --> Bindgen
+        Lib --> Bun
+    end
+    Mono ==> LLVMGen
+    Fold -.->|constant shortcut| LLVMGen
+    Mono ==>|dev JIT| CL
+    Infer ==>|"qpu kernels"| Quantum
+
+    %% ---------------------------------------------------------------- 4
+    subgraph RUNTIME [" 4. Runtime: codira_runtime, codira_memory, codira_healing "]
+        direction TB
+        Loader["codira_libloader + codira_abi<br/>type info, GUIDs, dispatch table"]
+        Reload["Hot reload<br/>relink dispatch table, migrate heap<br/>@renamed, saturating retypes"]
+        GC["codira_memory<br/>mark-sweep GC, size-class blocks<br/>heap cap, heap snapshots"]
+        Regions["Region arenas with quotas<br/>W^X OS pages"]
+        Pool["Worker pool<br/>scope joins, bounded channels"]
+        EffRT["Effect handlers<br/>resume, abort across frames"]
+        Fuel["Fuel metering<br/>--fuel"]
+        Heracles["codira_healing (HERACLES)<br/>fault interception, @heal strategies"]
+        Loader --> Reload
+        Reload --> GC
+        Fuel --> Heracles
+    end
+    Lib ==> Loader
+    Exe ==> Loader
+
+    %% ---------------------------------------------------------------- in progress
+    subgraph NEXT [" In progress on feature branches "]
+        direction LR
+        N1["enum + match"]
+        N2["closures and function values"]
+        N3["select, session types"]
+        N4["attest: ZK circuits<br/>@target(fpga): Verilog"]
+        N5["schedule ... for<br/>LLVM loop metadata"]
+        N6["multi-shot continuations<br/>sample / observe"]
+        N7["proof-carrying artifacts<br/>codira api-diff"]
+        N8["experimental MTE,<br/>software capabilities"]
+    end
+
+    classDef frontend fill:#1e293b,stroke:#38bdf8,color:#f8fafc,stroke-width:2px;
+    classDef mid fill:#172554,stroke:#60a5fa,color:#f8fafc,stroke-width:2px;
+    classDef backend fill:#064e3b,stroke:#34d399,color:#f8fafc,stroke-width:2px;
+    classDef runtime fill:#3b0764,stroke:#c084fc,color:#f8fafc,stroke-width:2px;
+    classDef tools fill:#422006,stroke:#fbbf24,color:#f8fafc,stroke-width:2px;
+    classDef smt fill:#581c87,stroke:#e879f9,color:#f8fafc,stroke-width:2px;
+    classDef sub fill:#0f172a,stroke:#94a3b8,color:#f8fafc,stroke-width:1px;
+    classDef next fill:#1f2937,stroke:#9ca3af,color:#e5e7eb,stroke-width:1px,stroke-dasharray:5 5;
+
+    class FRONTEND frontend;
+    class EIDOS mid;
+    class BACKENDS backend;
+    class RUNTIME runtime;
+    class TOOLS tools;
+    class SMT,TV smt;
+    class NEXT next;
+    class CHECKS,VERIFY sub;
+
+    linkStyle default stroke:#94a3b8,stroke-width:1.5px;
+```
+
 ## Example
 
 <!-- inline HTML is intentionally used to add the id. This allows retrieval of the HTML -->
