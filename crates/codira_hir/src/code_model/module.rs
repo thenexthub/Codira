@@ -6,7 +6,9 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use codira_hir_input::{FileId, ModuleId};
 
-use super::{r#impl::Impl, AssocItem, Effect, Function, Package, PrimitiveType, Struct, TypeAlias};
+use super::{
+    r#impl::Impl, AssocItem, Effect, Function, Package, PrimitiveType, Session, Struct, TypeAlias,
+};
 use crate::{ids::ItemDefinitionId, DiagnosticSink, HirDatabase};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -110,6 +112,7 @@ impl Module {
                 ModuleDef::Struct(s) => s.diagnostics(db, sink),
                 ModuleDef::TypeAlias(t) => t.diagnostics(db, sink),
                 ModuleDef::Effect(e) => e.diagnostics(db, sink),
+                ModuleDef::Session(s) => s.diagnostics(db, sink),
                 _ => (),
             }
         }
@@ -208,6 +211,13 @@ pub enum ModuleDef {
     Struct(Struct),
     TypeAlias(TypeAlias),
     Effect(Effect),
+    Session(Session),
+}
+
+impl From<Session> for ModuleDef {
+    fn from(t: Session) -> Self {
+        ModuleDef::Session(t)
+    }
 }
 
 impl From<Effect> for ModuleDef {
@@ -255,6 +265,7 @@ impl From<ItemDefinitionId> for ModuleDef {
             ItemDefinitionId::TypeAliasId(id) => TypeAlias { id }.into(),
             ItemDefinitionId::PrimitiveType(ty) => PrimitiveType { inner: ty }.into(),
             ItemDefinitionId::EffectId(id) => Effect { id }.into(),
+            ItemDefinitionId::SessionId(id) => Session { id }.into(),
         }
     }
 }

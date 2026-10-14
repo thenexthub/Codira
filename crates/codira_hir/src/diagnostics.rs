@@ -721,6 +721,30 @@ impl Diagnostic for EffectError {
     }
 }
 
+/// A misuse of a session type or one of its endpoints: a payload a session
+/// cannot carry, or an operation the protocol does not allow at that point
+/// (see `expr::session`). One type with a message, like `EffectError`.
+#[derive(Debug)]
+pub struct SessionError {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for SessionError {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A refinement type (`Type { binder | predicate }`, see
 /// `spec/LANGUAGE_SPEC.md` §7) whose predicate `codira_smt` (a real Z3
 /// solver -- see `crate::refinement_check`) has proven unsatisfiable: no

@@ -380,6 +380,94 @@ func collect(jobs: Channel[i64], results: Channel[i64], quit: Channel[bool]) -> 
   as unknown and a received value as unconstrained. Cranelift (`--jit`)
   declines `select`, as it declines channels.
 
+#### Session types: protocols checked at compile time
+
+```codira
+session Checkout {                  // what the customer's endpoint does
+    send i64; recv i64              // send an item, receive its price
+    choose { send bool; recv i64 }  // branch 0: pay (or not), get a receipt
+    or { send i32 }                 // branch 1: give a reason and stop
+}
+
+func shop(ep: dual Checkout) {      // the other side: send<->recv, choose<->offer
+    let item = <-ep
+    ep <- item * 100
+    offer ep {                      // runs the branch the customer chose
+        let pay = <-ep
+        if pay { ep <- 1 } else { ep <- 0 }
+    } or {
+        let reason = <-ep
+    }
+}
+
+public func buy(item: i64, budget: i64) -> i64 {
+    scope {
+        let (me, them) = Checkout.open()   // me: Checkout, them: dual Checkout
+        spawn shop(them)                   // the task owns `them` now
+        me <- item
+        let price = <-me
+        if price <= budget {
+            me.choose(0)
+            me <- true
+            let receipt = <-me
+            price * 10 + receipt
+        } else {
+            me.choose(1)
+            me <- 7
+            -1
+        }
+    }
+}
+```
+
+- `session Name { .. }` (contextual keyword, only before a name and `{`)
+  lists the steps one endpoint takes: `send T`, `recv T`,
+  `choose { .. } or { .. } ..` (this side picks a branch) and
+  `offer { .. } or { .. } ..` (the other side picks). `;` between steps is
+  optional. Steps after a `choose`/`offer` continue every branch. Payloads
+  are integers, floats or `bool`, as on channels. There is no repetition
+  (no recursive protocols).
+- Types: `Name` is an endpoint following the protocol as written,
+  `dual Name` one following its dual (every `send` a `recv`, every `choose`
+  an `offer`, and back).
+- `let (a, b) = Name.open()` -- only inside a `scope`, which owns the pair
+  and frees it when it ends -- makes a connected pair: `a: Name`,
+  `b: dual Name`. Both names must be bound.
+- On an endpoint: `ep <- v` sends, `<-ep` receives (its type is the
+  payload type at that step), `ep.choose(k)` takes branch `k` (an integer
+  literal), `offer ep { .. } or { .. }` runs the block for the branch the
+  other side chose (one block per branch, in order; it is an expression
+  whose blocks share one type).
+- An endpoint is passed to a function or `spawn` whose parameter has its
+  exact session type (`Name` or `dual Name`), and only before it has been
+  used; the callee then owns it. Two tasks talk by spawning a function
+  with one endpoint and keeping the other.
+- The compiler follows every endpoint along every path and rejects:
+  an operation other than the one the protocol expects next (or a payload
+  of the wrong type); any use after the protocol ended, or after the
+  endpoint was passed on; branches of an `if`/`select`/`offer` (and the two
+  outcomes of `&&`/`||`, and an `if` without `else`) that leave an endpoint
+  at different steps; a loop that moves an endpoint (body end, `break`,
+  `continue`); a function or the block that opened a pair ending -- by any
+  path, `return` included -- before every endpoint reached the end of its
+  protocol (or was passed on); a `perform`, or a call to a `uses` function,
+  while an endpoint is part-way through its protocol (a handler could
+  abandon the function there); a handler arm that moves an endpoint; and
+  copying, storing or returning an endpoint (endpoints are linear: used
+  only with `<-`, `.choose`, `offer`, or as an argument). A `select` waits
+  on channels only, not endpoints.
+- What that guarantees: **protocol fidelity** for each pair -- every send
+  meets a receive of the same type, every `choose` an `offer` with that
+  branch, and neither side stops early. **Deadlock freedom only for a
+  single session between two tasks that block on nothing else.** Tasks
+  that interleave several sessions or channels can still deadlock each
+  other, and one task holding both endpoints of a pair can deadlock itself;
+  neither is checked.
+- Runtime: a pair is two one-slot channels, one each way; a step's payload
+  size is passed with it. A secret cannot be sent on an endpoint (same rule
+  as channels). Cranelift and quantum kernels decline sessions; the
+  verifier treats `offer`'s branch as unknown.
+
 ### Contracts and verification
 
 Every contract is proven at compile time by Z3; a clause that cannot be
@@ -881,8 +969,10 @@ their module).
 
 Structured concurrency (`scope`, `spawn`, `channel(n)`, `ch <- v`, `<-ch`)
 on a worker pool; see "Structured concurrency" above for what may cross
-between tasks (scalars and channels only), and `select` over channel
-operations (fair, with an optional `default`).
+between tasks (scalars and channels only), `select` over channel
+operations (fair, with an optional `default`), and session types (two
+tasks following dual protocols, checked at compile time; see "Session
+types").
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,

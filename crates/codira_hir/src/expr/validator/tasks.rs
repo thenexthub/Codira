@@ -25,6 +25,10 @@
 //!   it is passed to cannot keep it (no return, no field, no array can hold
 //!   one); a task it is passed to is joined no later than the scope that owns
 //!   the channel. A `select` arm's channel is a use like `<-`.
+//! * Session endpoints (`expr::session`) follow the same "only used" rule, with
+//!   `.choose(..)` and `offer` as further uses; `S.open()` appears only inside
+//!   a `scope`, which owns the pair; a spawned function may take endpoints. The
+//!   protocol checker's findings are reported here too.
 //! * A `select` has at least one arm -- with none it would wait forever -- and
 //!   at most one `default`. Every other arm is a channel operation (`name =
 //!   <-ch`, `<-ch` or `ch <- value`), and only a receive binds a name.
@@ -50,6 +54,7 @@ fn is_scalar(ty: &Ty) -> bool {
 fn is_task_argument(ty: &Ty) -> bool {
     match ty.interned() {
         TyKind::Channel(element) => is_scalar(element),
+        TyKind::Session(..) => true,
         _ => is_scalar(ty),
     }
 }
@@ -65,9 +70,19 @@ impl ExprValidator<'_> {
                     | Expr::ChannelSend { .. }
                     | Expr::ChannelReceive { .. }
                     | Expr::Select { .. }
+                    | Expr::Offer { .. }
             ) || self.infer.builtin_call(id) == Some(BuiltinFn::Channel)
-                || matches!(self.infer[id].interned(), TyKind::Channel(_))
+                || matches!(
+                    self.infer[id].interned(),
+                    TyKind::Channel(_) | TyKind::Session(..)
+                )
+                || crate::expr::opened_session(self.db, &self.body, id).is_some()
         });
+        // An endpoint parameter that is never used still has a protocol to
+        // finish, so the checker's findings are reported either way.
+        for (expr, message) in &self.db.session_flow(self.body.owner()).errors {
+            self.push_task_error(*expr, message.clone(), sink);
+        }
         if !uses_tasks {
             return;
         }
@@ -79,6 +94,18 @@ impl ExprValidator<'_> {
         for (expr, _) in self.body.exprs() {
             if self.body.contracts().ghost_exprs.contains(&expr) {
                 continue;
+            }
+            if matches!(self.infer[expr].interned(), TyKind::Session(..))
+                && !allowed.contains(&expr)
+            {
+                self.push_task_error(
+                    expr,
+                    "a session endpoint can only be used with `<-`, `.choose(..)` or `offer`, or \
+                     passed to a function or to `spawn`: it is linear, so it cannot be copied, \
+                     stored or returned"
+                        .to_string(),
+                    sink,
+                );
             }
             if matches!(self.infer[expr].interned(), TyKind::Channel(_)) && !allowed.contains(&expr)
             {
@@ -144,11 +171,33 @@ impl ExprValidator<'_> {
                 }
             }
             Expr::Select { arms } => self.validate_select(expr, arms, allowed, sink),
+            Expr::Offer { endpoint, .. } => {
+                if matches!(self.body[*endpoint], Expr::Path(_)) {
+                    allowed.insert(*endpoint);
+                }
+            }
             Expr::Call { args, .. } | Expr::MethodCall { args, .. } => {
                 for &arg in args {
                     if matches!(self.body[arg], Expr::Path(_)) {
                         allowed.insert(arg);
                     }
+                }
+                // `ep.choose(k)`.
+                if let Expr::MethodCall { receiver, .. } = &self.body[expr] {
+                    if matches!(self.body[*receiver], Expr::Path(_))
+                        && matches!(self.infer[*receiver].interned(), TyKind::Session(..))
+                    {
+                        allowed.insert(*receiver);
+                    }
+                }
+                if crate::expr::opened_session(self.db, &self.body, expr).is_some() && !in_scope {
+                    self.push_task_error(
+                        expr,
+                        "a session must be opened inside a `scope { .. }` block, which owns its \
+                         endpoints and frees them when it ends"
+                            .to_string(),
+                        sink,
+                    );
                 }
             }
             Expr::Block { statements, .. } => {

@@ -154,6 +154,24 @@ fn select_arms() {
 }
 
 #[test]
+fn sessions_dual_types_and_offers() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        public session Checkout {
+            send i64; recv i64
+            choose { send bool; recv i64 } or { send i32 }
+        }
+        func shop(ep: dual Checkout) {
+            offer ep { ep <- 1 } or { let x = <-ep }
+            ep.choose(0)
+            let session = 1
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn attributes_and_extern_blocks() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

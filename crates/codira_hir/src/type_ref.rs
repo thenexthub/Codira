@@ -37,6 +37,8 @@ pub enum TypeRef {
     /// itself is parsed but not yet checked by inference; like `Optional`,
     /// this lowers transparently to its base type for now.
     Refinement(LocalTypeRefId),
+    /// `dual S`: the other endpoint's view of session `S`.
+    Dual(LocalTypeRefId),
     Never,
     Tuple(Vec<LocalTypeRefId>),
     Error,
@@ -123,8 +125,8 @@ impl TypeRefMapBuilder {
     /// `TypeRef`.
     pub fn alloc_from_node(&mut self, node: &ast::TypeRef) -> LocalTypeRefId {
         use codira_syntax::ast::TypeRefKind::{
-            ArrayType, FunctionType, NeverType, OptionalType, ParenType, PathType, ReferenceType,
-            RefinementType, SecretType, TupleType, VariadicType,
+            ArrayType, DualType, FunctionType, NeverType, OptionalType, ParenType, PathType,
+            ReferenceType, RefinementType, SecretType, TupleType, VariadicType,
         };
 
         let ptr = AstPtr::new(node);
@@ -190,6 +192,7 @@ impl TypeRefMapBuilder {
             SecretType(inner) => {
                 return self.alloc_from_node_opt(inner.type_ref().as_ref());
             }
+            DualType(inner) => TypeRef::Dual(self.alloc_from_node_opt(inner.type_ref().as_ref())),
         };
         self.alloc_type_ref(type_ref, ptr)
     }

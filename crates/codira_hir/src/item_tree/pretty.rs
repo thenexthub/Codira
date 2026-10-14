@@ -78,6 +78,13 @@ impl Printer<'_> {
             ModItem::Import(it) => self.print_use(it),
             ModItem::Impl(it) => self.print_impl(it),
             ModItem::Effect(it) => self.print_effect(it),
+            ModItem::Session(it) => {
+                let super::Session {
+                    name, visibility, ..
+                } = &self.tree[it];
+                self.print_visibility(*visibility)?;
+                writeln!(self, "session {name} {{ .. }}")
+            }
         }
     }
 

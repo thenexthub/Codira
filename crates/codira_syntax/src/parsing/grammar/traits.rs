@@ -8,7 +8,7 @@ use super::{
     declarations::{declaration, fn_def},
     error_block, generics, name, name_recovery, types, Marker, Parser, EFFECT_DEF, EFFECT_OP,
     EFFECT_OP_LIST, EXTEND, EXTEND_ITEM_LIST, EXTERN_BLOCK, EXTERN_ITEM_LIST, INHERITANCE_LIST,
-    PARAM_LIST, RET_TYPE, TRAIT_DEF,
+    PARAM_LIST, RET_TYPE, SESSION_DEF, SESSION_PROTOCOL, SESSION_STEP, TRAIT_DEF,
 };
 use crate::SyntaxKind::{EOF, FUNCTION_DEF, STRING};
 
@@ -85,6 +85,73 @@ pub(super) fn trait_def(p: &mut Parser<'_>, m: Marker) {
         p.error("expected `{`");
     }
     m.complete(p, TRAIT_DEF);
+}
+
+/// Parses `session Name { steps }`, a session type: the protocol one endpoint
+/// of a connected pair follows (see `codira_hir::code_model::session`).
+pub(super) fn session_def(p: &mut Parser<'_>, m: Marker) {
+    assert!(p.at_contextual_kw("session"));
+    p.bump_remap(T![session]);
+    name_recovery(p, super::declarations::DECLARATION_RECOVERY_SET);
+    if p.at(T!['{']) {
+        session_protocol(p);
+    } else {
+        p.error("expected `{`");
+    }
+    m.complete(p, SESSION_DEF);
+}
+
+/// `{ step; step .. }`: a sequence of protocol steps. `;` between steps is
+/// optional.
+fn session_protocol(p: &mut Parser<'_>) {
+    assert!(p.at(T!['{']));
+    let m = p.start();
+    p.bump(T!['{']);
+    while !p.at(EOF) && !p.at(T!['}']) {
+        if p.eat(T![;]) {
+            continue;
+        }
+        session_step(p);
+    }
+    p.expect(T!['}']);
+    m.complete(p, SESSION_PROTOCOL);
+}
+
+/// `send T`, `recv T`, `choose { .. } or { .. }` or `offer { .. } or { .. }`.
+fn session_step(p: &mut Parser<'_>) {
+    let m = p.start();
+    if p.at_contextual_kw("send") || p.at_contextual_kw("recv") {
+        p.bump_remap(if p.at_contextual_kw("send") {
+            T![send]
+        } else {
+            T![recv]
+        });
+        types::type_(p);
+    } else if p.at_contextual_kw("choose") || p.at_contextual_kw("offer") {
+        p.bump_remap(if p.at_contextual_kw("choose") {
+            T![choose]
+        } else {
+            T![offer]
+        });
+        if p.at(T!['{']) {
+            session_protocol(p);
+        } else {
+            p.error("expected `{`");
+        }
+        while p.at_contextual_kw("or") {
+            p.bump_remap(T![or]);
+            if !p.at(T!['{']) {
+                p.error("expected `{` after `or`");
+                break;
+            }
+            session_protocol(p);
+        }
+    } else {
+        m.abandon(p);
+        p.error_and_bump("expected `send`, `recv`, `choose` or `offer`");
+        return;
+    }
+    m.complete(p, SESSION_STEP);
 }
 
 /// Parses `effect Name { func op(..) -> T }`, an algebraic effect signature.

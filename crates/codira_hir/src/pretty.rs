@@ -56,6 +56,10 @@ pub(crate) fn print_type_ref<W: Write>(
             write!(write, "?")
         }
         TypeRef::Refinement(elem) => print_type_ref(db, type_ref, *elem, write),
+        TypeRef::Dual(elem) => {
+            write!(write, "dual ")?;
+            print_type_ref(db, type_ref, *elem, write)
+        }
         TypeRef::Error => write!(write, "{{unknown}}"),
     }
 }

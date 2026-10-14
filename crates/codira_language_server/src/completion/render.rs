@@ -63,7 +63,9 @@ impl<'a> Render<'a> {
         local_name: String,
         resolution: &ScopeDef,
     ) -> Option<CompletionItem> {
-        use codira_hir::ModuleDef::{Effect, Function, Module, PrimitiveType, Struct, TypeAlias};
+        use codira_hir::ModuleDef::{
+            Effect, Function, Module, PrimitiveType, Session, Struct, TypeAlias,
+        };
 
         let kind = match resolution {
             ScopeDef::ModuleDef(Module(_)) => CompletionItemKind::SymbolKind(SymbolKind::Module),
@@ -72,7 +74,9 @@ impl<'a> Render<'a> {
             }
             ScopeDef::ModuleDef(PrimitiveType(_)) => CompletionItemKind::BuiltinType,
             ScopeDef::ModuleDef(Struct(_)) => CompletionItemKind::SymbolKind(SymbolKind::Struct),
-            ScopeDef::ModuleDef(TypeAlias(_)) => {
+            // A session is a named type with no fields of its own; the
+            // closest symbol kind editors know is a type alias.
+            ScopeDef::ModuleDef(TypeAlias(_) | Session(_)) => {
                 CompletionItemKind::SymbolKind(SymbolKind::TypeAlias)
             }
             ScopeDef::ModuleDef(Effect(_)) => CompletionItemKind::SymbolKind(SymbolKind::Effect),
@@ -110,7 +114,8 @@ impl<'a> Render<'a> {
                 ModuleDef::Module(_)
                 | ModuleDef::Function(_)
                 | ModuleDef::TypeAlias(_)
-                | ModuleDef::Effect(_),
+                | ModuleDef::Effect(_)
+                | ModuleDef::Session(_),
             ) => (),
         }
 

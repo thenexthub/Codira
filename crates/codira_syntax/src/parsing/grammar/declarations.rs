@@ -166,6 +166,11 @@ fn declarations_without_modifiers(p: &mut Parser<'_>, m: Marker) -> Result<(), M
         T![supervisor] => {
             supervisor_def(p, m);
         }
+        // `session Name { .. }`. Contextual: only a name and `{` after it
+        // make `session` a keyword.
+        IDENT if p.at_contextual_kw("session") && p.nth(1) == IDENT && p.nth_at(2, T!['{']) => {
+            traits::session_def(p, m);
+        }
         _ => return Err(m),
     };
     Ok(())

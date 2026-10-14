@@ -17,7 +17,10 @@ use either::Either;
 use la_arena::{Arena, ArenaMap, Idx};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-pub use self::scope::ExprScopes;
+pub use self::{
+    scope::ExprScopes,
+    session::{opened_session, SessionFlow},
+};
 use crate::{
     code_model::{src::HasSource, DefWithBody},
     diagnostics::DiagnosticSink,
@@ -31,6 +34,7 @@ use crate::{
 
 pub(crate) mod effects;
 pub(crate) mod scope;
+pub(crate) mod session;
 mod tasks;
 pub(crate) mod validator;
 
@@ -519,6 +523,12 @@ pub enum Expr {
     Select {
         arms: Vec<SelectArm>,
     },
+    /// `offer endpoint { .. } or { .. }`: receives the other endpoint's
+    /// choice and runs that branch (see `expr::session`).
+    Offer {
+        endpoint: ExprId,
+        branches: Vec<ExprId>,
+    },
 }
 
 /// One arm of a `select`: `op -> body`.
@@ -721,6 +731,10 @@ impl Expr {
                 for arm in arms {
                     f(arm.body);
                 }
+            }
+            Expr::Offer { endpoint, branches } => {
+                f(*endpoint);
+                branches.iter().copied().for_each(f);
             }
         }
     }
@@ -1299,6 +1313,7 @@ impl<'a> ExprCollector<'a> {
             }
             ast::ExprKind::ChannelSendExpr(e) => self.collect_channel_send(&e, syntax_ptr),
             ast::ExprKind::SelectExpr(e) => self.collect_select(&e, syntax_ptr),
+            ast::ExprKind::OfferExpr(e) => self.collect_offer(&e, syntax_ptr),
             ast::ExprKind::CallExpr(e) => {
                 let callee = self.collect_expr_opt(e.expr());
                 let args = if let Some(arg_list) = e.arg_list() {

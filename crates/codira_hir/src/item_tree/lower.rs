@@ -24,7 +24,8 @@ use smallvec::SmallVec;
 use super::{
     diagnostics, AssociatedItem, Const, Effect, Field, Fields, Function, FunctionFlags,
     GenericParamData, IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities,
-    LocalItemTreeId, ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias, INTRINSIC_ABI,
+    LocalItemTreeId, ModItem, Param, ParamAstId, RawVisibilityId, Session, Struct, TypeAlias,
+    INTRINSIC_ABI,
 };
 use crate::{
     item_tree::Import,
@@ -91,6 +92,7 @@ impl Context {
                 ModItem::TypeAlias(item) => Some(&self.data.type_aliases[item.index].name),
                 ModItem::Const(item) => Some(&self.data.consts[item.index].name),
                 ModItem::Effect(item) => Some(&self.data.effects[item.index].name),
+                ModItem::Session(item) => Some(&self.data.sessions[item.index].name),
                 ModItem::Import(item) => {
                     let import = &self.data.imports[item.index];
                     if import.is_glob {
@@ -144,6 +146,7 @@ impl Context {
             )),
             ast::ModuleItemKind::Extend(ast) => self.lower_impl(&ast).map(Into::into),
             ast::ModuleItemKind::EffectDef(ast) => self.lower_effect(&ast).map(Into::into),
+            ast::ModuleItemKind::SessionDef(ast) => self.lower_session(&ast).map(Into::into),
             // `trait`, `enum`, `macro`, and `extern "C" { .. }` blocks are
             // fully parsed (see `codira_syntax`) but not yet lowered into name-resolvable
             // HIR items -- that requires their own item-tree/code-model support (akin
@@ -396,6 +399,24 @@ impl Context {
                     name,
                     visibility,
                     ops,
+                    ast_id,
+                })
+                .into(),
+        )
+    }
+
+    /// Lowers a `session` declaration. Its protocol is read from the source
+    /// by `code_model::Session`, like an effect's operation signatures.
+    fn lower_session(&mut self, session: &ast::SessionDef) -> Option<LocalItemTreeId<Session>> {
+        let name = session.name()?.as_name();
+        let visibility = lower_visibility(session);
+        let ast_id = self.source_ast_id_map.ast_id(session);
+        Some(
+            self.data
+                .sessions
+                .alloc(Session {
+                    name,
+                    visibility,
                     ast_id,
                 })
                 .into(),

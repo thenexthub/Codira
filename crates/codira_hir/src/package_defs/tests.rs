@@ -344,6 +344,20 @@ fn tree_for_module(
                     node.push(format!("use effect {fully_qualified_name}"));
                 }
             }
+            ItemDefinitionId::SessionId(session) => {
+                let session: crate::Session = (*session).into();
+                let name = session.name(db);
+                if is_local {
+                    node.push(format!("session {name}"));
+                } else {
+                    let fully_qualified_name = format!(
+                        "{}::{}",
+                        fully_qualified_module_path(db, session.module(db)),
+                        name
+                    );
+                    node.push(format!("use session {fully_qualified_name}"));
+                }
+            }
             ItemDefinitionId::PrimitiveType(_) => {}
         }
     }

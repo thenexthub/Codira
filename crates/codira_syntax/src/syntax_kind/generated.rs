@@ -137,6 +137,12 @@ pub enum SyntaxKind {
     SCOPE_KW,
     SELECT_KW,
     DEFAULT_KW,
+    SESSION_KW,
+    SEND_KW,
+    RECV_KW,
+    OFFER_KW,
+    OR_KW,
+    DUAL_KW,
     CHOOSE_KW,
     CONTINUE_KW,
     INT_NUMBER,
@@ -233,6 +239,11 @@ pub enum SyntaxKind {
     SELECT_EXPR,
     SELECT_ARM_LIST,
     SELECT_ARM,
+    SESSION_DEF,
+    SESSION_PROTOCOL,
+    SESSION_STEP,
+    DUAL_TYPE,
+    OFFER_EXPR,
     HANDLE_EXPR,
     HANDLER_ARM_LIST,
     HANDLER_ARM,
@@ -614,6 +625,24 @@ macro_rules! T {
     (default) => {
         $crate::SyntaxKind::DEFAULT_KW
     };
+    (session) => {
+        $crate::SyntaxKind::SESSION_KW
+    };
+    (send) => {
+        $crate::SyntaxKind::SEND_KW
+    };
+    (recv) => {
+        $crate::SyntaxKind::RECV_KW
+    };
+    (offer) => {
+        $crate::SyntaxKind::OFFER_KW
+    };
+    (or) => {
+        $crate::SyntaxKind::OR_KW
+    };
+    (dual) => {
+        $crate::SyntaxKind::DUAL_KW
+    };
     (choose) => {
         $crate::SyntaxKind::CHOOSE_KW
     };
@@ -702,6 +731,12 @@ impl SyntaxKind {
         | SCOPE_KW
         | SELECT_KW
         | DEFAULT_KW
+        | SESSION_KW
+        | SEND_KW
+        | RECV_KW
+        | OFFER_KW
+        | OR_KW
+        | DUAL_KW
         | CHOOSE_KW
         | CONTINUE_KW
         )
@@ -888,6 +923,12 @@ impl SyntaxKind {
             SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
             SELECT_KW => &SyntaxInfo { name: "SELECT_KW" },
             DEFAULT_KW => &SyntaxInfo { name: "DEFAULT_KW" },
+            SESSION_KW => &SyntaxInfo { name: "SESSION_KW" },
+            SEND_KW => &SyntaxInfo { name: "SEND_KW" },
+            RECV_KW => &SyntaxInfo { name: "RECV_KW" },
+            OFFER_KW => &SyntaxInfo { name: "OFFER_KW" },
+            OR_KW => &SyntaxInfo { name: "OR_KW" },
+            DUAL_KW => &SyntaxInfo { name: "DUAL_KW" },
             CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
             CONTINUE_KW => &SyntaxInfo { name: "CONTINUE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
@@ -984,6 +1025,11 @@ impl SyntaxKind {
             SELECT_EXPR => &SyntaxInfo { name: "SELECT_EXPR" },
             SELECT_ARM_LIST => &SyntaxInfo { name: "SELECT_ARM_LIST" },
             SELECT_ARM => &SyntaxInfo { name: "SELECT_ARM" },
+            SESSION_DEF => &SyntaxInfo { name: "SESSION_DEF" },
+            SESSION_PROTOCOL => &SyntaxInfo { name: "SESSION_PROTOCOL" },
+            SESSION_STEP => &SyntaxInfo { name: "SESSION_STEP" },
+            DUAL_TYPE => &SyntaxInfo { name: "DUAL_TYPE" },
+            OFFER_EXPR => &SyntaxInfo { name: "OFFER_EXPR" },
             HANDLE_EXPR => &SyntaxInfo { name: "HANDLE_EXPR" },
             HANDLER_ARM_LIST => &SyntaxInfo { name: "HANDLER_ARM_LIST" },
             HANDLER_ARM => &SyntaxInfo { name: "HANDLER_ARM" },

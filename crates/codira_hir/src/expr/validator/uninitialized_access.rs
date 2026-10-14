@@ -312,6 +312,32 @@ impl ExprValidator<'_> {
                     initialized_patterns.extend(after);
                 }
             }
+            // Exactly one branch runs, as for a `select`.
+            Expr::Offer { endpoint, branches } => {
+                self.validate_expr_access(sink, initialized_patterns, *endpoint, ExprKind::Normal);
+                let mut after: Option<HashSet<PatId>> = None;
+                for &branch in branches {
+                    let mut branch_initialized = initialized_patterns.clone();
+                    self.validate_expr_access(
+                        sink,
+                        &mut branch_initialized,
+                        branch,
+                        ExprKind::Normal,
+                    );
+                    if !self.infer[branch].is_never() {
+                        after = Some(match after {
+                            None => branch_initialized,
+                            Some(previous) => previous
+                                .intersection(&branch_initialized)
+                                .copied()
+                                .collect(),
+                        });
+                    }
+                }
+                if let Some(after) = after {
+                    initialized_patterns.extend(after);
+                }
+            }
             Expr::Literal(_) | Expr::Missing | Expr::Continue => {}
         }
     }

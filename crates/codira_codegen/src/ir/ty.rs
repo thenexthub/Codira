@@ -333,7 +333,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
-            TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Channel(_) | TyKind::Session(..) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -352,7 +352,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
-            TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Channel(_) | TyKind::Session(..) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -375,7 +375,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
-            TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Channel(_) | TyKind::Session(..) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -430,10 +430,10 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             // A channel is an opaque runtime handle. It gets an id of its own
             // so a signature mentioning one still has reflection metadata;
             // the host has no way to make one.
-            TyKind::Channel(_) => Arc::new(TypeId {
+            TyKind::Channel(_) | TyKind::Session(..) => Arc::new(TypeId {
                 data: TypeIdData::Concrete(Guid::from_str(
                     &ty.guid_string(self.db)
-                        .expect("a channel's element type has a guid string"),
+                        .expect("a channel's element type, or a session, has a guid string"),
                 )),
                 name: ty.display(self.db).to_string(),
             }),

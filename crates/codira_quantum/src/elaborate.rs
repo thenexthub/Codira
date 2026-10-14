@@ -697,10 +697,12 @@ impl Elaborator<'_> {
             | Expr::Spawn { .. }
             | Expr::ChannelSend { .. }
             | Expr::ChannelReceive { .. }
-            | Expr::Select { .. } => Err(self.error(
+            | Expr::Select { .. }
+            | Expr::Offer { .. } => Err(self.error(
                 frame,
                 id,
-                "`scope`, `spawn`, channels and `select` are not supported in quantum kernels"
+                "`scope`, `spawn`, channels, `select` and sessions are not supported in quantum \
+                 kernels"
                     .into(),
             )),
             Expr::Perform { .. } | Expr::Handle { .. } | Expr::Resume { .. } => Err(self.error(

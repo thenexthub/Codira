@@ -669,6 +669,7 @@ impl<'a, 'db> Translator<'a, 'db> {
             Expr::Array(_) => self.unsupported("an array"),
             // Structured concurrency lowers through the LLVM backend only.
             Expr::Select { .. } => self.unsupported("`select`"),
+            Expr::Offer { .. } => self.unsupported("`offer`"),
             _ => self.unsupported("this kind of expression"),
         }
     }

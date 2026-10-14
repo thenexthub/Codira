@@ -209,6 +209,7 @@ fn classify(ty: &Ty) -> Class {
         | TyKind::Tuple(..)
         | TyKind::Array(_)
         | TyKind::Channel(_)
+        | TyKind::Session(..)
         | TyKind::FnDef(..)
         // A generic parameter is not a numeric type *here*, whatever it is
         // instantiated with later. `Other` rejects the cast, which is the

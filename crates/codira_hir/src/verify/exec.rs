@@ -844,6 +844,12 @@ impl<'ctx> Exec<'_, 'ctx> {
                 }
                 self.eval_select_arms(state, arms)
             }
+            // The other endpoint chooses the branch: unknown, like a
+            // `select`'s arm.
+            Expr::Offer { endpoint, branches } => {
+                self.eval(state, *endpoint)?;
+                self.eval_offer_branches(state, branches)
+            }
             other => {
                 // Fields, indexing, literals of composite types: evaluate
                 // the operands for the obligations they carry, then forget
@@ -1051,6 +1057,39 @@ impl<'ctx> Exec<'_, 'ctx> {
         rest_state.pc = state.pc.and(choice.not());
         let this_value = run(self, &mut this_state);
         let rest_value = self.eval_select_arms(&mut rest_state, rest);
+        match (this_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = this_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(this_state, rest_state, choice);
+                Some(merge_sym(choice, a, b))
+            }
+        }
+    }
+
+    fn eval_offer_branches(
+        &mut self,
+        state: &mut State<'ctx>,
+        branches: &[ExprId],
+    ) -> Option<Sym<'ctx>> {
+        let (&branch, rest) = branches.split_first()?;
+        if rest.is_empty() {
+            return self.eval(state, branch);
+        }
+        let choice = self.fresh_bool("offer");
+        let mut this_state = state.clone();
+        this_state.pc = state.pc.and(choice);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(choice.not());
+        let this_value = self.eval(&mut this_state, branch);
+        let rest_value = self.eval_offer_branches(&mut rest_state, rest);
         match (this_value, rest_value) {
             (None, None) => None,
             (Some(v), None) => {

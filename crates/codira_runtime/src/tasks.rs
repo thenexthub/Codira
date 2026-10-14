@@ -49,6 +49,15 @@
 //! included) and tries again; another task may have taken the value first,
 //! in which case it registers and sleeps again. A sleeping select counts as
 //! blocked for the pool, exactly like a blocked send or receive.
+//!
+//! # Sessions
+//!
+//! `codira.session_open` makes the two endpoints of a session: two channels
+//! of capacity one, one each way, and two endpoint records naming them
+//! crosswise. Everything belongs to the scope, like a channel. A session
+//! operation passes its payload's size, because one session carries
+//! different types at different steps; the compiler has checked that both
+//! sides agree on every step (`codira_hir::expr::session`).
 use std::{
     cell::Cell,
     collections::VecDeque,
@@ -218,6 +227,16 @@ struct ScopeState {
     /// the channel's handle -- while the vector grows.
     #[allow(clippy::vec_box)]
     channels: Mutex<Vec<Box<Channel>>>,
+    /// The session endpoints created in the scope, boxed for the same reason.
+    #[allow(clippy::vec_box)]
+    endpoints: Mutex<Vec<Box<Endpoint>>>,
+}
+
+/// One endpoint of a session: the channel it sends on and the one it
+/// receives from (the other endpoint's, crosswise).
+struct Endpoint {
+    outgoing: usize,
+    incoming: usize,
 }
 
 struct Channel {
@@ -306,6 +325,7 @@ extern "C" fn scope_begin() -> usize {
         pending: Mutex::new(0),
         finished: Condvar::new(),
         channels: Mutex::new(Vec::new()),
+        endpoints: Mutex::new(Vec::new()),
     })) as usize
 }
 
@@ -397,6 +417,77 @@ extern "C" fn channel_receive(channel: usize, out: usize) {
     });
     // SAFETY: `out` is the address of a stack slot of the element type.
     unsafe { channel.pop(&mut state, out) };
+}
+
+/// Creates the two endpoints of a session in `scope` and writes their
+/// handles to the two `usize`s at `out`.
+extern "C" fn session_open(scope: usize, out: usize) {
+    let element_size = MAX_ELEMENT_SIZE;
+    let forth = channel_new(scope, 1, element_size);
+    let back = channel_new(scope, 1, element_size);
+    let first = Box::new(Endpoint {
+        outgoing: forth,
+        incoming: back,
+    });
+    let second = Box::new(Endpoint {
+        outgoing: back,
+        incoming: forth,
+    });
+    let handles = [
+        std::ptr::from_ref::<Endpoint>(&first) as usize,
+        std::ptr::from_ref::<Endpoint>(&second) as usize,
+    ];
+    // SAFETY: the compiler creates sessions only inside an open scope.
+    let scope = unsafe { scope_ref(scope) };
+    scope.endpoints.lock().extend([first, second]);
+    // SAFETY: `out` is the address of two `usize`s on the caller's stack.
+    unsafe { std::ptr::copy_nonoverlapping(handles.as_ptr(), out as *mut usize, 2) };
+}
+
+/// # Safety
+/// `endpoint` is a handle from `session_open` whose scope has not ended.
+unsafe fn endpoint_ref<'a>(endpoint: usize) -> &'a Endpoint {
+    // SAFETY: guaranteed by the caller.
+    unsafe { &*(endpoint as *const Endpoint) }
+}
+
+/// Sends the `size` bytes at `value` to the other endpoint.
+extern "C" fn session_send(endpoint: usize, value: usize, size: usize) {
+    if size > MAX_ELEMENT_SIZE {
+        fatal("a session payload is larger than 16 bytes");
+    }
+    // SAFETY: the compiler only names an endpoint inside its scope.
+    let endpoint = unsafe { endpoint_ref(endpoint) };
+    let mut element = 0u128;
+    // SAFETY: `value` is the address of a stack slot of `size` bytes.
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            value as *const u8,
+            std::ptr::from_mut(&mut element).cast::<u8>(),
+            size,
+        );
+    }
+    channel_send(endpoint.outgoing, std::ptr::from_ref(&element) as usize);
+}
+
+/// Receives the other endpoint's next message into the `size` bytes at
+/// `out`.
+extern "C" fn session_receive(endpoint: usize, out: usize, size: usize) {
+    if size > MAX_ELEMENT_SIZE {
+        fatal("a session payload is larger than 16 bytes");
+    }
+    // SAFETY: the compiler only names an endpoint inside its scope.
+    let endpoint = unsafe { endpoint_ref(endpoint) };
+    let mut element = 0u128;
+    channel_receive(endpoint.incoming, std::ptr::from_mut(&mut element) as usize);
+    // SAFETY: `out` is the address of a stack slot of `size` bytes.
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            std::ptr::from_ref(&element).cast::<u8>(),
+            out as *mut u8,
+            size,
+        );
+    }
 }
 
 /// One operation of a `select`, as compiled code lays it out: three
@@ -552,6 +643,18 @@ pub(crate) fn functions() -> Vec<FunctionDefinition> {
         IntoFunctionDefinition::into(
             channel_select as extern "C" fn(usize, usize, usize) -> usize,
             "codira.channel_select",
+        ),
+        IntoFunctionDefinition::into(
+            session_open as extern "C" fn(usize, usize),
+            "codira.session_open",
+        ),
+        IntoFunctionDefinition::into(
+            session_send as extern "C" fn(usize, usize, usize),
+            "codira.session_send",
+        ),
+        IntoFunctionDefinition::into(
+            session_receive as extern "C" fn(usize, usize, usize),
+            "codira.session_receive",
         ),
     ]
 }
@@ -802,6 +905,43 @@ mod tests {
             _ => b,
         };
         send(results, value);
+    }
+
+    extern "C" fn session_peer(args: *mut u8) {
+        // SAFETY: the test passes an endpoint handle.
+        let endpoint = unsafe { *args.cast::<usize>() };
+        let mut request = 0i64;
+        session_receive(endpoint, std::ptr::from_mut(&mut request) as usize, 8);
+        let reply = request > 10;
+        session_send(endpoint, std::ptr::from_ref(&reply) as usize, 1);
+        let small = 7i8;
+        session_send(endpoint, std::ptr::from_ref(&small) as usize, 1);
+    }
+
+    /// The two endpoints of a session talk both ways, with payloads of
+    /// different sizes at different steps.
+    #[test]
+    fn session_endpoints_talk_both_ways() {
+        with_timeout(|| {
+            let scope = scope_begin();
+            let mut ends = [0usize; 2];
+            session_open(scope, ends.as_mut_ptr() as usize);
+            scope_spawn(
+                scope,
+                session_peer as TaskEntry as usize,
+                std::ptr::from_ref(&ends[1]) as usize,
+                std::mem::size_of::<usize>(),
+            );
+            let request = 42i64;
+            session_send(ends[0], std::ptr::from_ref(&request) as usize, 8);
+            let mut reply = false;
+            session_receive(ends[0], std::ptr::from_mut(&mut reply) as usize, 1);
+            let mut small = 0i8;
+            session_receive(ends[0], std::ptr::from_mut(&mut small) as usize, 1);
+            assert!(reply);
+            assert_eq!(small, 7);
+            scope_end(scope);
+        });
     }
 
     /// More sleeping selects than workers: the pool compensates for them as
