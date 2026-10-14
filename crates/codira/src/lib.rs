@@ -13,8 +13,8 @@ use clap::{Parser, Subcommand};
 /// `codira-launcher` binary runs.
 pub use ops::exe;
 use ops::{
-    bindgen, build, certify, check, daemon, import_c, init, language_server, new, quantum, query,
-    run, start, synth, test,
+    api_diff, bindgen, build, certify, check, daemon, import_c, init, language_server, new,
+    quantum, query, run, start, synth, test,
 };
 
 #[derive(Parser)]
@@ -32,6 +32,11 @@ enum Command {
 
     /// Compiles a local Codira file into a module
     Build(build::Args),
+
+    /// Compares the public API of two versions of a package (directories or
+    /// git revisions) and says whether each change is major, minor or patch;
+    /// `--check` fails when the manifest's version is not bumped far enough
+    ApiDiff(api_diff::Args),
 
     /// Checks the proof certificates of a library, directory or executable
     /// built with `--certify`, without the compiler's front end
@@ -103,6 +108,7 @@ where
     let args = Args::parse_from(args);
     match args.command {
         Command::Build(args) => build::build(args),
+        Command::ApiDiff(args) => api_diff::api_diff(args),
         Command::Certify(args) => certify::certify(args),
         Command::Check(args) => check::check(args),
         Command::Daemon(args) => daemon::daemon(args),

@@ -64,7 +64,11 @@ fn from_ast(file: FileId, type_ref: &ast::TypeRef) -> Option<Refinement> {
 
 /// The refinement a type alias (or the alias it names, transitively)
 /// stands for.
-fn alias_refinement(db: &dyn HirDatabase, alias: TypeAlias, depth: usize) -> Option<Refinement> {
+pub(crate) fn alias_refinement(
+    db: &dyn HirDatabase,
+    alias: TypeAlias,
+    depth: usize,
+) -> Option<Refinement> {
     if depth > MAX_ALIAS_DEPTH {
         return None;
     }

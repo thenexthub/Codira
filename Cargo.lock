@@ -688,6 +688,7 @@ dependencies = [
  "codira_skeptic",
  "log",
  "pretty_env_logger",
+ "semver",
  "serde_json",
  "tempfile",
 ]

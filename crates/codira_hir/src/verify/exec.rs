@@ -358,6 +358,113 @@ pub(crate) fn synthesis_obligations<'ctx>(
     Ok((exec.inputs, obligations))
 }
 
+/// A contract clause encoded over a function's *interface* rather than its
+/// body: parameter `i` is the constant `p<i>` and the return value is
+/// `result`, each a bit-vector of its type's width (or a boolean). Two
+/// versions of a function with the same signature are encoded over the same
+/// constants, so their clauses can be compared by implication in one
+/// context.
+pub(crate) struct ContractTerms<'ctx> {
+    /// `requires` clauses, then the parameters' refinements (`x: T { v |
+    /// .. }`), each with its source text. `Err` says why one cannot be
+    /// encoded.
+    pub requires: Vec<(String, Result<BoolExpr<'ctx>, String>)>,
+    /// `ensures` clauses, then the return type's refinement.
+    pub ensures: Vec<(String, Result<BoolExpr<'ctx>, String>)>,
+}
+
+/// The constant named `name` standing for a value of type `ty`: a
+/// bit-vector of its width, a boolean, or `Opaque` for a type the verifier
+/// does not model. The same name and type give the same constant in `ctx`.
+pub(crate) fn interface_value<'ctx>(
+    db: &dyn HirDatabase,
+    ctx: &'ctx Context,
+    ty: &Ty,
+    name: &str,
+) -> Sym<'ctx> {
+    match kind_of(db, ty) {
+        Kind::Int(int) => Sym::Int(ctx.bv_var(name, int_width(int)), int),
+        Kind::Bool => Sym::Bool(ctx.bool_var(name)),
+        Kind::Unit => Sym::Unit,
+        Kind::Other => Sym::Opaque,
+    }
+}
+
+/// Encodes `func`'s contract over its interface; see [`ContractTerms`].
+pub(crate) fn contract_terms<'ctx>(
+    db: &dyn HirDatabase,
+    func: Function,
+    ctx: &'ctx Context,
+) -> ContractTerms<'ctx> {
+    let frame = Frame::new(db, func);
+    let body = Arc::clone(&frame.body);
+    let exec = Exec {
+        db,
+        ctx,
+        ret_refinement: None,
+        frame,
+        check_own: false,
+        entry_vars: FxHashMap::default(),
+        inputs: Vec::new(),
+        pending: Vec::new(),
+        breaks: Vec::new(),
+        fresh: 0,
+        own_requires_checked: false,
+        returns: Vec::new(),
+        hole_values: FxHashMap::default(),
+        fixed_inputs: None,
+    };
+    let interface = |ty: &Ty, name: &str| interface_value(db, ctx, ty, name);
+    let encode = |vars: &FxHashMap<PatId, Sym<'ctx>>, clause: ExprId| match exec.pure(
+        &exec.frame,
+        vars,
+        clause,
+    ) {
+        Ok(Sym::Bool(b)) => Ok(b),
+        Ok(_) => Err("the clause is not a boolean the verifier can model".to_string()),
+        Err(reason) => Err(reason),
+    };
+
+    let mut vars = FxHashMap::default();
+    let mut params = Vec::new();
+    for (idx, (pat, _)) in body.params().iter().enumerate() {
+        let value = interface(&exec.frame.infer[*pat], &format!("p{idx}"));
+        vars.insert(*pat, value);
+        params.push(value);
+    }
+    let mut requires: Vec<_> = body
+        .contracts()
+        .requires
+        .iter()
+        .map(|&clause| (exec.frame.text(db, clause), encode(&vars, clause)))
+        .collect();
+    for (refinement, value) in refinement::param_refinements(db, func)
+        .into_iter()
+        .zip(&params)
+    {
+        if let Some(refinement) = refinement {
+            let encoded = refinement::encode(ctx, &refinement, *value);
+            requires.push((refinement.text, encoded));
+        }
+    }
+
+    let result = interface(&func.ret_type(db), "result");
+    if let Some(result_pat) = body.contracts().result_pat {
+        vars.insert(result_pat, result);
+    }
+    let mut ensures: Vec<_> = body
+        .contracts()
+        .ensures
+        .iter()
+        .map(|&clause| (exec.frame.text(db, clause), encode(&vars, clause)))
+        .collect();
+    if let Some(refinement) = refinement::return_refinement(db, func) {
+        let encoded = refinement::encode(ctx, &refinement, result);
+        ensures.push((refinement.text, encoded));
+    }
+    ContractTerms { requires, ensures }
+}
+
 /// What a function can return, as symbolic values over its parameters.
 pub(crate) struct ReturnPaths<'ctx> {
     /// The parameters, by name.

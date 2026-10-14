@@ -60,6 +60,7 @@
 //! (`codira_smt::DEFAULT_RLIMIT`); a query that exhausts it is reported as
 //! "unknown (resource limit)", which is an error, never a pass.
 
+pub mod api;
 mod exec;
 pub(crate) mod flow;
 mod ghost;

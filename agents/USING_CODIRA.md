@@ -635,6 +635,60 @@ What a passing check establishes, and what it does not:
 Cost: certifying verifies each function with a contract a second time and
 writes its queries; it is opt-in for that reason.
 
+### API compatibility: `codira api-diff`
+
+```bash
+codira api-diff v1.2.0 .              # a git revision of this package vs the working tree
+codira api-diff ../lib-old ../lib-new # two package directories
+codira api-diff HEAD~1 . --check      # exit 1 if `version` is not bumped far enough
+```
+
+```text
+v2.2 (2.2.0) -> . (2.3.0)
+      minor: weakens the precondition of `decode()`
+             requires was: `x >= 0`
+             requires now: `x >= -10`
+             newly accepted: x = -10
+      major: weakens the postcondition of `decode()`
+             ensures was: `result >= 0 && result <= x`
+             ensures now: `result >= 0`
+             allowed now, ruled out before: x = 17592186044414, result = 17592186044416
+      major: adds `Net` to `parse()`
+2.3.0 weakens the precondition of `decode()`, weakens the postcondition of `decode()` and adds `Net` to `parse()`
+required bump: major
+error: 2.2.0 -> 2.3.0 is a minor bump; these changes need a major bump
+```
+
+It compares the `public` items (functions, methods as `Type.method`, structs,
+type aliases, effects), matched by path:
+
+- removed item, changed parameter/return types, receiver or generic
+  parameters, an effect added to `uses`, a struct's fields or kind changed, an
+  alias retargeted or its refinement changed: **major**;
+- added item, an effect removed from `uses`: **minor**;
+- `requires` + parameter refinements: **strengthened** (some input accepted
+  before is refused now) is major, **weakened** is minor, an equivalent rewrite
+  is a patch;
+- `ensures` + return refinement: **weakened** (for an input old callers could
+  pass, something ruled out before is allowed now) is major, **strengthened**
+  is minor;
+- bodies and private items: patch.
+
+Contracts are compared by Z3 implication over the parameters by position
+(`p0`, `p1`, ...; a renamed parameter is the same parameter) and `result`,
+with the verifier's machine-integer semantics; a refuted implication prints
+the input that shows it. A clause that cannot be encoded (floats, fields,
+calls) or a check that exhausts the budget makes the change **undecided**:
+reported as such, never guessed, and counted as major by `--check`.
+`--check` follows Cargo's reading of versions: below 1.0 the leftmost
+non-zero component is the breaking one (`0.4.0 -> 0.4.1` allows additions,
+`0.4 -> 0.5` allows breaks), and every `0.0.z` is incompatible. A git
+revision is read with `git cat-file` into a temporary directory; the working
+tree and index are not touched. Limits: enums and traits are not compared;
+`@export`, `@runtime_checked` and other attribute changes are not reported;
+there is no `codira publish` -- `--check` is the step a CI job or publish
+script runs.
+
 ### Targets
 
 `--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,
@@ -859,6 +913,9 @@ what the checker models and what it reports as uncheckable.
 as SMT-LIB2 queries, source and machine-code hashes) and `codira certify`
 re-checks it with Z3 alone; see "Proof certificates" for exactly what that
 establishes.
+`codira api-diff` classifies public API changes between two versions as
+major, minor or patch -- contract changes decided by Z3 implication -- and
+`--check` fails when the manifest's version is not bumped far enough.
 
 Runtime (hosts embedding `codira_runtime`):
 
