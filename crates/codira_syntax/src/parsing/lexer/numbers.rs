@@ -26,7 +26,10 @@ pub(crate) fn scan_number(c: char, cursor: &mut Cursor<'_>) -> SyntaxKind {
             '0'..='9' | '_' | '.' | 'e' | 'E' => {
                 scan_digits(cursor, false);
             }
-            _ => return INT_NUMBER,
+            // A plain `0`, possibly suffixed (`0u8`): fall through to the
+            // suffix scan below. Returning here left `u8` to be lexed as a
+            // separate identifier, so `0u8` was a syntax error.
+            _ => {}
         }
     } else {
         scan_digits(cursor, false);

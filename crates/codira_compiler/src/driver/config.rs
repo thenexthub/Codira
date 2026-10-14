@@ -6,7 +6,7 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use std::path::PathBuf;
 
-pub use codira_codegen::OptimizationLevel;
+pub use codira_codegen::{BuildMode, OptimizationLevel};
 use codira_target::spec::Target;
 
 /// Describes all the permanent settings that are used during compilations.
@@ -17,6 +17,10 @@ pub struct Config {
 
     /// The optimization level to use for the IR generation.
     pub optimization_lvl: OptimizationLevel,
+
+    /// Whether the Eidos mid-level optimizer runs (`--mode`). Independent
+    /// of `optimization_lvl`, which only drives LLVM's own pipeline.
+    pub mode: BuildMode,
 
     /// The optional output directory to store all outputs. If no directory is
     /// specified all output is stored in a temporary directory.
@@ -34,6 +38,7 @@ impl Default for Config {
             // triple.
             target: target.unwrap(),
             optimization_lvl: OptimizationLevel::Default,
+            mode: BuildMode::default(),
             out_dir: None,
             emit_ir: false,
         }

@@ -125,6 +125,7 @@ struct ItemTreeData {
     type_aliases: Arena<TypeAlias>,
     consts: Arena<Const>,
     impls: Arena<Impl>,
+    effects: Arena<Effect>,
 
     visibilities: ItemVisibilities,
 }
@@ -238,6 +239,7 @@ mod_items! {
     Const in consts -> ast::ConstDef,
     Import in imports -> ast::Use,
     Impl in impls -> ast::Extend,
+    Effect in effects -> ast::EffectDef,
 }
 
 macro_rules! impl_index {
@@ -345,6 +347,14 @@ pub struct GenericParamData {
     pub bound: Option<LocalTypeRefId>,
 }
 
+/// The ABI string that marks an `extern` block as declaring compiler
+/// intrinsics rather than foreign symbols.
+///
+/// Spelled with a `codira-` prefix so it cannot collide with a real platform
+/// ABI (`"C"`, `"C++"`, `"system"`), which are the names a linker would
+/// recognise.
+pub const INTRINSIC_ABI: &str = "codira-intrinsic";
+
 bitflags::bitflags! {
     #[doc = "Flags that are used to store additional information about a function"]
     #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
@@ -352,6 +362,7 @@ bitflags::bitflags! {
         const HAS_SELF_PARAM = 1 << 0;
         const HAS_BODY = 1 << 1;
         const IS_EXTERN = 1 << 2;
+        const IS_INTRINSIC = 1 << 3;
     }
 }
 
@@ -369,6 +380,13 @@ impl FunctionFlags {
     /// Whether the function is extern.
     pub fn is_extern(self) -> bool {
         self.contains(Self::IS_EXTERN)
+    }
+
+    /// Whether the function is a compiler intrinsic -- declared in an
+    /// `extern "codira-intrinsic"` block and lowered to inline IR at the call
+    /// site rather than called as a symbol.
+    pub fn is_intrinsic(self) -> bool {
+        self.contains(Self::IS_INTRINSIC)
     }
 }
 
@@ -443,6 +461,24 @@ pub struct Const {
     /// so it contributes no edge).
     pub references: Box<[Name]>,
     pub ast_id: FileAstId<ast::ConstDef>,
+}
+
+/// An algebraic effect declaration: `effect Name { func op(p: T, ..) -> R }`
+/// (see `spec/LANGUAGE_SPEC.md` section 6).
+///
+/// Only the names are recorded here; operation signatures are resolved on
+/// demand by `code_model::Effect` from the source, the way `FunctionData`
+/// re-reads its own parameter types, so that their type references come with
+/// a source map for diagnostics.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Effect {
+    pub name: Name,
+    pub visibility: RawVisibilityId,
+    /// The names of the effect's operations, in declaration order. An
+    /// operation's index in this list is its slot in a handler record (see
+    /// `codira_codegen::ir::effects`).
+    pub ops: Box<[Name]>,
+    pub ast_id: FileAstId<ast::EffectDef>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -612,6 +648,10 @@ mod diagnostics {
                         )
                     }
                     ModItem::Const(item) => InFile::new(
+                        item_tree.file_id,
+                        SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
+                    ),
+                    ModItem::Effect(item) => InFile::new(
                         item_tree.file_id,
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),

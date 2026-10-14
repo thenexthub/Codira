@@ -51,7 +51,7 @@ use super::{
     Changed, Pass, PassContext,
 };
 use crate::{
-    fold::fold_op,
+    fold::fold_typed_op,
     op::{Body, OpId, OpKind, Region},
     Attr,
 };
@@ -145,8 +145,9 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
                 })
                 .collect();
             if let Some(attrs) = attrs {
-                if let Ok(folded) = fold_op(&op.kind, &attrs) {
-                    map.insert(id, new.push(OpKind::Const(folded), []));
+                let operand_tys: Vec<_> = operands.iter().map(|&o| new.get(o).ty).collect();
+                if let Ok(folded) = fold_typed_op(&op.kind, &attrs, &operand_tys, op.ty) {
+                    map.insert(id, new.push_typed(OpKind::Const(folded), [], op.ty));
                     changed = true;
                     continue;
                 }
@@ -167,7 +168,7 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
             .collect();
         map.insert(
             id,
-            new.push_with_regions(op.kind.clone(), operands, regions),
+            new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
         );
     }
 

@@ -192,19 +192,39 @@ func on_heap() -> GC {
 
 Make sure you have the following dependencies installed on your machine:
 
-* Rust
+* Rust (the version pinned in `rust-toolchain`; `rustup` picks it up
+  automatically)
 * LLVM 22.1 (a full dev distribution with `llvm-config` and the LLD static
-  libraries; point `LLVM_SYS_221_PREFIX` at its install root -- see
-  `book/src/dev/02-building-llvm.md`)
+  libraries). Codira reaches it through `llvm-sys` 221, so point
+  `LLVM_SYS_221_PREFIX` at its install root, the directory whose `bin` holds
+  `llvm-config`:
+  * Debian/Ubuntu: `sudo bash scripts/install-llvm.sh` installs LLVM 22 from
+    apt.llvm.org; then `export LLVM_SYS_221_PREFIX=/usr/lib/llvm-22`.
+  * macOS: `brew install llvm@22`; then
+    `export LLVM_SYS_221_PREFIX="$(brew --prefix llvm@22)"`.
+  * Windows: extract the LLVM project's
+    `clang+llvm-22.1.8-x86_64-pc-windows-msvc.tar.xz` release archive (for
+    example to `C:\llvm22`) and set `LLVM_SYS_221_PREFIX` to that directory,
+    or build LLVM 22.1 with MLIR and LLD from source with
+    `pwsh build-llvm/build.ps1 -InstallDir C:\llvm22\built`.
 * Z3 (`libz3` -- used by `codira_smt` for refinement-type checking and
-  translation validation)
+  translation validation). Set `Z3_LIB_DIR` to the directory containing
+  `libz3.so` (`libz3.lib` on Windows), or `Z3_ROOT` to a Z3 install prefix.
+  On Debian/Ubuntu, `sudo apt install libz3-dev` puts it in the multiarch
+  library directory, e.g. `/usr/lib/x86_64-linux-gnu`. On Windows,
+  `choco install z3` needs neither variable: Chocolatey's install location is
+  searched by default.
 
-Clone the source code, including all submodules:
+Clone the source code:
 
 ```bash
 git clone https://github.com/theomnira/codira.git
-git submodule update --init --recursive
+cd codira
 ```
+
+The doc tests in `crates/codira/tests/book.rs` are generated from the mdbook
+in `book/`, which is not part of the repository. Without it the build prints a
+warning and skips them.
 
 Use `cargo` to build a release version
 

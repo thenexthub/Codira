@@ -926,3 +926,131 @@ fn elaboration_leaves_tuple_valued_bindings_as_param_refs() {
     env.bind("P", pair.clone());
     assert_eq!(eval_body(&elaborated, &env).unwrap(), pair);
 }
+
+// ---------------------------------------------------------------------------
+// Memory (codira_mir::mem)
+// ---------------------------------------------------------------------------
+
+mod memory {
+    use codira_mir::{verify_body, Attr, Body, MemOp, OpId, OpKind, Region, TypeId};
+
+    use crate::{eval_body, Env, EvalError, Value};
+
+    fn int(body: &mut Body, v: i64) -> OpId {
+        body.push_typed(OpKind::Const(Attr::Int(v)), [], TypeId::I64)
+    }
+
+    fn mem(body: &mut Body, op: MemOp, operands: &[OpId], ty: TypeId) -> OpId {
+        body.push_typed(OpKind::Mem(op), operands.iter().copied(), ty)
+    }
+
+    fn array(site: u32, count: u32) -> MemOp {
+        MemOp::Alloc {
+            site,
+            elem: TypeId::I64,
+            count,
+        }
+    }
+
+    #[test]
+    fn a_stored_value_is_loaded_back_and_older_states_still_read_old_values() {
+        // m2 = store(m1, p, 5); m3 = store(m2, p, 9)
+        // load(m2, p) == 5 and load(m3, p) == 9: states are values.
+        let mut body = Body::new();
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(&mut body, array(0, 1), &[m0], TypeId::MEM);
+        let p = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        let five = int(&mut body, 5);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, p, five], TypeId::MEM);
+        let old = mem(&mut body, MemOp::Load, &[m2, p], TypeId::I64);
+        let nine = int(&mut body, 9);
+        let m3 = mem(&mut body, MemOp::Store, &[m2, p, nine], TypeId::MEM);
+        let new = mem(&mut body, MemOp::Load, &[m3, p], TypeId::I64);
+        let ten = int(&mut body, 10);
+        let scaled = body.push_typed(OpKind::Mul, [old, ten], TypeId::I64);
+        body.push_typed(OpKind::Add, [scaled, new], TypeId::I64);
+        verify_body(&body).unwrap();
+        assert_eq!(eval_body(&body, &Env::new()).unwrap(), Value::Int(59));
+    }
+
+    #[test]
+    fn a_loop_fills_an_array_through_offsets_and_sums_it() {
+        // a = alloc [i64; 4]; for i in 0..4 { a[i] = i * i }; a[0]+a[1]+a[2]+a[3]
+        let mut body = Body::new();
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(&mut body, array(0, 4), &[m0], TypeId::MEM);
+        let base = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        let start = int(&mut body, 0);
+        let end = int(&mut body, 4);
+        let step = int(&mut body, 1);
+
+        // The loop carries (memory, base pointer): regions cannot name the
+        // enclosing body's values.
+        let mut fill = Body::new();
+        let i = fill.push_typed(OpKind::BlockArg(0), [], TypeId::I64);
+        let m = fill.push_typed(OpKind::BlockArg(1), [], TypeId::MEM);
+        let a = fill.push_typed(OpKind::BlockArg(2), [], TypeId::PTR);
+        let at = mem(
+            &mut fill,
+            MemOp::Offset { elem: TypeId::I64 },
+            &[a, i],
+            TypeId::PTR,
+        );
+        let square = fill.push_typed(OpKind::Mul, [i, i], TypeId::I64);
+        let next = mem(&mut fill, MemOp::Store, &[m, at, square], TypeId::MEM);
+        fill.push(OpKind::Yield, [next, a]);
+        let filled = body.push_with_regions(
+            OpKind::For,
+            [start, end, step, m1, base],
+            [Region::with_args(3, fill)],
+        );
+        let m_final = body.push_typed(OpKind::TupleGet(0), [filled], TypeId::MEM);
+
+        let mut sum = int(&mut body, 0);
+        for k in 0..4 {
+            let index = int(&mut body, k);
+            let at = mem(
+                &mut body,
+                MemOp::Offset { elem: TypeId::I64 },
+                &[base, index],
+                TypeId::PTR,
+            );
+            let value = mem(&mut body, MemOp::Load, &[m_final, at], TypeId::I64);
+            sum = body.push_typed(OpKind::Add, [sum, value], TypeId::I64);
+        }
+        verify_body(&body).unwrap();
+        assert_eq!(eval_body(&body, &Env::new()).unwrap(), Value::Int(14));
+    }
+
+    #[test]
+    fn memory_errors_are_errors_not_values() {
+        // Reading a cell nobody wrote.
+        let mut body = Body::new();
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(&mut body, array(0, 2), &[m0], TypeId::MEM);
+        let p = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        mem(&mut body, MemOp::Load, &[m1, p], TypeId::I64);
+        assert_eq!(
+            eval_body(&body, &Env::new()),
+            Err(EvalError::UninitializedLoad)
+        );
+
+        // Writing past the end of an allocation.
+        let mut body = Body::new();
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(&mut body, array(0, 2), &[m0], TypeId::MEM);
+        let p = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        let two = int(&mut body, 2);
+        let past = mem(
+            &mut body,
+            MemOp::Offset { elem: TypeId::I64 },
+            &[p, two],
+            TypeId::PTR,
+        );
+        mem(&mut body, MemOp::Store, &[m1, past, two], TypeId::MEM);
+        assert_eq!(
+            eval_body(&body, &Env::new()),
+            Err(EvalError::OutOfBounds { index: 2, len: 2 })
+        );
+    }
+}

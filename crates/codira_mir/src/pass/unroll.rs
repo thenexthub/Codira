@@ -163,10 +163,11 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
                 let num_args = op.regions[0].num_args;
                 map.insert(
                     id,
-                    new.push_with_regions(
+                    new.push_with_regions_typed(
                         op.kind.clone(),
                         operands,
                         [Region::with_args(num_args, loop_body)],
+                        op.ty,
                     ),
                 );
                 continue;
@@ -218,7 +219,7 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
             .collect();
         map.insert(
             id,
-            new.push_with_regions(op.kind.clone(), operands, regions),
+            new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
         );
     }
 

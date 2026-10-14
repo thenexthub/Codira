@@ -33,6 +33,18 @@ impl<'db, 'ink, 'ctx> Assembly<'db, 'ink, 'ctx> {
         Self { code_gen, module }
     }
 
+    /// Whether this assembly calls or contains any of `native`'s functions,
+    /// and so has to be linked with the package's native code.
+    pub fn uses_native_code(&self, native: &crate::NativeInputs) -> bool {
+        !native.is_empty()
+            && self.module.get_functions().any(|function| {
+                function
+                    .get_name()
+                    .to_str()
+                    .is_ok_and(|name| native.symbols.contains(name))
+            })
+    }
+
     /// Tries to convert the assembly into an `ObjectFile`.
     pub fn into_object_file(self) -> Result<ObjectFile, anyhow::Error> {
         ObjectFile::new(
@@ -46,7 +58,7 @@ impl<'db, 'ink, 'ctx> Assembly<'db, 'ink, 'ctx> {
     pub fn write_ir_to_file(self, output_path: &Path) -> Result<(), anyhow::Error> {
         self.module
             .print_to_file(output_path)
-            .map_err(|e| anyhow!("{}", e))
+            .map_err(|e| anyhow!("{e}"))
     }
 }
 
@@ -63,15 +75,22 @@ fn build_assembly<'db, 'ink, 'ctx>(
     module_builder.build().expect("unable to create assembly")
 }
 
-/// A `TargetAssembly` is a reference to a Codira library stored on disk.
+/// A `TargetAssembly` is a reference to a Codira library stored on disk --
+/// or, for a target that can refuse the code it is given (WebAssembly, see
+/// `crate::wasm`), the reason there is none.
 #[derive(Debug)]
 pub struct TargetAssembly {
-    file: NamedTempFile,
+    file: Result<NamedTempFile, String>,
+    extension: &'static str,
 }
 
 impl PartialEq for TargetAssembly {
     fn eq(&self, other: &Self) -> bool {
-        self.path().eq(other.path())
+        match (&self.file, &other.file) {
+            (Ok(a), Ok(b)) => a.path() == b.path(),
+            (Err(a), Err(b)) => a == b,
+            _ => false,
+        }
     }
 }
 
@@ -80,14 +99,31 @@ impl Eq for TargetAssembly {}
 impl TargetAssembly {
     pub const EXTENSION: &'static str = "codiralib";
 
-    /// Returns the current location of the assembly
+    /// Returns the current location of the assembly; empty when it could
+    /// not be built (see [`TargetAssembly::error`]).
     pub fn path(&self) -> &Path {
-        self.file.path()
+        self.file
+            .as_ref()
+            .map_or(Path::new(""), NamedTempFile::path)
+    }
+
+    /// Why this target refused to build the assembly, if it did.
+    pub fn error(&self) -> Option<&str> {
+        self.file.as_ref().err().map(String::as_str)
+    }
+
+    /// The extension of the output file: `codiralib` for a native library,
+    /// `wasm` for a WebAssembly module.
+    pub fn extension(&self) -> &'static str {
+        self.extension
     }
 
     /// Copies the assembly to the specified location
     pub fn copy_to<P: AsRef<Path>>(&self, destination: P) -> Result<(), std::io::Error> {
-        std::fs::copy(self.path(), destination).map(|_| ())
+        match &self.file {
+            Ok(file) => std::fs::copy(file.path(), destination).map(|_| ()),
+            Err(reason) => Err(std::io::Error::other(reason.clone())),
+        }
     }
 }
 
@@ -96,12 +132,25 @@ pub(crate) fn build_target_assembly(
     db: &dyn CodeGenDatabase,
     module_group: ModuleGroupId,
 ) -> Arc<TargetAssembly> {
+    // A WebAssembly module is not a `.codiralib`; it is built, or refused,
+    // by its own path.
+    if crate::wasm::is_wasm_target(&db.target()) {
+        return Arc::new(TargetAssembly {
+            file: crate::wasm::build_wasm_module(db, module_group),
+            extension: crate::wasm::EXTENSION,
+        });
+    }
+
     // Setup the code generation context
     let inkwell_context = Context::create();
     let code_gen_context = CodeGenContext::new(&inkwell_context, db);
 
     // Build an assembly for the module
     let assembly = build_assembly(db, &code_gen_context, module_group);
+
+    // The package's native code goes into every assembly that calls it.
+    let native = db.native_inputs();
+    let native = assembly.uses_native_code(&native).then_some(&*native);
 
     // Convert the assembly into an object file
     let obj_file = assembly
@@ -114,16 +163,21 @@ pub(crate) fn build_target_assembly(
     // Every `@export("C")` function in this group must survive into the
     // assembly's export table; see `linker::Linker::build_shared_object`.
     let module_partition = db.module_partition();
-    let exported_symbols: Vec<String> = module_partition[module_group]
+    let mut exported_symbols: Vec<String> = module_partition[module_group]
         .iter()
         .flat_map(|module| module.all_functions(db))
         .filter(|f| f.export_abi(db).as_deref() == Some("C"))
         .map(|f| f.name(db).to_string())
         .collect();
+    // A fuel-instrumented assembly also exports the hook the runtime uses to
+    // point it at its fuel counter.
+    if db.fuel_instrumentation() {
+        exported_symbols.push(codira_abi::SET_FUEL_COUNTER_FN_NAME.to_owned());
+    }
 
     // Translate the object file into a shared object
     obj_file
-        .into_shared_object(file.path(), &exported_symbols)
+        .into_shared_object(file.path(), &exported_symbols, native)
         .expect("could not link object file");
 
     let target = db.target();
@@ -134,7 +188,10 @@ pub(crate) fn build_target_assembly(
             .expect("Failed to sign shared object");
     }
 
-    Arc::new(TargetAssembly { file })
+    Arc::new(TargetAssembly {
+        file: Ok(file),
+        extension: TargetAssembly::EXTENSION,
+    })
 }
 
 /// An `AssemblyIr` is a reference to an IR file stored on disk.

@@ -125,4 +125,26 @@ impl CodiraLibrary {
 
         set_allocator_handle_fn(allocator_ptr);
     }
+
+    /// Points a fuel-instrumented library's fuel counter at `counter`.
+    /// Returns `false` (and does nothing) if the library was built without
+    /// fuel instrumentation.
+    ///
+    /// # Safety
+    ///
+    /// This operations executes a function in the codiralib. `counter` must
+    /// stay valid for as long as code in the library runs.
+    pub unsafe fn set_fuel_counter(&mut self, counter: *mut i64) -> bool {
+        match self
+            .0
+            .library()
+            .get::<extern "C" fn(*mut i64)>(abi::SET_FUEL_COUNTER_FN_NAME.as_bytes())
+        {
+            Ok(set_fuel_counter_fn) => {
+                set_fuel_counter_fn(counter);
+                true
+            }
+            Err(_) => false,
+        }
+    }
 }

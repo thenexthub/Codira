@@ -24,6 +24,9 @@ pub struct ModuleGroup {
     modules: FxHashSet<codira_hir::Module>,
     includes_entire_subtree: FxHashMap<codira_hir::Module, bool>,
     pub name: String,
+    /// Functions the package's native code defines (see `crate::native`).
+    /// An `extern` declaration naming one is called directly.
+    native_symbols: std::sync::Arc<std::collections::BTreeSet<String>>,
 }
 
 impl Hash for ModuleGroup {
@@ -68,7 +71,30 @@ impl ModuleGroup {
             modules,
             includes_entire_subtree,
             name,
+            native_symbols: std::sync::Arc::default(),
         }
+    }
+
+    /// Records the functions the package's native code defines.
+    #[must_use]
+    pub fn with_native_symbols(
+        mut self,
+        symbols: std::sync::Arc<std::collections::BTreeSet<String>>,
+    ) -> Self {
+        self.native_symbols = symbols;
+        self
+    }
+
+    /// Whether `function` is an `extern` declaration of a function the
+    /// package's native code defines, which is then called directly instead
+    /// of through the dispatch table.
+    pub fn links_natively(&self, db: &dyn HirDatabase, function: codira_hir::Function) -> bool {
+        function.is_extern(db)
+            && !function.is_intrinsic(db)
+            && !function.is_inline_asm(db)
+            && self
+                .native_symbols
+                .contains(function.name(db).to_string().as_str())
     }
 
     /// Constructs a new module group from a single module
@@ -123,7 +149,10 @@ impl ModuleGroup {
         db: &dyn HirDatabase,
         function: codira_hir::Function,
     ) -> bool {
-        function.is_extern(db) || !self.modules.contains(&function.module(db))
+        if function.is_extern(db) {
+            return !self.links_natively(db, function);
+        }
+        !self.modules.contains(&function.module(db))
     }
 
     /// Returns the `codira_hir::FileId`s that are included in this module

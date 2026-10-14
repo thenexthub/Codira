@@ -39,12 +39,23 @@
 //! it from a function typed `i32` -- a miscompile, and one LLVM's verifier
 //! would (rightly) reject.
 //!
-//! Folding to a *constant* sidesteps this entirely: the value is
-//! materialized in the **HIR-derived LLVM type** ([`fold_to_constant`]
+//! Folding to a *constant* sidesteps the lowering half of this: the value
+//! is materialized in the **HIR-derived LLVM type** ([`fold_to_constant`]
 //! takes the type from the function signature, never from MIR), and is
-//! range-checked against that type's width before being emitted. MIR's
-//! `i64` assumption therefore cannot leak into the generated code -- at
-//! worst the fold declines and the ordinary HIR->LLVM path runs.
+//! range-checked against that type's width before being emitted.
+//!
+//! The range check alone does not make the *evaluation* right. A `u8`
+//! sum of `200 + 100` is `300` in an `i64` domain, which the check would
+//! reject -- but `(a + b) == 44` is a `bool` and passes it, wrongly
+//! `false`. And a `zext` must know its source width: `1000u32 as u64` once
+//! folded to `0` because the passes rebuilt the body without op types and
+//! the cast fell back to a one-bit source. So the evaluation is typed too:
+//! every pass carries `Op::ty` across its rebuild, every pure op is
+//! folded through `codira_mir::fold_typed_op` (wrap at the declared width,
+//! `u64` compared and divided unsigned, `f32` rounded), and a cast through
+//! `codira_mir::fold_cast` with both its types -- declining whenever a type
+//! it needs is unknown. At worst the fold declines and the ordinary
+//! HIR->LLVM path runs.
 //!
 //! Giving `codira_mir` a real type system is the prerequisite for the
 //! general path, and is tracked as the next step in
@@ -61,10 +72,15 @@ use inkwell::values::{BasicValueEnum, FunctionValue};
 /// allowed to decline: the body may not lower to MIR at all, may still
 /// reference runtime arguments, may fail to evaluate, or may produce a
 /// value that does not fit the declared return type.
+///
+/// `optimizer` carries the build's e-graph bounds and the target's cost
+/// table (`crate::EidosOptions::optimizer`); a build that skips Eidos never
+/// calls this at all.
 pub(crate) fn fold_to_constant<'ink>(
     db: &dyn HirDatabase,
     function: codira_hir::Function,
     fn_value: FunctionValue<'ink>,
+    optimizer: &codira_egraph::EGraphOptimizer,
 ) -> Option<BasicValueEnum<'ink>> {
     // A function with runtime parameters cannot be constant -- `core.arg`
     // would survive evaluation. (The interpreter would refuse anyway;
@@ -105,7 +121,7 @@ pub(crate) fn fold_to_constant<'ink>(
     // 2. Equality saturation: explore every rewrite simultaneously and extract the
     //    cheapest form. Catches reassociations the ordered pipeline above cannot
     //    reach.
-    let body = codira_egraph::optimize(&body);
+    let (body, _report) = optimizer.optimize_body(&body);
 
     // 3. Evaluate. Anything referencing a runtime value, or exceeding the
     //    interpreter's fuel, declines here.
@@ -186,7 +202,9 @@ fn materialize<'ink>(
         // no constant ABI at this layer yet.
         codira_comptime::Value::Unit
         | codira_comptime::Value::Str(_)
-        | codira_comptime::Value::Tuple(_) => None,
+        | codira_comptime::Value::Tuple(_)
+        | codira_comptime::Value::Mem(_)
+        | codira_comptime::Value::Ptr { .. } => None,
     }
 }
 

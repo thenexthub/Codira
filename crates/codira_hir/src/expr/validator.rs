@@ -24,8 +24,12 @@ use crate::{
 
 pub(crate) mod codegen_support;
 mod effect_obligation;
+mod effects;
+mod inline_asm;
 mod literal_out_of_range;
 mod move_check;
+mod tasks;
+mod test_fn;
 mod uninitialized_access;
 
 #[cfg(test)]
@@ -55,11 +59,16 @@ impl<'a> ExprValidator<'a> {
         self.validate_literal_ranges(sink);
         self.validate_uninitialized_access(sink);
         self.validate_extern(sink);
+        self.validate_inline_asm(sink);
         self.validate_privacy(sink);
         self.validate_effect_obligations(sink);
+        self.validate_effects(sink);
+        self.validate_tasks(sink);
         self.validate_healing_contract(sink);
         self.validate_move_checking(sink);
         self.validate_codegen_support(sink);
+        self.validate_test_function(sink);
+        crate::verify::contract_diagnostics(self.db, self.func, sink);
     }
 
     pub fn validate_privacy(&self, sink: &mut DiagnosticSink<'_>) {
@@ -110,13 +119,22 @@ impl<'a> ExprValidator<'a> {
     ///   statically and which were previously read by nothing at all.
     pub fn validate_healing_contract(&self, sink: &mut DiagnosticSink<'_>) {
         let src = self.func.source(self.db);
-        if crate::heal_check::check_heal_postcondition(&src.value)
-            == Some(crate::refinement_check::RefinementCheckResult::Unsatisfiable)
-        {
-            sink.push(crate::diagnostics::UnsatisfiableHealingPostcondition {
-                file: src.file_id,
-                func: SyntaxNodePtr::new(src.value.syntax()),
-            });
+        match crate::heal_check::check_heal_postcondition(&src.value) {
+            Some(RefinementCheckResult::Unsatisfiable) => {
+                sink.push(crate::diagnostics::UnsatisfiableHealingPostcondition {
+                    file: src.file_id,
+                    func: SyntaxNodePtr::new(src.value.syntax()),
+                });
+            }
+            Some(RefinementCheckResult::Unknown(reason)) => {
+                sink.push(crate::diagnostics::UndecidedSmtCheck {
+                    file: src.file_id,
+                    node: SyntaxNodePtr::new(src.value.syntax()),
+                    what: "whether the healing-contract postcondition is satisfiable".to_string(),
+                    reason,
+                });
+            }
+            Some(RefinementCheckResult::Ok | RefinementCheckResult::NotChecked) | None => {}
         }
 
         crate::heal_contract::heal_contract_diagnostics(self.db, self.func, sink);
@@ -208,7 +226,7 @@ impl<'a> TypeAliasValidator<'a> {
             let src = self.type_alias.source(self.db);
 
             let (kind, name) = match target_ty.interned() {
-                TyKind::Struct(s) => ("struct", s.name(self.db)),
+                TyKind::Struct(s, _) => ("struct", s.name(self.db)),
                 TyKind::TypeAlias(a) => ("type alias", a.name(self.db)),
                 _ => unreachable!(),
             };
@@ -241,12 +259,26 @@ impl<'a> TypeAliasValidator<'a> {
             return;
         };
 
-        if check_satisfiable(&binder.text(), &predicate) == RefinementCheckResult::Unsatisfiable {
-            sink.push(crate::diagnostics::UnsatisfiableRefinement {
-                file: src.file_id,
-                type_ref: SyntaxNodePtr::new(type_ref.syntax()),
-                predicate_text: predicate.syntax().text().to_string(),
-            });
+        match check_satisfiable(&binder.text(), &predicate) {
+            RefinementCheckResult::Unsatisfiable => {
+                sink.push(crate::diagnostics::UnsatisfiableRefinement {
+                    file: src.file_id,
+                    type_ref: SyntaxNodePtr::new(type_ref.syntax()),
+                    predicate_text: predicate.syntax().text().to_string(),
+                });
+            }
+            RefinementCheckResult::Unknown(reason) => {
+                sink.push(crate::diagnostics::UndecidedSmtCheck {
+                    file: src.file_id,
+                    node: SyntaxNodePtr::new(type_ref.syntax()),
+                    what: format!(
+                        "whether the refinement `{}` has any value",
+                        predicate.syntax().text()
+                    ),
+                    reason,
+                });
+            }
+            RefinementCheckResult::Ok | RefinementCheckResult::NotChecked => {}
         }
     }
 

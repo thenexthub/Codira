@@ -22,9 +22,9 @@ use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 use super::{
-    diagnostics, AssociatedItem, Const, Field, Fields, Function, FunctionFlags, GenericParamData,
-    IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities, LocalItemTreeId,
-    ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias,
+    diagnostics, AssociatedItem, Const, Effect, Field, Fields, Function, FunctionFlags,
+    GenericParamData, IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities,
+    LocalItemTreeId, ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias, INTRINSIC_ABI,
 };
 use crate::{
     item_tree::Import,
@@ -90,6 +90,7 @@ impl Context {
                 ModItem::Struct(item) => Some(&self.data.structs[item.index].name),
                 ModItem::TypeAlias(item) => Some(&self.data.type_aliases[item.index].name),
                 ModItem::Const(item) => Some(&self.data.consts[item.index].name),
+                ModItem::Effect(item) => Some(&self.data.effects[item.index].name),
                 ModItem::Import(item) => {
                     let import = &self.data.imports[item.index];
                     if import.is_glob {
@@ -142,14 +143,14 @@ impl Context {
                 self.lower_use(&ast).into_iter().map(Into::into).collect(),
             )),
             ast::ModuleItemKind::Extend(ast) => self.lower_impl(&ast).map(Into::into),
-            // `trait`, `enum`, `effect`, `macro`, and `extern "C" { .. }` blocks are
+            ast::ModuleItemKind::EffectDef(ast) => self.lower_effect(&ast).map(Into::into),
+            // `trait`, `enum`, `macro`, and `extern "C" { .. }` blocks are
             // fully parsed (see `codira_syntax`) but not yet lowered into name-resolvable
             // HIR items -- that requires their own item-tree/code-model support (akin
             // to what exists for `struct`/`func` today), which is tracked as follow-up
             // work rather than implemented here without a way to verify it end-to-end.
             ast::ModuleItemKind::TraitDef(_)
             | ast::ModuleItemKind::EnumDef(_)
-            | ast::ModuleItemKind::EffectDef(_)
             | ast::ModuleItemKind::MacroDef(_)
             | ast::ModuleItemKind::SupervisorDef(_) => None,
             ast::ModuleItemKind::ExternBlock(ast) => Some(self.lower_extern_block(&ast)),
@@ -231,7 +232,7 @@ impl Context {
     }
 
     fn lower_function(&mut self, func: &ast::FunctionDef) -> Option<LocalItemTreeId<Function>> {
-        self.lower_function_inner(func, false)
+        self.lower_function_inner(func, false, None)
     }
 
     /// Lowers a function, optionally forcing it to be treated as `extern`.
@@ -245,6 +246,7 @@ impl Context {
         &mut self,
         func: &ast::FunctionDef,
         force_extern: bool,
+        abi: Option<&str>,
     ) -> Option<LocalItemTreeId<Function>> {
         let name = func.name()?.as_name();
         let visibility = lower_visibility(func);
@@ -294,6 +296,15 @@ impl Context {
         if force_extern || func.is_extern() {
             flags |= FunctionFlags::IS_EXTERN;
         }
+        // `extern "codira-intrinsic"` declares operations the compiler knows
+        // how to emit directly -- a raw load is a single LLVM instruction,
+        // and routing it through a call would cost more than the operation
+        // itself. The ABI string carries this rather than an attribute so
+        // the declaration reads as what it is: a foreign thing, provided by
+        // the compiler instead of by a library.
+        if abi == Some(INTRINSIC_ABI) {
+            flags |= FunctionFlags::IS_INTRINSIC;
+        }
         if func.body().is_some() {
             flags |= FunctionFlags::HAS_BODY;
         }
@@ -341,18 +352,54 @@ impl Context {
     /// across compilers -- storing the string without that metadata would
     /// imply a distinction the backend does not yet make.
     fn lower_extern_block(&mut self, block: &ast::ExternBlock) -> ModItems {
+        // The ABI string is a bare token on the block rather than a node, so
+        // it is read off the syntax directly. `extern_block` in the parser
+        // bumps exactly one STRING before the item list, so the first one is
+        // the ABI.
+        let abi = block
+            .syntax()
+            .children_with_tokens()
+            .filter_map(codira_syntax::SyntaxElement::into_token)
+            .find(|t| t.kind() == codira_syntax::SyntaxKind::STRING)
+            .map(|t| t.text().trim_matches('"').to_owned());
+
         let items: SmallVec<[ModItem; 1]> = block
             .extern_item_list()
             .into_iter()
             .flat_map(|list| list.extern_items())
             .filter_map(|item| match item.kind() {
                 ast::ExternItemKind::FunctionDef(func) => self
-                    .lower_function_inner(&func, true)
+                    .lower_function_inner(&func, true, abi.as_deref())
                     .map(Into::<ModItem>::into),
             })
             .collect();
 
         ModItems(items)
+    }
+
+    /// Lowers an `effect` declaration. Operations without a name (a syntax
+    /// error the parser has already reported) are skipped.
+    fn lower_effect(&mut self, effect: &ast::EffectDef) -> Option<LocalItemTreeId<Effect>> {
+        let name = effect.name()?.as_name();
+        let visibility = lower_visibility(effect);
+        let ops = effect
+            .effect_op_list()
+            .into_iter()
+            .flat_map(|list| list.ops())
+            .filter_map(|op| Some(op.name()?.as_name()))
+            .collect();
+        let ast_id = self.source_ast_id_map.ast_id(effect);
+        Some(
+            self.data
+                .effects
+                .alloc(Effect {
+                    name,
+                    visibility,
+                    ops,
+                    ast_id,
+                })
+                .into(),
+        )
     }
 
     /// Lowers a struct

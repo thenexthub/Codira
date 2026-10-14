@@ -235,6 +235,46 @@ pub enum OpKind {
     /// op of a `While` body / `For` body region. Produces no value usable
     /// by later ops (there are none: it is last).
     Yield,
+
+    // ---- mem.* (Memory SSA; see `crate::mem`) ------------------------------
+    /// A memory operation. Memory is an SSA value of type
+    /// [`TypeId::MEM`](crate::TypeId::MEM): every operation that changes
+    /// memory takes the state it changes and produces the next one, and a
+    /// load names the state it reads. See [`MemOp`] for each operation's
+    /// contract and `crate::mem` for the rules that make the chain sound.
+    Mem(MemOp),
+}
+
+/// The memory operations. Each is one `OpKind::Mem` variant so that code
+/// matching on [`OpKind`] grows by one arm, not six.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MemOp {
+    /// `mem.entry` -- the memory state when the function is entered. No
+    /// operands, type `mem`. Only valid in a top-level body: memory reaches
+    /// a loop region as a carried value, never by naming the entry state
+    /// again.
+    Entry,
+    /// `mem.alloc(site, elem, count)` -- operands `[m]`. Allocates a fresh,
+    /// uninitialized slot of `count` values of type `elem`, and returns the
+    /// memory state that has it (type `mem`). `site` identifies the
+    /// allocation in the source; two allocations with different sites never
+    /// alias. The slot's address is [`MemOp::Addr`] of this op's result.
+    Alloc { site: u32, elem: TypeId, count: u32 },
+    /// `mem.addr` -- operands `[m]`, where `m` is the result of a
+    /// [`MemOp::Alloc`] in the same body. The address of that allocation
+    /// (type `ptr`). Reading an address does not consume the state.
+    Addr,
+    /// `mem.load` -- operands `[m, p]`: the value at `p` in memory state `m`.
+    /// The loaded type is the op's type. A load is a *use* of `m`, not a
+    /// new state.
+    Load,
+    /// `mem.store` -- operands `[m, p, v]`: memory state `m` with `v` written
+    /// at `p`. Type `mem`.
+    Store,
+    /// `mem.offset(elem)` -- operands `[p, i]`: the address of element `i`
+    /// (an integer, in units of `elem`) counting from `p`. Pure pointer
+    /// arithmetic; no memory state involved.
+    Offset { elem: TypeId },
 }
 
 /// One operation: a kind, its SSA operands (other ops in the same [`Body`]),

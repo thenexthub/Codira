@@ -1,0 +1,25 @@
+[package]
+name = "codira_quantum"
+description = "Quantum circuits for Codira: a circuit IR, OpenQASM 2/3 and QIR (base profile) emitters and importers, a state-vector simulator, and compile-time elaboration of @target(qpu) kernels"
+keywords = ["quantum", "qir", "openqasm", "codira", "compiler"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
+codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
+stacker = "0.1.23"
+inkwell = { workspace = true, features = ["llvm22-1"], default-features = false }
+thiserror = { workspace = true }
+
+
+[dev-dependencies]
+codira_target = { version = "0.6.0-dev", path = "../codira_target" }

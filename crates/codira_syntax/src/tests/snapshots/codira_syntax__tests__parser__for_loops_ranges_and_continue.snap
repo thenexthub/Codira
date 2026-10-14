@@ -1,0 +1,155 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        func f(xs: [i32], n: i32) {\n            for i in 0..10 {\n                if i == 3 { continue }\n                continue;\n            }\n            for i in 1..=n + 1 {}\n            for (a, _) in xs {}\n        }\n        \"#,).debug_dump()"
+---
+SOURCE_FILE@0..229
+  FUNCTION_DEF@0..220
+    WHITESPACE@0..9 "\n        "
+    FUNC_KW@9..13 "func"
+    WHITESPACE@13..14 " "
+    NAME@14..15
+      IDENT@14..15 "f"
+    PARAM_LIST@15..34
+      L_PAREN@15..16 "("
+      PARAM@16..25
+        BIND_PAT@16..18
+          NAME@16..18
+            IDENT@16..18 "xs"
+        COLON@18..19 ":"
+        WHITESPACE@19..20 " "
+        ARRAY_TYPE@20..25
+          L_BRACKET@20..21 "["
+          PATH_TYPE@21..24
+            PATH@21..24
+              PATH_SEGMENT@21..24
+                NAME_REF@21..24
+                  IDENT@21..24 "i32"
+          R_BRACKET@24..25 "]"
+      COMMA@25..26 ","
+      WHITESPACE@26..27 " "
+      PARAM@27..33
+        BIND_PAT@27..28
+          NAME@27..28
+            IDENT@27..28 "n"
+        COLON@28..29 ":"
+        WHITESPACE@29..30 " "
+        PATH_TYPE@30..33
+          PATH@30..33
+            PATH_SEGMENT@30..33
+              NAME_REF@30..33
+                IDENT@30..33 "i32"
+      R_PAREN@33..34 ")"
+    WHITESPACE@34..35 " "
+    BLOCK_EXPR@35..220
+      L_CURLY@35..36 "{"
+      WHITESPACE@36..49 "\n            "
+      EXPR_STMT@49..144
+        FOR_EXPR@49..144
+          FOR_KW@49..52 "for"
+          WHITESPACE@52..53 " "
+          BIND_PAT@53..54
+            NAME@53..54
+              IDENT@53..54 "i"
+          WHITESPACE@54..55 " "
+          IN_KW@55..57 "in"
+          WHITESPACE@57..58 " "
+          RANGE_EXPR@58..63
+            LITERAL@58..59
+              INT_NUMBER@58..59 "0"
+            DOTDOT@59..61 ".."
+            LITERAL@61..63
+              INT_NUMBER@61..63 "10"
+          WHITESPACE@63..64 " "
+          BLOCK_EXPR@64..144
+            L_CURLY@64..65 "{"
+            WHITESPACE@65..82 "\n                "
+            EXPR_STMT@82..104
+              IF_EXPR@82..104
+                IF_KW@82..84 "if"
+                WHITESPACE@84..85 " "
+                CONDITION@85..91
+                  BIN_EXPR@85..91
+                    PATH_EXPR@85..86
+                      PATH@85..86
+                        PATH_SEGMENT@85..86
+                          NAME_REF@85..86
+                            IDENT@85..86 "i"
+                    WHITESPACE@86..87 " "
+                    EQEQ@87..89 "=="
+                    WHITESPACE@89..90 " "
+                    LITERAL@90..91
+                      INT_NUMBER@90..91 "3"
+                WHITESPACE@91..92 " "
+                BLOCK_EXPR@92..104
+                  L_CURLY@92..93 "{"
+                  WHITESPACE@93..94 " "
+                  CONTINUE_EXPR@94..102
+                    CONTINUE_KW@94..102 "continue"
+                  WHITESPACE@102..103 " "
+                  R_CURLY@103..104 "}"
+            WHITESPACE@104..121 "\n                "
+            EXPR_STMT@121..130
+              CONTINUE_EXPR@121..129
+                CONTINUE_KW@121..129 "continue"
+              SEMI@129..130 ";"
+            WHITESPACE@130..143 "\n            "
+            R_CURLY@143..144 "}"
+      WHITESPACE@144..157 "\n            "
+      EXPR_STMT@157..178
+        FOR_EXPR@157..178
+          FOR_KW@157..160 "for"
+          WHITESPACE@160..161 " "
+          BIND_PAT@161..162
+            NAME@161..162
+              IDENT@161..162 "i"
+          WHITESPACE@162..163 " "
+          IN_KW@163..165 "in"
+          WHITESPACE@165..166 " "
+          RANGE_EXPR@166..175
+            LITERAL@166..167
+              INT_NUMBER@166..167 "1"
+            DOTDOTEQ@167..170 "..="
+            BIN_EXPR@170..175
+              PATH_EXPR@170..171
+                PATH@170..171
+                  PATH_SEGMENT@170..171
+                    NAME_REF@170..171
+                      IDENT@170..171 "n"
+              WHITESPACE@171..172 " "
+              PLUS@172..173 "+"
+              WHITESPACE@173..174 " "
+              LITERAL@174..175
+                INT_NUMBER@174..175 "1"
+          WHITESPACE@175..176 " "
+          BLOCK_EXPR@176..178
+            L_CURLY@176..177 "{"
+            R_CURLY@177..178 "}"
+      WHITESPACE@178..191 "\n            "
+      FOR_EXPR@191..210
+        FOR_KW@191..194 "for"
+        WHITESPACE@194..195 " "
+        TUPLE_PAT@195..201
+          L_PAREN@195..196 "("
+          BIND_PAT@196..197
+            NAME@196..197
+              IDENT@196..197 "a"
+          COMMA@197..198 ","
+          WHITESPACE@198..199 " "
+          PLACEHOLDER_PAT@199..200
+            UNDERSCORE@199..200 "_"
+          R_PAREN@200..201 ")"
+        WHITESPACE@201..202 " "
+        IN_KW@202..204 "in"
+        WHITESPACE@204..205 " "
+        PATH_EXPR@205..207
+          PATH@205..207
+            PATH_SEGMENT@205..207
+              NAME_REF@205..207
+                IDENT@205..207 "xs"
+        WHITESPACE@207..208 " "
+        BLOCK_EXPR@208..210
+          L_CURLY@208..209 "{"
+          R_CURLY@209..210 "}"
+      WHITESPACE@210..219 "\n        "
+      R_CURLY@219..220 "}"
+  WHITESPACE@220..229 "\n        "

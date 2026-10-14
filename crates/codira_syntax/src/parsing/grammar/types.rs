@@ -7,7 +7,7 @@
 use super::{
     expressions, generics, name_ref, paths, CompletedMarker, Parser, TokenSet, ARRAY_TYPE,
     FUNCTION_TYPE, NEVER_TYPE, OPTIONAL_TYPE, PAREN_TYPE, PATH_TYPE, REFERENCE_TYPE,
-    REFINEMENT_TYPE, RET_TYPE, TUPLE_TYPE, VARIADIC_TYPE,
+    REFINEMENT_TYPE, RET_TYPE, SECRET_TYPE, TUPLE_TYPE, VARIADIC_TYPE,
 };
 
 pub(super) const TYPE_FIRST: TokenSet = paths::PATH_FIRST.union(TokenSet::new(&[
@@ -84,6 +84,15 @@ fn type_inner(p: &mut Parser<'_>, allow_refinement: bool) {
         // `mut` is contextual, so it arrives as an IDENT; promoting it here
         // is what distinguishes `mut Atomic[u64]` from a type *named* `mut`.
         _ if p.at_contextual_kw("mut") && TYPE_FIRST.contains(p.nth(1)) => reference_type(p),
+        // `secret T` -- the information-flow qualifier. Contextual, so only
+        // promoted when a type follows; a type *named* `secret` still parses
+        // as a path.
+        _ if p.at_contextual_kw("secret") && TYPE_FIRST.contains(p.nth(1)) => {
+            let m = p.start();
+            p.bump_remap(T![secret]);
+            type_inner(p, allow_refinement);
+            m.complete(p, SECRET_TYPE)
+        }
         _ if paths::is_path_start(p) => path_type(p),
         _ => {
             p.error_recover("expected type", TYPE_RECOVERY_SET);

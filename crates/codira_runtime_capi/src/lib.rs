@@ -12,6 +12,8 @@
 //! interoperability with C.
 #![warn(missing_docs)]
 
+pub mod alloc;
+pub mod diagnostics;
 pub mod gc;
 pub mod runtime;
 

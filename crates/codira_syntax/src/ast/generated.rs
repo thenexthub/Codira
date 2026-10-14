@@ -415,6 +415,35 @@ impl ChildDef {
     }
 }
 
+// ChooseExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ChooseExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ChooseExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, CHOOSE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ChooseExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ast::NameOwner for ChooseExpr {}
+impl ChooseExpr {
+    pub fn predicate(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // ClosureExpr
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -548,6 +577,58 @@ impl ConstDef {
     }
 }
 
+// ContinueExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ContinueExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ContinueExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, CONTINUE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ContinueExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ContinueExpr {}
+
+// DecreasesClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DecreasesClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for DecreasesClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, DECREASES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(DecreasesClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl DecreasesClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // EffectDef
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -638,6 +719,34 @@ impl AstNode for EffectOpList {
 impl EffectOpList {
     pub fn ops(&self) -> impl Iterator<Item = EffectOp> {
         super::children(self)
+    }
+}
+
+// EnsuresClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnsuresClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for EnsuresClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, ENSURES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(EnsuresClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl EnsuresClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
     }
 }
 
@@ -761,6 +870,9 @@ impl AstNode for Expr {
                 | WHILE_EXPR
                 | RETURN_EXPR
                 | BREAK_EXPR
+                | FOR_EXPR
+                | CONTINUE_EXPR
+                | RANGE_EXPR
                 | BLOCK_EXPR
                 | ARRAY_EXPR
                 | TUPLE_EXPR
@@ -771,11 +883,14 @@ impl AstNode for Expr {
                 | MATCH_EXPR
                 | PERFORM_EXPR
                 | SPAWN_EXPR
+                | SCOPE_EXPR
                 | HANDLE_EXPR
                 | TRY_EXPR
                 | TRANSFER_EXPR
                 | CHANNEL_RECV_EXPR
                 | CHANNEL_SEND_EXPR
+                | HOLE_EXPR
+                | CHOOSE_EXPR
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -805,6 +920,9 @@ pub enum ExprKind {
     WhileExpr(WhileExpr),
     ReturnExpr(ReturnExpr),
     BreakExpr(BreakExpr),
+    ForExpr(ForExpr),
+    ContinueExpr(ContinueExpr),
+    RangeExpr(RangeExpr),
     BlockExpr(BlockExpr),
     ArrayExpr(ArrayExpr),
     TupleExpr(TupleExpr),
@@ -815,11 +933,14 @@ pub enum ExprKind {
     MatchExpr(MatchExpr),
     PerformExpr(PerformExpr),
     SpawnExpr(SpawnExpr),
+    ScopeExpr(ScopeExpr),
     HandleExpr(HandleExpr),
     TryExpr(TryExpr),
     TransferExpr(TransferExpr),
     ChannelRecvExpr(ChannelRecvExpr),
     ChannelSendExpr(ChannelSendExpr),
+    HoleExpr(HoleExpr),
+    ChooseExpr(ChooseExpr),
 }
 impl From<Literal> for Expr {
     fn from(n: Literal) -> Expr {
@@ -891,6 +1012,21 @@ impl From<BreakExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<ForExpr> for Expr {
+    fn from(n: ForExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<ContinueExpr> for Expr {
+    fn from(n: ContinueExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<RangeExpr> for Expr {
+    fn from(n: RangeExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 impl From<BlockExpr> for Expr {
     fn from(n: BlockExpr) -> Expr {
         Expr { syntax: n.syntax }
@@ -941,6 +1077,11 @@ impl From<SpawnExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<ScopeExpr> for Expr {
+    fn from(n: ScopeExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 impl From<HandleExpr> for Expr {
     fn from(n: HandleExpr) -> Expr {
         Expr { syntax: n.syntax }
@@ -966,6 +1107,16 @@ impl From<ChannelSendExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<HoleExpr> for Expr {
+    fn from(n: HoleExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<ChooseExpr> for Expr {
+    fn from(n: ChooseExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 
 impl Expr {
     pub fn kind(&self) -> ExprKind {
@@ -986,6 +1137,11 @@ impl Expr {
             WHILE_EXPR => ExprKind::WhileExpr(WhileExpr::cast(self.syntax.clone()).unwrap()),
             RETURN_EXPR => ExprKind::ReturnExpr(ReturnExpr::cast(self.syntax.clone()).unwrap()),
             BREAK_EXPR => ExprKind::BreakExpr(BreakExpr::cast(self.syntax.clone()).unwrap()),
+            FOR_EXPR => ExprKind::ForExpr(ForExpr::cast(self.syntax.clone()).unwrap()),
+            CONTINUE_EXPR => {
+                ExprKind::ContinueExpr(ContinueExpr::cast(self.syntax.clone()).unwrap())
+            }
+            RANGE_EXPR => ExprKind::RangeExpr(RangeExpr::cast(self.syntax.clone()).unwrap()),
             BLOCK_EXPR => ExprKind::BlockExpr(BlockExpr::cast(self.syntax.clone()).unwrap()),
             ARRAY_EXPR => ExprKind::ArrayExpr(ArrayExpr::cast(self.syntax.clone()).unwrap()),
             TUPLE_EXPR => ExprKind::TupleExpr(TupleExpr::cast(self.syntax.clone()).unwrap()),
@@ -998,6 +1154,7 @@ impl Expr {
             MATCH_EXPR => ExprKind::MatchExpr(MatchExpr::cast(self.syntax.clone()).unwrap()),
             PERFORM_EXPR => ExprKind::PerformExpr(PerformExpr::cast(self.syntax.clone()).unwrap()),
             SPAWN_EXPR => ExprKind::SpawnExpr(SpawnExpr::cast(self.syntax.clone()).unwrap()),
+            SCOPE_EXPR => ExprKind::ScopeExpr(ScopeExpr::cast(self.syntax.clone()).unwrap()),
             HANDLE_EXPR => ExprKind::HandleExpr(HandleExpr::cast(self.syntax.clone()).unwrap()),
             TRY_EXPR => ExprKind::TryExpr(TryExpr::cast(self.syntax.clone()).unwrap()),
             TRANSFER_EXPR => {
@@ -1009,6 +1166,8 @@ impl Expr {
             CHANNEL_SEND_EXPR => {
                 ExprKind::ChannelSendExpr(ChannelSendExpr::cast(self.syntax.clone()).unwrap())
             }
+            HOLE_EXPR => ExprKind::HoleExpr(HoleExpr::cast(self.syntax.clone()).unwrap()),
+            CHOOSE_EXPR => ExprKind::ChooseExpr(ChooseExpr::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }
     }
@@ -1290,6 +1449,39 @@ impl FieldExpr {
     }
 }
 
+// ForExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ForExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ForExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, FOR_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ForExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ast::LoopBodyOwner for ForExpr {}
+impl ForExpr {
+    pub fn pat(&self) -> Option<Pat> {
+        super::child_opt(self)
+    }
+
+    pub fn iterable(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // FunctionDef
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1319,6 +1511,14 @@ impl ast::ExternOwner for FunctionDef {}
 impl ast::AttributeOwner for FunctionDef {}
 impl ast::GenericParamsOwner for FunctionDef {}
 impl FunctionDef {
+    pub fn requires_clauses(&self) -> impl Iterator<Item = RequiresClause> {
+        super::children(self)
+    }
+
+    pub fn ensures_clauses(&self) -> impl Iterator<Item = EnsuresClause> {
+        super::children(self)
+    }
+
     pub fn param_list(&self) -> Option<ParamList> {
         super::child_opt(self)
     }
@@ -1549,6 +1749,30 @@ impl HandlerArmList {
     }
 }
 
+// HoleExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HoleExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for HoleExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, HOLE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(HoleExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl HoleExpr {}
+
 // IfExpr
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1626,6 +1850,34 @@ impl AstNode for InheritanceList {
 impl InheritanceList {
     pub fn bounds(&self) -> impl Iterator<Item = TypeRef> {
         super::children(self)
+    }
+}
+
+// InvariantClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InvariantClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for InvariantClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, INVARIANT_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(InvariantClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl InvariantClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
     }
 }
 
@@ -1737,7 +1989,15 @@ impl AstNode for LoopExpr {
     }
 }
 impl ast::LoopBodyOwner for LoopExpr {}
-impl LoopExpr {}
+impl LoopExpr {
+    pub fn invariant_clauses(&self) -> impl Iterator<Item = InvariantClause> {
+        super::children(self)
+    }
+
+    pub fn decreases_clause(&self) -> Option<DecreasesClause> {
+        super::child_opt(self)
+    }
+}
 
 // MacroDef
 
@@ -2617,6 +2877,30 @@ impl PrefixExpr {
     }
 }
 
+// RangeExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RangeExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for RangeExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, RANGE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(RangeExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl RangeExpr {}
+
 // RecordField
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -2858,6 +3142,34 @@ impl AstNode for Rename {
 impl ast::NameOwner for Rename {}
 impl Rename {}
 
+// RequiresClause
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RequiresClause {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for RequiresClause {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, REQUIRES_CLAUSE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(RequiresClause { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl RequiresClause {
+    pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
 // RetType
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -2910,6 +3222,62 @@ impl AstNode for ReturnExpr {
 }
 impl ReturnExpr {
     pub fn expr(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
+
+// ScopeExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ScopeExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for ScopeExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SCOPE_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(ScopeExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ScopeExpr {
+    pub fn body(&self) -> Option<BlockExpr> {
+        super::child_opt(self)
+    }
+}
+
+// SecretType
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SecretType {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SecretType {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SECRET_TYPE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SecretType { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SecretType {
+    pub fn type_ref(&self) -> Option<TypeRef> {
         super::child_opt(self)
     }
 }
@@ -3540,6 +3908,7 @@ impl AstNode for TypeRef {
                 | NEVER_TYPE
                 | OPTIONAL_TYPE
                 | REFINEMENT_TYPE
+                | SECRET_TYPE
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -3565,6 +3934,7 @@ pub enum TypeRefKind {
     NeverType(NeverType),
     OptionalType(OptionalType),
     RefinementType(RefinementType),
+    SecretType(SecretType),
 }
 impl From<PathType> for TypeRef {
     fn from(n: PathType) -> TypeRef {
@@ -3616,6 +3986,11 @@ impl From<RefinementType> for TypeRef {
         TypeRef { syntax: n.syntax }
     }
 }
+impl From<SecretType> for TypeRef {
+    fn from(n: SecretType) -> TypeRef {
+        TypeRef { syntax: n.syntax }
+    }
+}
 
 impl TypeRef {
     pub fn kind(&self) -> TypeRefKind {
@@ -3640,6 +4015,7 @@ impl TypeRef {
             REFINEMENT_TYPE => {
                 TypeRefKind::RefinementType(RefinementType::cast(self.syntax.clone()).unwrap())
             }
+            SECRET_TYPE => TypeRefKind::SecretType(SecretType::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }
     }
@@ -3900,7 +4276,15 @@ impl AstNode for WhileExpr {
 }
 impl ast::LoopBodyOwner for WhileExpr {}
 impl WhileExpr {
+    pub fn invariant_clauses(&self) -> impl Iterator<Item = InvariantClause> {
+        super::children(self)
+    }
+
     pub fn condition(&self) -> Option<Condition> {
+        super::child_opt(self)
+    }
+
+    pub fn decreases_clause(&self) -> Option<DecreasesClause> {
         super::child_opt(self)
     }
 }

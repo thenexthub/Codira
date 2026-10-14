@@ -28,9 +28,9 @@
 //   // a dropped → count = 0 → freed
 // =============================================================================
 
-import std.builtin.traits;
-import std.builtin.types;
-import std.memory.unsafe_pointer;
+import root.builtin.traits.*;
+import root.builtin.types.*;
+import root.memory.unsafe_pointer.*;
 
 // Internal control block stored before the payload.
 struct _ArcControlBlock {
@@ -229,7 +229,7 @@ extend ArcPointer[T] {
 // Decrement the strong count.  If it reaches zero, destroy the payload
 // and free the allocation.
 extend ArcPointer[T] {
-    public func destroy(self) -> void {
+    public func destroy(self) {
         if self._block.is_null() {
             return;
         }
@@ -307,7 +307,7 @@ extend ArcPointer[T] {
 
 // Hashable
 extend ArcPointer[T: Hashable] {
-    public func hash(self, hasher: &Hasher) -> void {
+    public func hash(self, hasher: &Hasher) {
         self._payload_ptr().load().hash(hasher);
     }
 }

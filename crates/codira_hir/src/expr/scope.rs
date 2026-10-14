@@ -63,6 +63,23 @@ impl ExprScopes {
         }
         scopes.add_params_bindings(body, root, body.params().iter().map(|p| &p.0));
         compute_expr_scopes(body.body_expr(), body, &mut scopes, root);
+
+        // `requires` sees the parameters; `ensures` additionally sees
+        // `result`, bound in a scope of its own so it shadows a parameter
+        // that happens to share the name.
+        let contracts = body.contracts();
+        for &clause in &contracts.requires {
+            compute_expr_scopes(clause, body, &mut scopes, root);
+        }
+        if !contracts.ensures.is_empty() {
+            let ensures_scope = scopes.new_scope(root);
+            if let Some(result) = contracts.result_pat {
+                scopes.add_bindings(body, ensures_scope, result);
+            }
+            for &clause in &contracts.ensures {
+                compute_expr_scopes(clause, body, &mut scopes, ensures_scope);
+            }
+        }
         scopes
     }
 
@@ -129,13 +146,30 @@ impl ExprScopes {
 }
 
 fn compute_block_scopes(
+    block: ExprId,
     statements: &[Statement],
     tail: Option<ExprId>,
     body: &Body,
     scopes: &mut ExprScopes,
     mut scope: LocalScopeId,
 ) {
-    for stmt in statements {
+    // Ghost lets live outside `statements` (see `BodyContracts`), each
+    // tagged with the statement index it precedes; they open scopes exactly
+    // as an ordinary `let` in that position would.
+    let ghosts = body.contracts().ghost_lets.get(&block);
+    let ghosts_at = |idx: usize| {
+        ghosts
+            .into_iter()
+            .flatten()
+            .filter(move |(pos, _)| *pos == idx)
+            .map(|(_, stmt)| stmt)
+    };
+    for stmt in statements
+        .iter()
+        .enumerate()
+        .flat_map(|(idx, stmt)| ghosts_at(idx).chain(std::iter::once(stmt)))
+        .chain(ghosts_at(statements.len()))
+    {
         match stmt {
             Statement::Let {
                 pat, initializer, ..
@@ -162,8 +196,47 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
     scopes.set_scope(expr, scope);
     match &body[expr] {
         Expr::Block { statements, tail } => {
-            compute_block_scopes(statements, *tail, body, scopes, scope);
+            compute_block_scopes(expr, statements, *tail, body, scopes, scope);
+        }
+        // Each handler arm binds its operation's parameters in a scope of its
+        // own, visible only to that arm's body.
+        Expr::Handle {
+            body: handled,
+            arms,
+        } => {
+            compute_expr_scopes(*handled, body, scopes, scope);
+            for arm in arms {
+                let arm_scope = scopes.new_scope(scope);
+                scopes.add_params_bindings(body, arm_scope, arm.params.iter());
+                compute_expr_scopes(arm.body, body, scopes, arm_scope);
+            }
+        }
+        // The iterable is evaluated outside the loop, so it cannot see the
+        // loop variable; the body can.
+        Expr::For {
+            pat,
+            iterable,
+            body: loop_body,
+        } => {
+            compute_expr_scopes(*iterable, body, scopes, scope);
+            let loop_scope = scopes.new_scope(scope);
+            scopes.add_bindings(body, loop_scope, *pat);
+            compute_expr_scopes(*loop_body, body, scopes, loop_scope);
         }
         e => e.walk_child_exprs(|e| compute_expr_scopes(e, body, scopes, scope)),
     };
+    // `choose x where pred`: the predicate sees everything the expression
+    // does, plus `x`.
+    if let Some(choose) = body.contracts().chooses.get(&expr) {
+        let inner = scopes.new_scope(scope);
+        scopes.add_bindings(body, inner, choose.binder);
+        compute_expr_scopes(choose.predicate, body, scopes, inner);
+    }
+    // A loop's `invariant`/`decreases` clauses are evaluated at the loop
+    // head, so they see exactly what the loop expression itself sees.
+    if let Some(contract) = body.contracts().loops.get(&expr) {
+        for &clause in contract.invariants.iter().chain(contract.decreases.iter()) {
+            compute_expr_scopes(clause, body, scopes, scope);
+        }
+    }
 }

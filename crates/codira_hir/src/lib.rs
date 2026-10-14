@@ -17,10 +17,11 @@ pub use codira_hir_input::ModuleId;
 pub use salsa;
 
 pub use self::code_model::{
-    Field, Function, FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Struct,
-    StructMemoryKind, TypeAlias,
+    Effect, EffectData, EffectOpSig, Field, Function, FunctionData, HasSource, Module, ModuleDef,
+    Package, PrimitiveType, Struct, StructMemoryKind, TypeAlias,
 };
 pub use crate::{
+    builtin::BuiltinFn,
     db::{
         AstDatabase, AstDatabaseStorage, DefDatabase, DefDatabaseStorage, HirDatabase,
         HirDatabaseStorage, InternDatabase, InternDatabaseStorage,
@@ -28,8 +29,8 @@ pub use crate::{
     diagnostics::{Diagnostic, DiagnosticSink},
     display::HirDisplay,
     expr::{
-        ArithOp, BinaryOp, Body, CmpOp, Expr, ExprId, ExprScopes, Literal, LogicOp, Ordering, Pat,
-        PatId, RecordLitField, Statement, UnaryOp,
+        ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
+        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,
@@ -50,6 +51,7 @@ use crate::{name::AsName, source_id::AstIdMap};
 
 #[macro_use]
 mod macros;
+mod builtin;
 mod code_model;
 mod comptime_fold;
 mod data_derive;
@@ -72,10 +74,12 @@ mod supervisor_validator;
 mod ty;
 mod type_ref;
 mod utils;
+pub mod verify;
 
 mod has_module;
 mod heal_check;
 pub mod heal_contract;
+pub mod inline_asm;
 mod item_scope;
 pub mod method_resolution;
 #[cfg(test)]

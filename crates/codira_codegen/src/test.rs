@@ -903,6 +903,317 @@ fn gc_struct() {
 }
 
 #[test]
+fn intrinsic_load_and_store() {
+    // `load_*`/`store_*` must become a bare `inttoptr` plus a `load`/`store`
+    // with no call left behind: the whole point is that reaching a
+    // caller-owned buffer costs one instruction, not a function call.
+    test_snapshot_unoptimized(
+        "intrinsic_load_and_store",
+        r#"
+    extern "codira-intrinsic" {
+        func load_u32(addr: usize) -> u32;
+        func store_u32(addr: usize, value: u32);
+    }
+    public func copy_one(src: usize, dst: usize) {
+        store_u32(dst, load_u32(src));
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_bit_counting() {
+    // `ctlz_u32` must lower to `@llvm.ctlz.i32`, which becomes a single
+    // `LZCNT`/`CLZ`. The second argument is the is-zero-poison flag and must
+    // be false, so `ctlz_u32(0)` is 32 rather than undefined.
+    test_snapshot_unoptimized(
+        "intrinsic_bit_counting",
+        r#"
+    extern "codira-intrinsic" {
+        func ctlz_u32(value: u32) -> u32;
+        func cttz_u32(value: u32) -> u32;
+        func popcount_u32(value: u32) -> u32;
+    }
+    public func counts(x: u32) -> u32 {
+        ctlz_u32(x) + cttz_u32(x) + popcount_u32(x)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_float_math() {
+    // Each of these must become the LLVM intrinsic of the matching width,
+    // which the backend turns into the hardware instruction where one
+    // exists (`SQRTSD`, `FSQRT`) and a libm call where it does not. Writing
+    // them in Codira would give up the instruction on every target that has
+    // it.
+    //
+    // Both widths appear so that a regression picking the wrong suffix --
+    // `llvm.sqrt.f64` for an `f32` argument -- shows up as a verifier
+    // failure rather than a silent precision change.
+    test_snapshot_unoptimized(
+        "intrinsic_float_math",
+        r#"
+    extern "codira-intrinsic" {
+        func sqrt_f64(x: f64) -> f64;
+        func sqrt_f32(x: f32) -> f32;
+        func pow_f64(base: f64, exponent: f64) -> f64;
+        func fma_f64(a: f64, b: f64, c: f64) -> f64;
+        func floor_f32(x: f32) -> f32;
+    }
+    public func mix(x: f64, y: f32) -> f64 {
+        sqrt_f64(x) + pow_f64(x, x) + fma_f64(x, x, x)
+    }
+    public func narrow(y: f32) -> f32 {
+        sqrt_f32(y) + floor_f32(y)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_byte_and_bit_reversal() {
+    // `bswap` is one instruction (`BSWAP`, `REV`) and `bitreverse` is one on
+    // AArch64 (`RBIT`); both are a handful of shifts and masks written by
+    // hand.
+    test_snapshot_unoptimized(
+        "intrinsic_byte_and_bit_reversal",
+        r#"
+    extern "codira-intrinsic" {
+        func bswap_u32(value: u32) -> u32;
+        func bitreverse_u64(value: u64) -> u64;
+    }
+    public func reverse(x: u32, y: u64) -> u64 {
+        bitreverse_u64(y)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_bulk_memory() {
+    // `memcpy` and `memmove` must stay distinct: `memcpy` is only valid when
+    // the regions do not overlap, and lowering both to the permissive one
+    // would be a miscompile that appears only on overlapping input.
+    //
+    // All three are emitted non-volatile, so the backend is free to turn
+    // them into the vectorised form that is the reason to call them at all.
+    test_snapshot_unoptimized(
+        "intrinsic_bulk_memory",
+        r#"
+    extern "codira-intrinsic" {
+        func memcpy(dst: usize, src: usize, len: usize);
+        func memmove(dst: usize, src: usize, len: usize);
+        func memset(dst: usize, byte: u8, len: usize);
+    }
+    public func bulk(dst: usize, src: usize, len: usize) {
+        memcpy(dst, src, len);
+        memmove(dst, src, len);
+        memset(dst, 0, len);
+    }
+    "#,
+    );
+}
+
+#[test]
+fn string_literal() {
+    // A literal is `{ ptr, usize }` over a private constant global. Three
+    // things this asserts, each load-bearing:
+    //
+    //   - the global is `private unnamed_addr constant`, so the linker may merge
+    //     the two identical literals below into one copy;
+    //   - the length is the byte count and excludes the trailing NUL, which exists
+    //     only so the pointer can be handed to C unchanged;
+    //   - the value is a constant struct, so a literal costs no instructions.
+    test_snapshot_unoptimized(
+        "string_literal",
+        r#"
+    public func greeting() -> str {
+        "hello"
+    }
+    public func same_again() -> str {
+        "hello"
+    }
+    public func empty() -> str {
+        ""
+    }
+    "#,
+    );
+}
+
+#[test]
+fn string_literal_accessors() {
+    // `str` is a compiler primitive with no fields for member access to
+    // reach, so without these a literal is a value you can hold and never
+    // use. Both must be a single `extractvalue`; `str_data` additionally
+    // becomes an integer address, matching the `usize`-addressed load and
+    // store intrinsics so the two families compose without a cast.
+    test_snapshot_unoptimized(
+        "string_literal_accessors",
+        r#"
+    extern "codira-intrinsic" {
+        func str_data(s: str) -> usize;
+        func str_len(s: str) -> usize;
+    }
+    public func address_of(s: str) -> usize {
+        str_data(s)
+    }
+    public func length_of(s: str) -> usize {
+        str_len(s)
+    }
+    public func length_of_literal() -> usize {
+        str_len("hello")
+    }
+    "#,
+    );
+}
+
+#[test]
+fn string_literal_with_embedded_nul_keeps_its_length() {
+    // The length is carried, not implied by a terminator, so a literal
+    // containing a NUL is still one string of the full length rather than
+    // being silently truncated at the NUL.
+    test_snapshot_unoptimized(
+        "string_literal_with_embedded_nul",
+        r#"
+    public func awkward() -> str {
+        "a\0b"
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_pointer_width_sizeof_alignof() {
+    // Zero arguments, no generic parameter: this is `sizeof(usize)`, the
+    // machine word, not `sizeof(T)` for some other type. It must fold to a
+    // target-width constant with no runtime work at all.
+    test_snapshot_unoptimized(
+        "intrinsic_pointer_width_sizeof_alignof",
+        r#"
+    extern "codira-intrinsic" {
+        func sizeof() -> usize;
+        func alignof() -> usize;
+    }
+    public func word_size() -> usize {
+        sizeof()
+    }
+    public func word_align() -> usize {
+        alignof()
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_sizeof_of_infers_from_the_argument() {
+    // `marker` pins `T` through ordinary argument-type inference -- the
+    // same mechanism an ordinary generic call uses -- and is never read;
+    // only its LLVM type is asked for its store size and ABI alignment.
+    // `i64` and a two-field struct must report different sizes, which is
+    // what proves this reads the argument's *type*, not a fixed constant.
+    test_snapshot_unoptimized(
+        "intrinsic_sizeof_of_infers_from_the_argument",
+        r#"
+    extern "codira-intrinsic" {
+        func sizeof_of[T](marker: T) -> usize;
+        func alignof_of[T](marker: T) -> usize;
+    }
+    public struct Pair { a: i64, b: i64 }
+    public func size_of_i64(x: i64) -> usize {
+        sizeof_of(x)
+    }
+    public func size_of_pair(p: Pair) -> usize {
+        sizeof_of(p)
+    }
+    public func align_of_i64(x: i64) -> usize {
+        alignof_of(x)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_bitcast() {
+    // A bitcast is no instruction at run time, which is exactly why it is
+    // the way to build a float constant with no source spelling: infinity
+    // and NaN have exact bit patterns, and `1.0 / 0.0` is folded by the
+    // optimiser into whatever it likes rather than reliably that value.
+    test_snapshot_unoptimized(
+        "intrinsic_bitcast",
+        r#"
+    extern "codira-intrinsic" {
+        func bitcast_u64_f64(bits: u64) -> f64;
+        func bitcast_f64_u64(value: f64) -> u64;
+    }
+    public func infinity() -> f64 {
+        bitcast_u64_f64(9218868437227405312)
+    }
+    public func bits_of(x: f64) -> u64 {
+        bitcast_f64_u64(x)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_is_not_a_dispatch_table_dependency() {
+    // An intrinsic is `IS_EXTERN`, and every other extern function is
+    // recorded in the dispatch table as a symbol the runtime must resolve at
+    // load time. An intrinsic has no symbol -- it is emitted inline -- so
+    // recording it makes the assembly unloadable: `codira start` and any
+    // `codira_runtime` host fail with "Missing dependencies for functions:
+    // [load_u32, store_u32, ..]" naming things that are not supposed to
+    // exist. That was a real failure of the interop suite, and it is
+    // invisible in the IR for the function itself, which is why it gets its
+    // own test rather than being left to the snapshots above.
+    //
+    // The group IR is where the dispatch table lives, so the check is that
+    // no intrinsic name appears anywhere in this snapshot.
+    test_snapshot_unoptimized(
+        "intrinsic_is_not_a_dispatch_table_dependency",
+        r#"
+    extern "codira-intrinsic" {
+        func load_u32(addr: usize) -> u32;
+        func store_u32(addr: usize, value: u32);
+    }
+    extern "C" {
+        func real_external_symbol(x: i64) -> i64;
+    }
+    public func copy_and_call(src: usize, dst: usize, n: i64) -> i64 {
+        store_u32(dst, load_u32(src));
+        real_external_symbol(n)
+    }
+    "#,
+    );
+}
+
+#[test]
+fn intrinsic_load_widths() {
+    // Every width maps to its own LLVM type and alignment; a `load_u8` that
+    // silently loaded 4 bytes would read past a caller's buffer.
+    test_snapshot_unoptimized(
+        "intrinsic_load_widths",
+        r#"
+    extern "codira-intrinsic" {
+        func load_u8(addr: usize) -> u8;
+        func load_u16(addr: usize) -> u16;
+        func load_u64(addr: usize) -> u64;
+        func load_f32(addr: usize) -> f32;
+        func load_f64(addr: usize) -> f64;
+    }
+    public func widths(p: usize) -> f64 {
+        load_f64(p) + load_f32(p) as f64
+    }
+    public func ints(p: usize) -> u64 {
+        load_u64(p) + load_u16(p) as u64 + load_u8(p) as u64
+    }
+    "#,
+    );
+}
+
+#[test]
 fn extern_fn() {
     test_snapshot(
         "extern_fn",
@@ -1187,6 +1498,96 @@ fn eidos_folds_across_a_call() {
     );
 }
 
+/// The file IR of a single-file package, built with the given Eidos options
+/// and no LLVM optimization (so what is folded was folded by Eidos).
+fn file_ir_with_eidos(text: &str, eidos: crate::EidosOptions) -> String {
+    let mut db = MockDatabase::with_files(text);
+    db.set_optimization_level(OptimizationLevel::None);
+    db.set_eidos_options(eidos);
+    db.set_target(Target::host_target().unwrap());
+
+    let llvm_context = Context::create();
+    let code_gen = CodeGenContext::new(&llvm_context, &db);
+    let module_partition = db.module_partition();
+    module_partition
+        .iter()
+        .map(|(_, module_group)| {
+            let group_ir = gen_file_group_ir(&code_gen, module_group);
+            gen_file_ir(&code_gen, &group_ir, module_group)
+                .llvm_module
+                .print_to_string()
+                .to_string()
+        })
+        .collect()
+}
+
+#[test]
+fn dev_mode_skips_eidos_and_release_mode_runs_it() {
+    // `outer` is constant only once `inner` is inlined, which is Eidos's
+    // work, not LLVM's (nothing is optimized at -O0).
+    let text = r#"
+    public func inner() -> i64 {
+        6 * 7
+    }
+
+    public func outer() -> i64 {
+        inner() + 0
+    }"#;
+    let outer = |ir: &str| -> String {
+        let start = ir.find("@outer(").expect("outer is defined");
+        ir[start..].split("\n}").next().unwrap().to_string()
+    };
+
+    let release = file_ir_with_eidos(text, crate::EidosOptions::default());
+    let release_outer = outer(&release);
+    assert!(release_outer.contains("ret i64 42"), "{release_outer}");
+    assert!(!release_outer.contains("call"), "{release_outer}");
+
+    let dev = file_ir_with_eidos(
+        text,
+        crate::EidosOptions::default().with_mode(crate::BuildMode::Dev),
+    );
+    let dev_outer = outer(&dev);
+    assert!(
+        dev_outer.contains("call"),
+        "dev mode must lower `outer` as written:\n{dev_outer}"
+    );
+}
+
+#[test]
+fn eidos_options_are_an_input_that_invalidates_codegen() {
+    // Changing the mode must recompile the assembly; leaving it alone
+    // must not.
+    let (mut db, file_id) = MockDatabase::with_single_file(
+        r#"
+        public func answer() -> i64 { 40 + 2 }
+        "#,
+    );
+    db.set_eidos_options(crate::EidosOptions::default());
+    let group = db
+        .module_partition()
+        .group_for_file(file_id)
+        .expect("a group for the file");
+    db.assembly_ir(group);
+
+    let unchanged = db.log_executed(|| {
+        db.assembly_ir(group);
+    });
+    assert!(
+        !format!("{unchanged:?}").contains("assembly_ir"),
+        "{unchanged:#?}"
+    );
+
+    db.set_eidos_options(crate::EidosOptions::default().with_mode(crate::BuildMode::Dev));
+    let changed = db.log_executed(|| {
+        db.assembly_ir(group);
+    });
+    assert!(
+        format!("{changed:?}").contains("assembly_ir"),
+        "{changed:#?}"
+    );
+}
+
 #[test]
 fn eidos_declines_when_a_parameter_is_involved() {
     // Not constant: the fold must decline and leave ordinary lowering in
@@ -1196,6 +1597,49 @@ fn eidos_declines_when_a_parameter_is_involved() {
         r#"
     public func add_one(a: i64) -> i64 {
         a + 1
+    }"#,
+    );
+}
+
+#[test]
+fn eidos_folds_casts_by_source_and_target_type() {
+    // Each body is a constant, so each must fold to a single `ret` of the
+    // value the run-time conversion would produce: zero-extended by the
+    // u32 source (1000, not its low bit), sign-extended from i32, wrapped
+    // to u8, saturated from f64, and rounded through f32. The values
+    // themselves are checked by running them in `crate::run_test`.
+    test_snapshot_unoptimized(
+        "eidos_folds_casts_by_source_and_target_type",
+        r#"
+    public func widen_unsigned() -> u64 {
+        let a: u32 = 1000;
+        a as u64
+    }
+
+    public func widen_signed() -> i64 {
+        let a: i32 = -5;
+        a as i64
+    }
+
+    public func narrow() -> u8 {
+        let a: i64 = 300;
+        a as u8
+    }
+
+    public func saturate() -> u8 {
+        let a: f64 = 300.7;
+        a as u8
+    }
+
+    public func narrow_sum_wraps() -> bool {
+        let a: u8 = 200;
+        let b: u8 = 100;
+        (a + b) == 44
+    }
+
+    public func f32_widens_exactly() -> f64 {
+        let a: f32 = 0.5;
+        a as f64
     }"#,
     );
 }
@@ -1397,4 +1841,85 @@ fn tuple_pattern_is_zero_overhead() {
         q * 100 + r
     }"#,
     );
+}
+
+/// A construct the front end parses but cannot lower yet stops the build with
+/// a diagnostic naming it, rather than reaching `gen_expr` and crashing.
+#[test]
+fn unlowered_match_is_a_diagnostic() {
+    test_snapshot(
+        "unlowered_match_is_a_diagnostic",
+        r#"
+    public func main(x: i32) -> i32 {
+        match x { 1 -> 10, _ -> 20 }
+    }"#,
+    );
+}
+
+/// `println` lowers to one runtime call per argument through dispatch table
+/// slots reserved for the `codira.print_*` functions: integers are widened
+/// to 64 bits by signedness, a `bool` is passed as a byte, and the trailing
+/// newline is a `str` like any other.
+#[test]
+fn print_builtin() {
+    test_snapshot_unoptimized(
+        "print_builtin",
+        r#"
+    public func main(a: i8, b: u32, c: f32, d: bool) {
+        println("values: ", a, b, c, d)
+    }"#,
+    );
+}
+
+#[test]
+fn fuel_instrumentation_charges_function_entries_and_loop_back_edges() {
+    let text = r#"
+    public func spin(n: i64) -> i64 {
+        let i = 0;
+        while i < n {
+            i += 1;
+        }
+        i
+    }"#;
+    let ir_with_fuel = |fuel: bool| {
+        let mut db = MockDatabase::with_files(text);
+        db.set_optimization_level(OptimizationLevel::None);
+        db.set_fuel_instrumentation(fuel);
+        db.set_target(Target::host_target().unwrap());
+
+        let llvm_context = Context::create();
+        let code_gen = CodeGenContext::new(&llvm_context, &db);
+        let module_partition = db.module_partition();
+        module_partition
+            .iter()
+            .map(|(_, module_group)| {
+                let group_ir = gen_file_group_ir(&code_gen, module_group);
+                let file = gen_file_ir(&code_gen, &group_ir, module_group);
+                format!(
+                    "{}{}",
+                    group_ir.llvm_module.print_to_string().to_string(),
+                    file.llvm_module.print_to_string().to_string()
+                )
+            })
+            .collect::<String>()
+    };
+
+    let instrumented = ir_with_fuel(true);
+    // One check at entry, one on the loop's back-edge
+    assert_eq!(
+        instrumented.matches("load atomic i64").count(),
+        2,
+        "{instrumented}"
+    );
+    assert_eq!(
+        instrumented.matches("call void %").count(),
+        2,
+        "{instrumented}"
+    );
+    assert!(instrumented.contains("@fuelCounter"), "{instrumented}");
+    assert!(instrumented.contains("load atomic i64"), "{instrumented}");
+    assert!(instrumented.contains("store atomic i64"), "{instrumented}");
+
+    let plain = ir_with_fuel(false);
+    assert!(!plain.contains("fuel"), "{plain}");
 }

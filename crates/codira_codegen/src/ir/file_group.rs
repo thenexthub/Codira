@@ -33,6 +33,8 @@ pub struct FileGroupIr<'ink> {
     pub(crate) type_table: TypeTable<'ink>,
     /// The allocator handle, if it exists
     pub(crate) allocator_handle_type: Option<PointerType<'ink>>,
+    /// The type of the `fuelCounter` global, if the group is fuel-instrumented
+    pub(crate) fuel_counter_type: Option<PointerType<'ink>>,
     /// The modules that contain code that was referenced from this group of
     /// modules
     pub(crate) referenced_modules: FxHashSet<codira_hir::Module>,
@@ -81,6 +83,16 @@ pub(crate) fn gen_file_group_ir<'ink>(
                 &mut needs_alloc,
             );
         }
+    }
+
+    // Fuel-instrumented code calls back into the runtime when it runs dry.
+    let fuel = code_gen.fuel;
+    if fuel {
+        intrinsics::collect_fuel(
+            code_gen.context,
+            code_gen.target_machine.get_target_data(),
+            &mut intrinsics_map,
+        );
     }
 
     // Collect all exposed functions' bodies.
@@ -139,6 +151,7 @@ pub(crate) fn gen_file_group_ir<'ink>(
             ModuleDef::Function(_)
             | ModuleDef::PrimitiveType(_)
             | ModuleDef::TypeAlias(_)
+            | ModuleDef::Effect(_)
             | ModuleDef::Module(_) => (),
         }
     }
@@ -162,11 +175,33 @@ pub(crate) fn gen_file_group_ir<'ink>(
         None
     };
 
+    // The fuel counter: a pointer the runtime sets through
+    // `set_fuel_counter`. Until it does, it points at a private counter
+    // holding `i64::MAX`, so an instrumented library loaded by a host that
+    // never sets one runs as if fuel were unlimited.
+    let fuel_counter_type = if fuel {
+        let counter_type = code_gen.context.ptr_type(AddressSpace::default());
+        let fallback = llvm_module.add_global(code_gen.context.i64_type(), None, "fuelFallback");
+        fallback.set_initializer(
+            &code_gen
+                .context
+                .i64_type()
+                .const_int(i64::MAX as u64, false),
+        );
+        fallback.set_linkage(inkwell::module::Linkage::Private);
+        let global = llvm_module.add_global(counter_type, None, "fuelCounter");
+        global.set_initializer(&fallback.as_pointer_value());
+        Some(counter_type)
+    } else {
+        None
+    };
+
     FileGroupIr {
         llvm_module,
         dispatch_table,
         type_table,
         allocator_handle_type,
+        fuel_counter_type,
         referenced_modules,
     }
 }

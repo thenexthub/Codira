@@ -15,7 +15,7 @@ use codira_syntax::{
 };
 use either::Either;
 use la_arena::{Arena, ArenaMap, Idx};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub use self::scope::ExprScopes;
 use crate::{
@@ -29,7 +29,9 @@ use crate::{
     DefDatabase, HirDatabase, Name, Path,
 };
 
+pub(crate) mod effects;
 pub(crate) mod scope;
+mod tasks;
 pub(crate) mod validator;
 
 pub type ExprId = Idx<Expr>;
@@ -37,7 +39,16 @@ pub type PatId = Idx<Pat>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ExprDiagnostic {
-    LiteralError { expr: ExprId, err: LiteralError },
+    LiteralError {
+        expr: ExprId,
+        err: LiteralError,
+    },
+    /// A `comptime` block ran out of the interpreter's budget. `block` is
+    /// the block's own expression.
+    ComptimeExhausted {
+        block: ExprId,
+        limit: crate::comptime_fold::ComptimeLimit,
+    },
 }
 
 /// The body of an item (function, const etc.).
@@ -60,6 +71,75 @@ pub struct Body {
 
     /// Diagnostics encountered when parsing the ast expressions
     diagnostics: Vec<ExprDiagnostic>,
+
+    /// Verification-only parts of the body: contract clauses, loop
+    /// invariants and ghost bindings. See [`BodyContracts`].
+    contracts: BodyContracts,
+}
+
+/// The verification-only half of a [`Body`].
+///
+/// Every expression in here lives in the body's own arena -- so it is named,
+/// resolved and type-checked exactly like executable code, and diagnostics
+/// point at its real source -- but none of it is reachable from
+/// [`Body::body_expr`]. That is the whole erasure story: code generation and
+/// MIR lowering walk the tree from `body_expr`, so contracts and ghost code
+/// never reach them, and no backend has to know they exist.
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct BodyContracts {
+    /// `requires <expr>` clauses, in source order.
+    pub requires: Vec<ExprId>,
+    /// `ensures <expr>` clauses, in source order.
+    pub ensures: Vec<ExprId>,
+    /// The binding `result` resolves to inside an `ensures` clause. Present
+    /// only when the function has at least one.
+    pub result_pat: Option<PatId>,
+    /// `invariant`/`decreases` clauses, keyed by the `Loop`/`While`
+    /// expression they belong to.
+    pub loops: FxHashMap<ExprId, LoopContract>,
+    /// `ghost let` statements, keyed by the block they appear in. Each is
+    /// paired with the index of the (non-ghost) statement it precedes in that
+    /// block's `statements`, so a block of `n` statements has positions
+    /// `0..=n`, the last being "after every statement, before the tail".
+    pub ghost_lets: FxHashMap<ExprId, Vec<(usize, Statement)>>,
+    /// Every expression allocated for a contract clause or a ghost
+    /// initializer. Validators that reason about *executable* code use this
+    /// to skip them.
+    pub ghost_exprs: FxHashSet<ExprId>,
+    /// Every pattern bound by a `ghost let`.
+    pub ghost_pats: FxHashSet<PatId>,
+    /// `??` synthesis holes, in source order. Each is an `Expr::Missing` in
+    /// the executable tree; `codira synth` replaces the source text.
+    pub holes: Vec<ExprId>,
+    /// `choose x where pred` expressions, keyed by their `Expr::Missing`.
+    pub chooses: FxHashMap<ExprId, Choose>,
+}
+
+/// One `choose binder where predicate` expression.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Choose {
+    /// The chosen value, as a binding the predicate can name.
+    pub binder: PatId,
+    pub predicate: ExprId,
+}
+
+/// The `invariant` and `decreases` clauses of one loop.
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct LoopContract {
+    pub invariants: Vec<ExprId>,
+    pub decreases: Option<ExprId>,
+}
+
+impl BodyContracts {
+    /// Whether the body carries anything for the verifier at all.
+    pub fn is_empty(&self) -> bool {
+        self.requires.is_empty()
+            && self.ensures.is_empty()
+            && self.loops.is_empty()
+            && self.ghost_lets.is_empty()
+            && self.holes.is_empty()
+            && self.chooses.is_empty()
+    }
 }
 
 impl Body {
@@ -116,6 +196,12 @@ impl Body {
 
     pub fn ret_type(&self) -> LocalTypeRefId {
         self.ret_type
+    }
+
+    /// The verification-only half of this body (contracts, loop invariants,
+    /// ghost bindings). See [`BodyContracts`].
+    pub fn contracts(&self) -> &BodyContracts {
+        &self.contracts
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -256,6 +342,18 @@ pub enum LiteralError {
     /// Trying to add floating point suffix to a literal that is not a floating
     /// point number
     NonDecimalFloat(u32),
+
+    /// A `\x` escape in a string literal that is not followed by two
+    /// hexadecimal digits, or that names a value above `0x7F`.
+    ///
+    /// Above `0x7F` is rejected rather than encoded because `\xNN` means
+    /// "this byte" everywhere it exists, and silently turning `\xFF` into
+    /// the two bytes of U+00FF would make a literal whose length is not the
+    /// number of escapes written.
+    InvalidByteEscape,
+
+    /// An escape sequence whose character is not one this language defines.
+    UnknownEscape(char),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -333,6 +431,22 @@ pub enum Expr {
         condition: ExprId,
         body: ExprId,
     },
+    /// `for pat in iterable { body }`. The iterable is a range (`a..b`,
+    /// `a..=b`) or an array; the loop is unit-typed.
+    For {
+        pat: PatId,
+        iterable: ExprId,
+        body: ExprId,
+    },
+    /// `continue`: on to the next iteration of the innermost loop.
+    Continue,
+    /// `start..end`, or `start..=end` when `inclusive`. Valid only as a
+    /// `for` loop's iterable for now; there is no range value type.
+    Range {
+        start: ExprId,
+        end: ExprId,
+        inclusive: bool,
+    },
     RecordLit {
         type_id: LocalTypeRefId,
         fields: Vec<RecordLitField>,
@@ -360,6 +474,54 @@ pub enum Expr {
         type_ref: LocalTypeRefId,
     },
     Literal(Literal),
+    /// `perform Effect.op(args)`: invokes an operation of an algebraic
+    /// effect (see `expr::effects`). `path` is the whole `Effect.op` path as
+    /// written; its last segment names the operation.
+    Perform {
+        path: Path,
+        args: Vec<ExprId>,
+    },
+    /// `handle body { Effect.op(params) -> arm, .. }`: runs `body` with the
+    /// arms installed as the handlers of the effects they name.
+    Handle {
+        body: ExprId,
+        arms: Vec<HandlerArm>,
+    },
+    /// `resume(value)` inside a handler arm: returns `value` to the
+    /// `perform` that invoked the arm. Only valid in tail position of an arm.
+    Resume {
+        value: Option<ExprId>,
+    },
+    /// `scope { .. }`: every task spawned inside is joined before the scope
+    /// is left, by any path (see `expr::tasks`).
+    Scope {
+        body: ExprId,
+    },
+    /// `spawn f(args)`: runs the call `call` as a task of the innermost
+    /// enclosing `scope`.
+    Spawn {
+        call: ExprId,
+    },
+    /// `channel <- value`: sends `value`, waiting while the channel is full.
+    ChannelSend {
+        channel: ExprId,
+        value: ExprId,
+    },
+    /// `<-channel`: receives the next value, waiting while there is none.
+    ChannelReceive {
+        channel: ExprId,
+    },
+}
+
+/// One arm of a `handle` expression: `Effect.op(a, b) -> body`.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct HandlerArm {
+    /// The `Effect.op` path as written.
+    pub path: Path,
+    /// One pattern per operation parameter; their types come from the
+    /// operation's signature.
+    pub params: Vec<PatId>,
+    pub body: ExprId,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -405,7 +567,7 @@ pub enum ArithOp {
 impl Expr {
     pub fn walk_child_exprs(&self, mut f: impl FnMut(ExprId)) {
         match self {
-            Expr::Missing | Expr::Path(_) | Expr::Literal(_) => {}
+            Expr::Missing | Expr::Path(_) | Expr::Literal(_) | Expr::Continue => {}
             Expr::Block { statements, tail } => {
                 for stmt in statements {
                     match stmt {
@@ -463,6 +625,14 @@ impl Expr {
                 f(*condition);
                 f(*body);
             }
+            Expr::For { iterable, body, .. } => {
+                f(*iterable);
+                f(*body);
+            }
+            Expr::Range { start, end, .. } => {
+                f(*start);
+                f(*end);
+            }
             Expr::RecordLit { fields, spread, .. } => {
                 for field in fields {
                     f(field.expr);
@@ -475,10 +645,28 @@ impl Expr {
                 f(*base);
                 f(*index);
             }
-            Expr::Array(exprs) | Expr::Tuple(exprs) => {
+            Expr::Array(exprs) | Expr::Tuple(exprs) | Expr::Perform { args: exprs, .. } => {
                 for expr in exprs {
                     f(*expr);
                 }
+            }
+            Expr::Handle { body, arms } => {
+                f(*body);
+                for arm in arms {
+                    f(arm.body);
+                }
+            }
+            Expr::Resume { value } => {
+                if let Some(value) = value {
+                    f(*value);
+                }
+            }
+            Expr::Scope { body: expr }
+            | Expr::Spawn { call: expr }
+            | Expr::ChannelReceive { channel: expr } => f(*expr),
+            Expr::ChannelSend { channel, value } => {
+                f(*channel);
+                f(*value);
             }
         }
     }
@@ -532,6 +720,7 @@ pub(crate) struct ExprCollector<'a> {
     type_ref_builder: TypeRefMapBuilder,
     current_file_id: FileId,
     diagnostics: Vec<ExprDiagnostic>,
+    contracts: BodyContracts,
 }
 
 impl<'a> ExprCollector<'a> {
@@ -549,7 +738,25 @@ impl<'a> ExprCollector<'a> {
             type_ref_builder: TypeRefMap::builder(),
             current_file_id: file_id,
             diagnostics: Vec::new(),
+            contracts: BodyContracts::default(),
         }
+    }
+
+    /// Collects an expression that exists only for verification, recording
+    /// every expression it allocates in `contracts.ghost_exprs`. Nothing else
+    /// is allocated while it runs, so the new ids are exactly the arena
+    /// slots between the two lengths.
+    fn collect_ghost_expr(&mut self, expr: Option<ast::Expr>) -> ExprId {
+        let start = self.exprs.len();
+        let id = self.collect_expr_opt(expr);
+        let end = self.exprs.len();
+        for raw in start..end {
+            let raw = u32::try_from(raw).expect("expression arena overflow");
+            self.contracts
+                .ghost_exprs
+                .insert(Idx::from_raw(la_arena::RawIdx::from(raw)));
+        }
+        id
     }
 
     fn alloc_pat(&mut self, pat: Pat, ptr: PatPtr) -> PatId {
@@ -614,6 +821,24 @@ impl<'a> ExprCollector<'a> {
         let body = self.collect_block_opt(node.body());
         self.body_expr = Some(body);
 
+        // Contract clauses are collected after the body so that nothing in
+        // the executable tree depends on them, and into the same arena so
+        // they resolve and type-check like any other expression.
+        for clause in node.requires_clauses() {
+            let id = self.collect_ghost_expr(clause.expr());
+            self.contracts.requires.push(id);
+        }
+        let mut ensures = node.ensures_clauses().peekable();
+        if ensures.peek().is_some() {
+            self.contracts.result_pat = Some(self.pats.alloc(Pat::Bind {
+                name: Name::new("result"),
+            }));
+        }
+        for clause in ensures {
+            let id = self.collect_ghost_expr(clause.expr());
+            self.contracts.ensures.push(id);
+        }
+
         let ret_type = if let Some(type_ref) = node.ret_type().and_then(|rt| rt.type_ref()) {
             self.type_ref_builder.alloc_from_node(&type_ref)
         } else {
@@ -632,28 +857,82 @@ impl<'a> ExprCollector<'a> {
 
     fn collect_block(&mut self, block: ast::BlockExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&block.clone().into());
-        let statements = block
-            .statements()
-            .map(|s| match s.kind() {
+        let mut statements = Vec::new();
+        let mut ghost_lets = Vec::new();
+        for s in block.statements() {
+            match s.kind() {
+                ast::StmtKind::LetStmt(stmt) if stmt.is_ghost() => {
+                    // A ghost binding is kept out of `statements` entirely:
+                    // that list is what code generation walks.
+                    let pat = self.collect_pat_opt(stmt.pat());
+                    let mut bound = Vec::new();
+                    self.collect_bound_pats(pat, &mut bound);
+                    self.contracts.ghost_pats.extend(bound);
+                    let type_ref = stmt
+                        .ascribed_type()
+                        .map(|t| self.type_ref_builder.alloc_from_node(&t));
+                    let initializer = stmt.initializer().map(|e| self.collect_ghost_expr(Some(e)));
+                    ghost_lets.push((
+                        statements.len(),
+                        Statement::Let {
+                            pat,
+                            type_ref,
+                            initializer,
+                        },
+                    ));
+                }
                 ast::StmtKind::LetStmt(stmt) => {
                     let pat = self.collect_pat_opt(stmt.pat());
                     let type_ref = stmt
                         .ascribed_type()
                         .map(|t| self.type_ref_builder.alloc_from_node(&t));
                     let initializer = stmt.initializer().map(|e| self.collect_expr(e));
-                    Statement::Let {
+                    statements.push(Statement::Let {
                         pat,
                         type_ref,
                         initializer,
-                    }
+                    });
                 }
                 ast::StmtKind::ExprStmt(stmt) => {
-                    Statement::Expr(self.collect_expr_opt(stmt.expr()))
+                    statements.push(Statement::Expr(self.collect_expr_opt(stmt.expr())));
                 }
-            })
-            .collect();
+            }
+        }
         let tail = block.expr().map(|e| self.collect_expr(e));
-        self.alloc_expr(Expr::Block { statements, tail }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::Block { statements, tail }, syntax_node_ptr);
+        if !ghost_lets.is_empty() {
+            self.contracts.ghost_lets.insert(id, ghost_lets);
+        }
+        id
+    }
+
+    /// Every pattern id at or below `pat`.
+    fn collect_bound_pats(&self, pat: PatId, out: &mut Vec<PatId>) {
+        out.push(pat);
+        self.pats[pat].walk_child_pats(|child| self.collect_bound_pats(child, out));
+    }
+
+    /// Lowers a loop's `invariant`/`decreases` clauses into the contract
+    /// table, keyed by the loop expression.
+    fn collect_loop_contract(
+        &mut self,
+        loop_expr: ExprId,
+        invariants: impl Iterator<Item = ast::InvariantClause>,
+        decreases: Option<ast::DecreasesClause>,
+    ) {
+        let invariants: Vec<ExprId> = invariants
+            .map(|clause| self.collect_ghost_expr(clause.expr()))
+            .collect();
+        let decreases = decreases.map(|clause| self.collect_ghost_expr(clause.expr()));
+        if !invariants.is_empty() || decreases.is_some() {
+            self.contracts.loops.insert(
+                loop_expr,
+                LoopContract {
+                    invariants,
+                    decreases,
+                },
+            );
+        }
     }
 
     fn collect_pat_opt(&mut self, pat: Option<ast::Pat>) -> PatId {
@@ -677,6 +956,21 @@ impl<'a> ExprCollector<'a> {
         match expr.kind() {
             ast::ExprKind::LoopExpr(expr) => self.collect_loop(expr),
             ast::ExprKind::WhileExpr(expr) => self.collect_while(expr),
+            ast::ExprKind::ForExpr(expr) => self.collect_for(expr),
+            ast::ExprKind::ContinueExpr(_) => self.alloc_expr(Expr::Continue, syntax_ptr),
+            ast::ExprKind::RangeExpr(e) => {
+                let start = self.collect_expr_opt(e.start());
+                let end = self.collect_expr_opt(e.end());
+                let inclusive = e.is_inclusive();
+                self.alloc_expr(
+                    Expr::Range {
+                        start,
+                        end,
+                        inclusive,
+                    },
+                    syntax_ptr,
+                )
+            }
             ast::ExprKind::ReturnExpr(r) => self.collect_return(r),
             ast::ExprKind::BreakExpr(r) => self.collect_break(r),
             ast::ExprKind::BlockExpr(b) => self.collect_block(b),
@@ -709,9 +1003,16 @@ impl<'a> ExprCollector<'a> {
 
                     expr_id
                 }
-                ast::LiteralKind::String(_lit) => {
-                    let lit = Literal::String(String::default());
-                    self.alloc_expr(Expr::Literal(lit), syntax_ptr)
+                ast::LiteralKind::String(lit) => {
+                    let (value, errors) = string_lit(codira_syntax::AstToken::text(&lit));
+                    let expr_id = self.alloc_expr(Expr::Literal(Literal::String(value)), syntax_ptr);
+
+                    for err in errors {
+                        self.diagnostics
+                            .push(ExprDiagnostic::LiteralError { expr: expr_id, err });
+                    }
+
+                    expr_id
                 }
                 ast::LiteralKind::Nil => {
                     self.alloc_expr(Expr::Literal(Literal::Nil), syntax_ptr)
@@ -925,6 +1226,24 @@ impl<'a> ExprCollector<'a> {
                 self.source_map.expr_map.insert(src, inner);
                 inner
             }
+            ast::ExprKind::CallExpr(e) if effects::is_resume_call(&e) => {
+                self.collect_resume(&e, syntax_ptr)
+            }
+            ast::ExprKind::PerformExpr(e) => self.collect_perform(&e, syntax_ptr),
+            ast::ExprKind::HandleExpr(e) => self.collect_handle(&e, syntax_ptr),
+            ast::ExprKind::ScopeExpr(e) => {
+                let body = self.collect_block_opt(e.body());
+                self.alloc_expr(Expr::Scope { body }, syntax_ptr)
+            }
+            ast::ExprKind::SpawnExpr(e) => {
+                let call = self.collect_expr_opt(e.expr());
+                self.alloc_expr(Expr::Spawn { call }, syntax_ptr)
+            }
+            ast::ExprKind::ChannelRecvExpr(e) => {
+                let channel = self.collect_expr_opt(e.expr());
+                self.alloc_expr(Expr::ChannelReceive { channel }, syntax_ptr)
+            }
+            ast::ExprKind::ChannelSendExpr(e) => self.collect_channel_send(&e, syntax_ptr),
             ast::ExprKind::CallExpr(e) => {
                 let callee = self.collect_expr_opt(e.expr());
                 let args = if let Some(arg_list) = e.arg_list() {
@@ -991,40 +1310,56 @@ impl<'a> ExprCollector<'a> {
             ast::ExprKind::ComptimeExpr(e) => {
                 let block = self.collect_block_opt(e.body());
                 match crate::comptime_fold::try_eval(&self.exprs, block) {
-                    Some(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value)
-                    {
+                    Ok(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value) {
                         Some(folded) => self.alloc_expr(folded, syntax_ptr),
                         None => block,
                     },
-                    None => block,
+                    // The block was meant to be evaluated now and could not
+                    // be within the interpreter's budget: say so. It still
+                    // lowers as an ordinary block, so the rest of the body
+                    // type-checks as before.
+                    Err(crate::comptime_fold::NotFolded::Exhausted(limit)) => {
+                        self.diagnostics
+                            .push(ExprDiagnostic::ComptimeExhausted { block, limit });
+                        block
+                    }
+                    Err(crate::comptime_fold::NotFolded::Unsupported) => block,
                 }
             }
-            // `match`, `perform`, `handle`, and postfix `!` (force-unwrap) are fully
+            // `match` and postfix `!` (force-unwrap) are fully
             // parsed (see `codira_syntax`), but HIR-level lowering -- pattern
-            // exhaustiveness checking, effect obligation checking, and optional
+            // exhaustiveness checking and optional
             // force-unwrap typing -- is follow-up work rather than implemented here
             // without a way to verify it end-to-end. They currently lower to a
             // `Missing` placeholder so surrounding code still type-checks.
-            //
-            // `spawn <expr>` (see spec/LANGUAGE_SPEC.md section 14) is likewise
-            // fully parsed but has no green-thread scheduler to lower to yet, so
-            // it lowers the same way.
             // A closure literal (`func(a: T) -> R { .. }`) joins these: it
             // parses, but there is no function-value representation, no
             // capture analysis and no indirect-call op for it to lower to.
             ast::ExprKind::ClosureExpr(_)
             | ast::ExprKind::MatchExpr(_)
-            | ast::ExprKind::PerformExpr(_)
-            | ast::ExprKind::HandleExpr(_)
-            | ast::ExprKind::SpawnExpr(_)
             | ast::ExprKind::TryExpr(_)
-            // `x^` transfer, `<-ch` receive, and `ch <- x` (channel send) (see
-            // spec/LANGUAGE_SPEC.md section 14) are fully parsed but lower to a
-            // `Missing` placeholder: the HIR has no move/borrow or channel
-            // value model yet, so nothing more can be done for now.
-            | ast::ExprKind::TransferExpr(_)
-            | ast::ExprKind::ChannelRecvExpr(_)
-            | ast::ExprKind::ChannelSendExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
+            // `x^` transfer (see spec/LANGUAGE_SPEC.md section 14) is fully
+            // parsed but lowers to a `Missing` placeholder: the HIR has no
+            // move/borrow model yet.
+            | ast::ExprKind::TransferExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
+            // Synthesis holes have no code until `codira synth` writes some;
+            // they lower to `Missing` and are listed in the contract table,
+            // where the verifier and the synthesiser find them.
+            ast::ExprKind::HoleExpr(_) => {
+                let id = self.alloc_expr(Expr::Missing, syntax_ptr);
+                self.contracts.holes.push(id);
+                id
+            }
+            ast::ExprKind::ChooseExpr(e) => {
+                let id = self.alloc_expr(Expr::Missing, syntax_ptr);
+                let name = e.name().map_or_else(Name::missing, |n| n.as_name());
+                let binder = self.pats.alloc(Pat::Bind { name });
+                let predicate = self.collect_ghost_expr(e.predicate());
+                self.contracts
+                    .chooses
+                    .insert(id, Choose { binder, predicate });
+                id
+            }
         }
     }
 
@@ -1065,7 +1400,9 @@ impl<'a> ExprCollector<'a> {
                         let (text, suffix) = lit.split_into_parts();
                         float_lit(text, suffix).0
                     }
-                    ast::LiteralKind::String(_) => Literal::String(String::default()),
+                    ast::LiteralKind::String(lit) => {
+                        Literal::String(string_lit(codira_syntax::AstToken::text(&lit)).0)
+                    }
                     ast::LiteralKind::Nil => Literal::Nil,
                 });
                 literal.map_or(Pat::Missing, Pat::Literal)
@@ -1104,14 +1441,33 @@ impl<'a> ExprCollector<'a> {
     fn collect_loop(&mut self, expr: ast::LoopExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&expr.clone().into());
         let body = self.collect_block_opt(expr.loop_body());
-        self.alloc_expr(Expr::Loop { body }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::Loop { body }, syntax_node_ptr);
+        self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
+        id
     }
 
     fn collect_while(&mut self, expr: ast::WhileExpr) -> ExprId {
         let syntax_node_ptr = AstPtr::new(&expr.clone().into());
         let condition = self.collect_condition_opt(expr.condition());
         let body = self.collect_block_opt(expr.loop_body());
-        self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr)
+        let id = self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr);
+        self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
+        id
+    }
+
+    fn collect_for(&mut self, expr: ast::ForExpr) -> ExprId {
+        let syntax_node_ptr = AstPtr::new(&expr.clone().into());
+        let pat = self.collect_pat_opt(expr.pat());
+        let iterable = self.collect_expr_opt(expr.iterable());
+        let body = self.collect_block_opt(expr.loop_body());
+        self.alloc_expr(
+            Expr::For {
+                pat,
+                iterable,
+                body,
+            },
+            syntax_node_ptr,
+        )
     }
 
     fn finish(mut self) -> (Body, BodySourceMap) {
@@ -1128,6 +1484,7 @@ impl<'a> ExprCollector<'a> {
                 .ret_type
                 .expect("A body should have return type collected"),
             diagnostics: self.diagnostics,
+            contracts: self.contracts,
         };
         self.source_map.type_refs = type_ref_source_map;
         (body, self.source_map)
@@ -1143,6 +1500,73 @@ fn strip_underscores(s: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(s)
     }
+}
+
+/// Decodes a string-literal token into the bytes it denotes.
+///
+/// `text` is the token exactly as it appears in the source, quotes included,
+/// because that is what the lexer produces; the quotes are stripped here so
+/// that no caller has to know whether they were.
+///
+/// Escapes are resolved at compile time rather than carried into the code
+/// generator. A literal has to become constant bytes eventually, and the
+/// only place that can know whether `\n` was meant literally is the place
+/// that can still see the source.
+///
+/// Errors are collected rather than aborting, and the offending escape is
+/// dropped from the result. A malformed escape is a diagnostic, not a reason
+/// to lose the rest of the string -- the remainder is still worth checking.
+pub(crate) fn string_lit(text: &str) -> (String, Vec<LiteralError>) {
+    // The lexer may hand back an unterminated literal when the source is
+    // malformed, so the closing quote is stripped only if it is there.
+    let inner = text
+        .strip_prefix('"')
+        .map_or(text, |rest| rest.strip_suffix('"').unwrap_or(rest));
+
+    let mut value = String::with_capacity(inner.len());
+    let mut errors = Vec::new();
+    let mut chars = inner.chars();
+
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            value.push(ch);
+            continue;
+        }
+
+        match chars.next() {
+            Some('n') => value.push('\n'),
+            Some('r') => value.push('\r'),
+            Some('t') => value.push('\t'),
+            Some('0') => value.push('\0'),
+            Some('\\') => value.push('\\'),
+            Some('"') => value.push('"'),
+            Some('\'') => value.push('\''),
+            Some('x') => {
+                let digits: String = chars.clone().take(2).collect();
+                let byte = (digits.len() == 2)
+                    .then(|| u8::from_str_radix(&digits, 16).ok())
+                    .flatten();
+
+                // Only ASCII: `\xNN` means "this byte" in every language
+                // that has it, and encoding `\xFF` as the two bytes of
+                // U+00FF would give the literal a length that does not match
+                // what was written.
+                match byte {
+                    Some(byte) if byte <= 0x7F => {
+                        value.push(byte as char);
+                        chars.next();
+                        chars.next();
+                    }
+                    _ => errors.push(LiteralError::InvalidByteEscape),
+                }
+            }
+            Some(other) => errors.push(LiteralError::UnknownEscape(other)),
+            // A trailing backslash: the literal ended mid-escape.
+            None => errors.push(LiteralError::UnknownEscape('\\')),
+        }
+    }
+
+    (value, errors)
 }
 
 /// Parses the given string into a float literal
@@ -1178,7 +1602,7 @@ fn filtered_float_lit(str: &str, suffix: Option<&str>, base: u32) -> (Literal, V
 }
 
 /// Parses the given string into an integer literal
-fn integer_lit(str: &str, suffix: Option<&str>) -> (Literal, Vec<LiteralError>) {
+pub(crate) fn integer_lit(str: &str, suffix: Option<&str>) -> (Literal, Vec<LiteralError>) {
     let str = strip_underscores(str);
 
     let base = match str.as_bytes() {
@@ -1560,8 +1984,8 @@ mod diagnostics {
     use crate::{
         code_model::DefWithBody,
         diagnostics::{
-            DiagnosticSink, IntLiteralTooLarge, InvalidFloatingPointLiteral, InvalidLiteral,
-            InvalidLiteralSuffix,
+            ComptimeBudgetExhausted, DiagnosticSink, IntLiteralTooLarge,
+            InvalidFloatingPointLiteral, InvalidLiteral, InvalidLiteralSuffix,
         },
         HirDatabase,
     };
@@ -1606,7 +2030,26 @@ mod diagnostics {
                                 base: *base,
                             });
                         }
+                        // A bad escape makes the literal malformed, which is
+                        // what `InvalidLiteral` says; the escape itself is
+                        // inside the highlighted span, so the reader can see
+                        // which one it was.
+                        LiteralError::InvalidByteEscape | LiteralError::UnknownEscape(_) => {
+                            sink.push(InvalidLiteral { literal });
+                        }
                     }
+                }
+                ExprDiagnostic::ComptimeExhausted { block, limit } => {
+                    let block = source_map
+                        .expr_syntax(*block)
+                        .expect("could not retrieve the comptime block from the source map");
+                    sink.push(ComptimeBudgetExhausted {
+                        file: block.file_id,
+                        block: block
+                            .value
+                            .either(|ptr| ptr.syntax_node_ptr(), |ptr| ptr.syntax_node_ptr()),
+                        limit: *limit,
+                    });
                 }
             }
         }

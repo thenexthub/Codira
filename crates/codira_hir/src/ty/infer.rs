@@ -20,26 +20,25 @@ use crate::{
         cast::{check_cast, CastCheck},
         infer::{diagnostics::InferenceDiagnostic, type_variable::TypeVariableTable},
         lower::LowerDiagnostic,
-        op, Ty, TypableDef,
+        op, Substitution, Ty, TyKind, TypableDef, TypeWalk,
     },
     type_ref::LocalTypeRefId,
-    BinaryOp, CallableDef, Function, HirDatabase, Name, Path,
+    BinaryOp, BuiltinFn, CallableDef, Function, HirDatabase, HirDisplay, Name, Path,
 };
 
+mod effects;
 mod place_expr;
+mod tasks;
 mod type_variable;
 mod unify;
 
 use crate::{
     expr::{LiteralFloat, LiteralFloatKind, LiteralInt, LiteralIntKind},
     has_module::HasModule,
-    ids::{DefWithBodyId, FunctionId},
+    ids::{DefWithBodyId, FunctionId, GenericDefId, TypeParamId},
     method_resolution::{lookup_method, AssociationMode},
     resolve::{resolver_for_expr, HasResolver, ResolveValueResult},
-    ty::{
-        primitives::{FloatTy, IntTy},
-        TyKind,
-    },
+    ty::primitives::{FloatTy, IntTy},
 };
 
 mod coerce;
@@ -69,6 +68,15 @@ pub struct InferenceResult {
     /// For each method call expression, records the function it resolves to.
     pub(crate) method_resolutions: FxHashMap<ExprId, FunctionId>,
 
+    /// For each call expression whose callee is a compiler builtin
+    /// (`print`, `println`), records which one. Such a call has no
+    /// `CallableDef`; its callee expression stays untyped.
+    pub(crate) builtin_calls: FxHashMap<ExprId, BuiltinFn>,
+
+    /// What every `perform` and handler arm resolved to. See
+    /// [`effects::EffectResolutions`].
+    pub(crate) effects: effects::EffectResolutions,
+
     /// Interned Unknown to return references to.
     standard_types: InternedStandardTypes,
 }
@@ -96,6 +104,12 @@ impl InferenceResult {
     /// the expression is not a method call.
     pub fn method_resolution(&self, expr: ExprId) -> Option<FunctionId> {
         self.method_resolutions.get(&expr).cloned()
+    }
+
+    /// Returns the builtin a call expression invokes, or `None` when `expr`
+    /// is not a call to a builtin. See [`BuiltinFn`].
+    pub fn builtin_call(&self, expr: ExprId) -> Option<BuiltinFn> {
+        self.builtin_calls.get(&expr).copied()
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -187,6 +201,16 @@ struct InferenceResultBuilder<'a> {
 
     /// Stores the resolution of method calls
     method_resolution: FxHashMap<ExprId, FunctionId>,
+
+    /// Stores which call expressions invoke a compiler builtin
+    builtin_calls: FxHashMap<ExprId, BuiltinFn>,
+
+    /// What every `perform` and handler arm resolved to.
+    effects: effects::EffectResolutions,
+
+    /// The return type of the effect operation whose handler arm is being
+    /// inferred: what `resume` takes. `None` outside every arm.
+    active_arm_ret: Option<Ty>,
 }
 
 impl<'a> InferenceResultBuilder<'a> {
@@ -204,6 +228,9 @@ impl<'a> InferenceResultBuilder<'a> {
             resolver,
             return_ty: TyKind::Unknown.intern(), // set in collect_fn_signature
             method_resolution: FxHashMap::default(),
+            builtin_calls: FxHashMap::default(),
+            effects: effects::EffectResolutions::default(),
+            active_arm_ret: None,
         }
     }
 
@@ -264,13 +291,22 @@ impl InferenceResultBuilder<'_> {
 
         // Iterate over all the parameters and associated types of the body and infer
         // the types of the parameters.
+        // Aliases are seen through exactly as `fn_sig_for_fn` does, so a
+        // parameter's binding has the same type callers see in the
+        // signature.
+        let strip_alias = |db: &dyn HirDatabase, ty: Ty| match ty.interned() {
+            TyKind::TypeAlias(alias) => alias.target_type(db),
+            _ => ty,
+        };
         for (pat, type_ref) in self.body.params().iter() {
             let ty = self.resolve_type(*type_ref);
+            let ty = strip_alias(self.db, ty);
             self.infer_pat(*pat, ty);
         }
 
         // Resolve the return type
-        self.return_ty = self.resolve_type(self.body.ret_type());
+        let ret = self.resolve_type(self.body.ret_type());
+        self.return_ty = strip_alias(self.db, ret);
     }
 
     /// Record the type of the specified pattern and all sub-patterns.
@@ -328,6 +364,38 @@ impl InferenceResultBuilder<'_> {
             self.body.body_expr(),
             &Expectation::has_type(self.return_ty.clone()),
         );
+        self.infer_contracts();
+    }
+
+    /// Type-checks the function's `requires`/`ensures` clauses: each must be
+    /// a `bool`, and inside `ensures` the binding `result` has the function's
+    /// return type. Loop clauses and ghost lets are checked where they
+    /// appear (`infer_loop_contract`, `infer_block`).
+    fn infer_contracts(&mut self) {
+        let contracts = self.body.contracts();
+        if let Some(result) = contracts.result_pat {
+            self.set_pat_type(result, self.return_ty.clone());
+        }
+        let bool_ty = Expectation::has_type(TyKind::Bool.intern());
+        for &clause in contracts.requires.iter().chain(contracts.ensures.iter()) {
+            self.infer_expr(clause, &bool_ty);
+        }
+    }
+
+    /// Type-checks a loop's `invariant` clauses (each a `bool`) and its
+    /// `decreases` measure (any type here; the verifier reports a measure
+    /// that is not an integer).
+    fn infer_loop_contract(&mut self, loop_expr: ExprId) {
+        let Some(contract) = self.body.contracts().loops.get(&loop_expr) else {
+            return;
+        };
+        let bool_ty = Expectation::has_type(TyKind::Bool.intern());
+        for &clause in &contract.invariants {
+            self.infer_expr(clause, &bool_ty);
+        }
+        if let Some(measure) = contract.decreases {
+            self.infer_expr(measure, &Expectation::none());
+        }
     }
 
     /// Infers the type of the `tgt_expr`
@@ -382,6 +450,19 @@ impl InferenceResultBuilder<'_> {
         check_params: &CheckParams,
     ) -> Ty {
         let ty = match &self.body[tgt_expr] {
+            // A synthesis hole takes the type its context expects; a
+            // `choose` also gives that type to its binder and checks its
+            // predicate.
+            Expr::Missing if self.body.contracts().holes.contains(&tgt_expr) => expected.ty.clone(),
+            Expr::Missing if self.body.contracts().chooses.contains_key(&tgt_expr) => {
+                let choose = self.body.contracts().chooses[&tgt_expr];
+                self.set_pat_type(choose.binder, expected.ty.clone());
+                self.infer_expr(
+                    choose.predicate,
+                    &Expectation::has_type(TyKind::Bool.intern()),
+                );
+                expected.ty.clone()
+            }
             Expr::Missing => error_type(),
             Expr::Path(p) => {
                 // FIXME this could be more efficient...
@@ -401,6 +482,15 @@ impl InferenceResultBuilder<'_> {
                         _ => Expectation::none(),
                     };
                     let lhs_ty = self.infer_expr(*lhs, &lhs_expected);
+                    // An operator sees through a type alias to the type it
+                    // names: `x / 2` on `x: Positive` (`type Positive = i64
+                    // { v | v > 0 }`) is `i64` arithmetic, and its result is
+                    // a plain `i64` -- a refinement does not survive
+                    // arithmetic, so it is the base type that flows on.
+                    let lhs_ty = match lhs_ty.interned() {
+                        TyKind::TypeAlias(alias) => alias.target_type(self.db),
+                        _ => lhs_ty,
+                    };
                     if let BinaryOp::Assignment { op: _op } = op {
                         let resolver = resolver_for_expr(self.db, self.body.owner(), tgt_expr);
                         if !self.check_place_expression(&resolver, *lhs) {
@@ -424,7 +514,9 @@ impl InferenceResultBuilder<'_> {
                 }
                 _ => error_type(),
             },
-            Expr::Block { statements, tail } => self.infer_block(statements, *tail, expected),
+            Expr::Block { statements, tail } => {
+                self.infer_block(tgt_expr, statements, *tail, expected)
+            }
             Expr::Call { callee: call, args } => self.infer_call(tgt_expr, *call, args, expected),
             Expr::MethodCall {
                 receiver,
@@ -432,7 +524,7 @@ impl InferenceResultBuilder<'_> {
                 method_name,
             } => self.infer_method_call(tgt_expr, *receiver, args, method_name, expected),
             Expr::Literal(lit) => match lit {
-                Literal::String(_) => TyKind::Unknown.intern(),
+                Literal::String(_) => TyKind::Str.intern(),
                 Literal::Bool(_) => TyKind::Bool.intern(),
                 Literal::Int(LiteralInt {
                     kind: LiteralIntKind::Suffixed(suffix),
@@ -478,14 +570,47 @@ impl InferenceResultBuilder<'_> {
             Expr::While { condition, body } => {
                 self.infer_while_expr(tgt_expr, *condition, *body, expected)
             }
+            Expr::For {
+                pat,
+                iterable,
+                body,
+            } => self.infer_for_expr(*pat, *iterable, *body),
+            Expr::Continue => {
+                if self.active_loop.is_none() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: "`continue` outside of a loop".to_string(),
+                    });
+                }
+                TyKind::Never.intern()
+            }
+            Expr::Range { start, end, .. } => {
+                self.infer_range_bounds(*start, *end);
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: "a range can only be used as the iterable of a `for` loop for now; there is no range value type yet"
+                        .to_string(),
+                });
+                error_type()
+            }
             Expr::RecordLit {
                 type_id,
                 fields,
                 spread,
             } => {
-                let ty = self.resolve_type(*type_id);
+                // `Box { v: 7 }` names `Box`, which lowers to `Box[T]` with
+                // its own parameter standing in. Instantiating it here is
+                // what lets the field values decide what `T` is -- written
+                // without an argument list, that is the only thing that can.
+                let declared = self.resolve_type(*type_id);
+                let ty = self.instantiate_type(&declared);
                 let def_id = ty.as_struct();
                 self.unify(&ty, &expected.ty);
+
+                let substitution = ty
+                    .type_parameters()
+                    .cloned()
+                    .unwrap_or_else(Substitution::empty);
 
                 for (idx, field) in fields.iter().enumerate() {
                     let field_ty = def_id
@@ -501,7 +626,21 @@ impl InferenceResultBuilder<'_> {
                                 None
                             }
                         })
-                        .map_or(error_type(), |field| field.ty(self.db));
+                        .map_or(error_type(), |field| {
+                            // The field's declared type is in terms of the
+                            // struct's parameters, so it has to be read
+                            // through the same instantiation the literal got.
+                            def_id.map_or_else(
+                                || field.ty(self.db),
+                                |s| {
+                                    substitute_type_params(
+                                        field.ty(self.db),
+                                        &GenericDefId::from(s.id),
+                                        &substitution,
+                                    )
+                                },
+                            )
+                        });
                     self.infer_expr_coerce(field.expr, &Expectation::has_type(field_ty));
                 }
                 if let Some(expr) = spread {
@@ -643,6 +782,15 @@ impl InferenceResultBuilder<'_> {
                 }
             }
             Expr::Cast { expr, type_ref } => self.infer_cast(tgt_expr, *expr, *type_ref),
+            Expr::Perform { path, args } => self.infer_perform(tgt_expr, path, args),
+            Expr::Handle { body, arms } => self.infer_handle(tgt_expr, *body, arms, expected),
+            Expr::Resume { value } => self.infer_resume(tgt_expr, *value),
+            Expr::Scope { body } => self.infer_expr_coerce(*body, expected),
+            Expr::Spawn { call } => self.infer_spawn(*call),
+            Expr::ChannelSend { channel, value } => {
+                self.infer_channel_send(tgt_expr, *channel, *value)
+            }
+            Expr::ChannelReceive { channel } => self.infer_channel_receive(tgt_expr, *channel),
         };
 
         let ty = self.resolve_ty_as_far_as_possible(ty);
@@ -664,8 +812,8 @@ impl InferenceResultBuilder<'_> {
         let source_ty = self.infer_expr(operand, &Expectation::none());
         let target_ty = self.resolve_type(type_ref);
 
-        let source = self.normalize_for_cast(&source_ty);
-        let target = self.normalize_for_cast(&target_ty);
+        let source = self.normalize(&source_ty);
+        let target = self.normalize(&target_ty);
         let layout = self.db.target_data_layout();
 
         if let CastCheck::Illegal(reason) = check_cast(&source, &target, &layout) {
@@ -680,15 +828,27 @@ impl InferenceResultBuilder<'_> {
         target_ty
     }
 
-    /// Resolves instantiated inference variables and type aliases so that the
-    /// cast check sees the underlying primitive type of e.g. `type Byte = u8`.
+    /// Whether `ty` is the never type, seeing through aliases.
+    ///
+    /// `Ty::is_never` matches `TyKind::Never` exactly, so a function declared
+    /// `-> Never` (where `Never` is `type Never = never`) did not count as
+    /// diverging: its block fell through to `()` and then failed to match its
+    /// own return type. An alias is the same type as what it names, and
+    /// divergence is the one property where getting that wrong turns working
+    /// code into an error.
+    fn is_never(&mut self, ty: &Ty) -> bool {
+        ty.is_never() || self.normalize(ty).is_never()
+    }
+
+    /// Resolves instantiated inference variables and type aliases so that a
+    /// check sees the underlying type of e.g. `type Byte = u8`.
     ///
     /// `replace_if_possible` unwraps a single alias level per call, so this
     /// iterates; the bound keeps a cyclic alias (`type A = B; type B = A;`,
     /// already reported as `cyclic type`) from looping forever. Whatever is
-    /// left at that point is still a `TypeAlias`, which the cast check treats
-    /// as unknown rather than as an error.
-    fn normalize_for_cast(&mut self, ty: &Ty) -> Ty {
+    /// left at that point is still a `TypeAlias`, which callers treat as
+    /// unknown rather than as an error.
+    fn normalize(&mut self, ty: &Ty) -> Ty {
         let mut ty = ty.clone();
         for _ in 0..16 {
             let resolved = self.replace_if_possible(&ty).into_owned();
@@ -743,14 +903,25 @@ impl InferenceResultBuilder<'_> {
                 let field_ty = subs.interned().get(idx)?.clone();
                 Some((field_ty, true))
             }
-            TyKind::Struct(s) => {
+            TyKind::Struct(s, substitution) => {
                 let struct_data = self.db.struct_data(s.id);
                 let local_field_idx = struct_data.find_field(field_name)?;
                 let field_types = self.db.lower_struct(*s);
                 let field_visibilities = self.db.field_visibilities(s.id.into());
                 let field_data = &struct_data.fields[local_field_idx];
+
+                // The declared field type is written in terms of the
+                // struct's own parameters -- `value: T` for `Box[T]`. The
+                // receiver says what `T` is here, so applying its
+                // substitution is what turns `T` into `i32` for a
+                // `Box[i32]`. Without it every field of a generic struct
+                // reads back as the parameter itself.
+                let declared = field_types[field_data.type_ref].clone();
+                let field_ty =
+                    substitute_type_params(declared, &GenericDefId::from(s.id), substitution);
+
                 Some((
-                    field_types[field_data.type_ref].clone(),
+                    field_ty,
                     field_visibilities[local_field_idx].is_visible_from(self.db, self.module()),
                 ))
             }
@@ -803,6 +974,13 @@ impl InferenceResultBuilder<'_> {
                 resolved
             }
             Err(None) => {
+                // `len()` and friends on arrays and `str` are builtins.
+                if let Some(ty) =
+                    self.infer_builtin_method(tgt_expr, &receiver_ty, method_name, args)
+                {
+                    return ty;
+                }
+
                 // Check if there is a field with the same name.
                 let field_with_same_name = self
                     .lookup_field(receiver_ty.clone(), method_name)
@@ -914,6 +1092,63 @@ impl InferenceResultBuilder<'_> {
         ))
     }
 
+    /// Replaces each generic parameter in a callee's signature with a fresh
+    /// inference variable, so that every call gets its own instantiation.
+    ///
+    /// `func first[T](list: List[T]) -> T` declares one `T`; two calls in
+    /// the same body may pass `List[i32]` and `List[f64]`, and they must not
+    /// be forced to agree. Handing the declared signature to the checker
+    /// unchanged is what previously made `b.get()` on a `Box[i32]` report
+    /// "expected i32, found T": nothing ever connected the parameter to the
+    /// argument.
+    ///
+    /// Every parameter in the signature is instantiated regardless of owner.
+    /// A callee's signature is written in its own scope, so the only
+    /// parameters that can appear are its own and those of the type it is
+    /// associated with -- and for an associated function, the type's
+    /// parameters are exactly what the receiver has to determine.
+    /// Replaces every generic parameter in a single type with a fresh
+    /// inference variable.
+    ///
+    /// The one-type counterpart of `instantiate_signature`, for a use site
+    /// that has no signature to go with it -- a record literal naming a
+    /// generic struct.
+    fn instantiate_type(&mut self, ty: &Ty) -> Ty {
+        let (mut instantiated, _) = self.instantiate_signature(std::slice::from_ref(ty), ty);
+        instantiated.pop().unwrap_or_else(|| ty.clone())
+    }
+
+    fn instantiate_signature(&mut self, params: &[Ty], ret: &Ty) -> (Vec<Ty>, Ty) {
+        let mut fresh: FxHashMap<TypeParamId, Ty> = FxHashMap::default();
+
+        for ty in params.iter().chain(std::iter::once(ret)) {
+            ty.walk(&mut |inner| {
+                if let TyKind::TypeParam(id, _) = inner.interned() {
+                    fresh.entry(*id).or_insert_with(|| {
+                        // Deliberately an ordinary type variable and not an
+                        // integer/float one: a parameter is unconstrained
+                        // until an argument says otherwise, and guessing a
+                        // numeric default here would silently pick a type.
+                        self.type_variables.new_type_var()
+                    });
+                }
+            });
+        }
+
+        if fresh.is_empty() {
+            return (params.to_vec(), ret.clone());
+        }
+
+        let apply = |ty: &Ty| {
+            ty.clone().fold(&mut |inner| match inner.interned() {
+                TyKind::TypeParam(id, _) => fresh.get(id).cloned().unwrap_or(inner),
+                _ => inner,
+            })
+        };
+
+        (params.iter().map(apply).collect(), apply(ret))
+    }
+
     fn infer_call_arguments_and_return(
         &mut self,
         tgt_expr: ExprId,
@@ -922,23 +1157,24 @@ impl InferenceResultBuilder<'_> {
     ) -> Ty {
         // Retrieve the function signature.
         let signature = self.db.callable_sig(callable);
+        let (param_tys, ret_ty) = self.instantiate_signature(signature.params(), signature.ret());
 
         // Verify that the number of arguments matches
-        if signature.params().len() != args.len() {
+        if param_tys.len() != args.len() {
             self.diagnostics
                 .push(InferenceDiagnostic::ParameterCountMismatch {
                     id: tgt_expr,
                     found: args.len(),
-                    expected: signature.params().len(),
+                    expected: param_tys.len(),
                 });
         }
 
         // Verify the argument types
-        for (&arg, param_ty) in args.iter().zip(signature.params().iter()) {
+        for (&arg, param_ty) in args.iter().zip(param_tys.iter()) {
             self.infer_expr_coerce(arg, &Expectation::has_type(param_ty.clone()));
         }
 
-        signature.ret().clone()
+        ret_ty
     }
 
     /// Inferences the type of a call expression.
@@ -949,6 +1185,10 @@ impl InferenceResultBuilder<'_> {
         args: &[ExprId],
         _expected: &Expectation,
     ) -> Ty {
+        if let Some(builtin) = self.resolve_builtin_callee(callee) {
+            return self.infer_builtin_call(tgt_expr, builtin, args);
+        }
+
         let callee_ty = self.infer_expr_inner(
             callee,
             &Expectation::none(),
@@ -958,7 +1198,7 @@ impl InferenceResultBuilder<'_> {
         );
 
         match callee_ty.interned() {
-            TyKind::Struct(s) => {
+            TyKind::Struct(s, _) => {
                 // Erroneously found either a unit struct or record struct literal. Record
                 // struct literals can never be used as a value so that will
                 // have already been reported.
@@ -981,7 +1221,7 @@ impl InferenceResultBuilder<'_> {
             TyKind::FnDef(def, _substs) => {
                 // Found either a tuple struct literal or function
                 let sig = callee_ty.callable_sig(self.db).unwrap();
-                let (param_tys, ret_ty) = (sig.params().to_vec(), sig.ret().clone());
+                let (param_tys, ret_ty) = self.instantiate_signature(sig.params(), sig.ret());
                 self.check_call_argument_count(
                     tgt_expr,
                     def.is_struct(),
@@ -1007,6 +1247,143 @@ impl InferenceResultBuilder<'_> {
                 error_type()
             }
         }
+    }
+
+    /// Returns the builtin `callee` names, if it is a bare identifier that
+    /// names one *and* nothing in scope defines that identifier.
+    ///
+    /// The scope check is what keeps builtins from breaking existing code: a
+    /// program that declares its own `print` keeps calling it.
+    fn resolve_builtin_callee(&mut self, callee: ExprId) -> Option<BuiltinFn> {
+        let Expr::Path(path) = &self.body[callee] else {
+            return None;
+        };
+        let builtin = BuiltinFn::from_name(path.as_ident()?)?;
+        let resolver = resolver_for_expr(self.db, self.body.owner(), callee);
+        if resolver.resolve_path_as_value(self.db, path).is_some() {
+            return None;
+        }
+        Some(builtin)
+    }
+
+    /// Infers a call to a compiler builtin. See [`BuiltinFn`].
+    fn infer_builtin_call(&mut self, tgt_expr: ExprId, builtin: BuiltinFn, args: &[ExprId]) -> Ty {
+        self.builtin_calls.insert(tgt_expr, builtin);
+        match builtin {
+            BuiltinFn::Print | BuiltinFn::Println => {
+                for &arg in args {
+                    let ty = self.infer_expr(arg, &Expectation::none());
+                    let ty = self.normalize(&ty);
+                    if !is_printable(&ty) {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: arg.into(),
+                            message: format!(
+                                "`{}` cannot print a value of type `{}`: only integers, floats, `bool` and `str` are printable",
+                                builtin.name(),
+                                ty.display(self.db)
+                            ),
+                        });
+                    }
+                }
+                Ty::unit()
+            }
+            BuiltinFn::Declassify => {
+                if args.len() != 1 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`declassify` takes exactly one argument, found {}",
+                            args.len()
+                        ),
+                    });
+                }
+                let mut ty = error_type();
+                for (idx, &arg) in args.iter().enumerate() {
+                    let arg_ty = self.infer_expr(arg, &Expectation::none());
+                    if idx == 0 {
+                        ty = arg_ty;
+                    }
+                }
+                ty
+            }
+            BuiltinFn::CtSelect => {
+                if args.len() != 3 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`ct_select` takes a condition and two values, found {} argument(s)",
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                self.infer_expr(args[0], &Expectation::has_type(TyKind::Bool.intern()));
+                let ty = self.infer_expr(args[1], &Expectation::none());
+                let ty = self.infer_expr(args[2], &Expectation::has_type(ty));
+                let ty = self.normalize(&ty);
+                if !matches!(ty.interned(), TyKind::Int(_) | TyKind::Bool) && !ty.is_unknown() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`ct_select` chooses between integers or `bool`s, not `{}`",
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                ty
+            }
+            BuiltinFn::Channel => self.infer_channel_new(tgt_expr, args),
+            BuiltinFn::ArrayLen | BuiltinFn::ArrayUncheckedGet | BuiltinFn::StrLen => {
+                unreachable!("method builtins are resolved by `infer_builtin_method`")
+            }
+        }
+    }
+
+    /// Infers a builtin method call -- `len()` on an array or `str`,
+    /// `unchecked_get(i)` on an array -- or returns `None` when
+    /// `method_name` names no builtin method of `receiver_ty`.
+    fn infer_builtin_method(
+        &mut self,
+        tgt_expr: ExprId,
+        receiver_ty: &Ty,
+        method_name: &Name,
+        args: &[ExprId],
+    ) -> Option<Ty> {
+        let receiver_ty = self.normalize(receiver_ty);
+        let builtin = match (receiver_ty.interned(), method_name.as_str()?) {
+            (TyKind::Array(_), "len") => BuiltinFn::ArrayLen,
+            (TyKind::Array(_), "unchecked_get") => BuiltinFn::ArrayUncheckedGet,
+            (TyKind::Str, "len") => BuiltinFn::StrLen,
+            _ => return None,
+        };
+        self.builtin_calls.insert(tgt_expr, builtin);
+
+        let expected_args = usize::from(builtin == BuiltinFn::ArrayUncheckedGet);
+        if args.len() != expected_args {
+            self.diagnostics
+                .push(InferenceDiagnostic::ParameterCountMismatch {
+                    id: tgt_expr,
+                    found: args.len(),
+                    expected: expected_args,
+                });
+        }
+
+        Some(match builtin {
+            BuiltinFn::ArrayUncheckedGet => {
+                for &arg in args {
+                    let index_ty = self.type_variables.new_integer_var();
+                    self.infer_expr(arg, &Expectation::has_type(index_ty));
+                }
+                match receiver_ty.interned() {
+                    TyKind::Array(elem) => elem.clone(),
+                    _ => error_type(),
+                }
+            }
+            _ => TyKind::Int(IntTy::usize()).intern(),
+        })
     }
 
     /// Checks whether the specified struct type is a unit struct.
@@ -1264,17 +1641,38 @@ impl InferenceResultBuilder<'_> {
             diagnostics: self.diagnostics,
             standard_types: InternedStandardTypes::default(),
             method_resolutions: self.method_resolution,
+            builtin_calls: self.builtin_calls,
+            effects: self.effects,
         }
     }
 
     fn infer_block(
         &mut self,
+        block: ExprId,
         statements: &[Statement],
         tail: Option<ExprId>,
         expected: &Expectation,
     ) -> Ty {
         let mut diverges = false;
-        for stmt in statements {
+        // Ghost lets sit outside `statements` (see `BodyContracts`), tagged
+        // with the index of the statement they precede; they are checked in
+        // that position so they see the same bindings an ordinary `let`
+        // there would.
+        let ghosts = self.body.contracts().ghost_lets.get(&block);
+        let ghosts_at = |idx: usize| {
+            ghosts
+                .into_iter()
+                .flatten()
+                .filter(move |(pos, _)| *pos == idx)
+                .map(|(_, stmt)| stmt)
+        };
+        let ordered: Vec<&Statement> = statements
+            .iter()
+            .enumerate()
+            .flat_map(|(idx, stmt)| ghosts_at(idx).chain(std::iter::once(stmt)))
+            .chain(ghosts_at(statements.len()))
+            .collect();
+        for stmt in ordered {
             match stmt {
                 Statement::Let {
                     pat,
@@ -1295,9 +1693,10 @@ impl InferenceResultBuilder<'_> {
                     self.infer_pat(*pat, ty);
                 }
                 Statement::Expr(expr) => {
-                    if self.infer_expr(*expr, &Expectation::none()).is_never() {
+                    let ty = self.infer_expr(*expr, &Expectation::none());
+                    if self.is_never(&ty) {
                         diverges = true;
-                    };
+                    }
                 }
             }
         }
@@ -1306,7 +1705,7 @@ impl InferenceResultBuilder<'_> {
             // return type because we want the block to get the Never type in
             // that case.
             let ty = self.infer_expr_inner(expr, expected, &CheckParams::default());
-            if ty.is_never() {
+            if self.is_never(&ty) {
                 ty
             } else {
                 self.coerce_expr_ty(expr, ty, expected)
@@ -1364,7 +1763,8 @@ impl InferenceResultBuilder<'_> {
         TyKind::Never.intern()
     }
 
-    fn infer_loop_expr(&mut self, _tgt_expr: ExprId, body: ExprId, expected: &Expectation) -> Ty {
+    fn infer_loop_expr(&mut self, tgt_expr: ExprId, body: ExprId, expected: &Expectation) -> Ty {
+        self.infer_loop_contract(tgt_expr);
         if let ActiveLoop::Loop(ty, _) = self.infer_loop_block(
             body,
             ActiveLoop::Loop(TyKind::Never.intern(), expected.clone()),
@@ -1387,35 +1787,132 @@ impl InferenceResultBuilder<'_> {
 
     fn infer_while_expr(
         &mut self,
-        _tgt_expr: ExprId,
+        tgt_expr: ExprId,
         condition: ExprId,
         body: ExprId,
         _expected: &Expectation,
     ) -> Ty {
         self.infer_expr(condition, &Expectation::has_type(TyKind::Bool.intern()));
+        self.infer_loop_contract(tgt_expr);
         self.infer_loop_block(body, ActiveLoop::While);
         Ty::unit()
     }
 
-    #[allow(clippy::unused_self)]
-    pub fn report_pat_inference_failure(&mut self, _pat: PatId) {
-        //        self.diagnostics.push(InferenceDiagnostic::PatInferenceFailed {
-        //            pat
-        //        });
-        // Currently this should never happen because we can only infer integer and
-        // floating-point types which always have a fallback value.
-        panic!("pattern failed inferencing");
+    /// Infers the two bounds of a range, which must be the same integer
+    /// type, and returns that type.
+    fn infer_range_bounds(&mut self, start: ExprId, end: ExprId) -> Ty {
+        let start_ty = self.infer_expr(start, &Expectation::none());
+        let end_ty = self.infer_expr_coerce(end, &Expectation::has_type(start_ty.clone()));
+        let elem_ty = self.normalize(&end_ty);
+        match elem_ty.interned() {
+            TyKind::Int(_) | TyKind::InferenceVar(InferTy::Int(_)) | TyKind::Unknown => elem_ty,
+            _ => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: start.into(),
+                    message: format!(
+                        "a range's bounds must be integers, found `{}`",
+                        elem_ty.display(self.db)
+                    ),
+                });
+                error_type()
+            }
+        }
     }
 
-    #[allow(clippy::unused_self)]
-    pub fn report_expr_inference_failure(&mut self, _expr: ExprId) {
-        //        self.diagnostics.push(InferenceDiagnostic::ExprInferenceFailed {
-        //            expr
-        //        });
-        // Currently this should never happen because we can only infer integer and
-        // floating-point types which always have a fallback value.
-        panic!("expression failed inferencing");
+    /// Infers `for pat in iterable { body }`.
+    ///
+    /// The iterable is a range, whose element is its bounds' integer type,
+    /// or an array, whose element is the array's. The pattern must be
+    /// irrefutable -- a binding, `_` or a tuple of those -- because there is
+    /// no "skip this element" path for a pattern that fails to match.
+    fn infer_for_expr(&mut self, pat: PatId, iterable: ExprId, body: ExprId) -> Ty {
+        let elem_ty = if let Expr::Range { start, end, .. } = self.body[iterable] {
+            self.infer_range_bounds(start, end)
+        } else {
+            let iterable_ty = self.infer_expr(iterable, &Expectation::none());
+            match self.normalize(&iterable_ty).interned() {
+                TyKind::Array(elem) => elem.clone(),
+                TyKind::Unknown => error_type(),
+                _ => {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: iterable.into(),
+                        message: format!(
+                            "cannot iterate over a value of type `{}`: a `for` loop iterates over a range (`a..b`, `a..=b`) or an array",
+                            iterable_ty.display(self.db)
+                        ),
+                    });
+                    error_type()
+                }
+            }
+        };
+
+        if !self.is_irrefutable(pat) {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message:
+                    "a `for` loop's pattern must always match: use a name, `_` or a tuple of those"
+                        .to_string(),
+            });
+        }
+        self.infer_pat(pat, elem_ty);
+        self.infer_loop_block(body, ActiveLoop::For);
+        Ty::unit()
     }
+
+    /// Whether `pat` matches every value of its type.
+    fn is_irrefutable(&self, pat: PatId) -> bool {
+        match &self.body[pat] {
+            Pat::Bind { .. } | Pat::Wild | Pat::Missing => true,
+            Pat::Tuple(args) => args.iter().all(|&arg| self.is_irrefutable(arg)),
+            Pat::Path(_) | Pat::Literal(_) | Pat::TupleStruct { .. } => false,
+        }
+    }
+
+    /// Records that inference could not determine the type of `pat`.
+    ///
+    /// This used to panic, on the reasoning that only integer and float
+    /// variables existed and both have a fallback. Generic instantiation
+    /// broke that: a type parameter no call constrains resolves to nothing,
+    /// and there is no default that would be right. An ambiguous type is an
+    /// ordinary thing for a program to contain and a diagnostic to report --
+    /// crashing the compiler over it would take the whole rest of the file's
+    /// diagnostics down with it.
+    pub fn report_pat_inference_failure(&mut self, pat: PatId) {
+        self.diagnostics
+            .push(InferenceDiagnostic::TypeAnnotationNeeded {
+                id: ExprOrPatId::PatId(pat),
+            });
+    }
+
+    /// Records that inference could not determine the type of `expr`.
+    ///
+    /// See `report_pat_inference_failure` for why this reports rather than
+    /// panics.
+    pub fn report_expr_inference_failure(&mut self, expr: ExprId) {
+        self.diagnostics
+            .push(InferenceDiagnostic::TypeAnnotationNeeded {
+                id: ExprOrPatId::ExprId(expr),
+            });
+    }
+}
+
+/// Whether a value of type `ty` can be passed to `print`/`println`.
+///
+/// Every scalar the runtime can format: integers of any width and
+/// signedness, both float widths, `bool` and `str`. An integer or float
+/// literal whose type is not pinned down yet is printable too -- it defaults
+/// to `i32`/`f64` -- and an unknown type is accepted so that an error already
+/// reported elsewhere is not reported a second time.
+fn is_printable(ty: &Ty) -> bool {
+    matches!(
+        ty.interned(),
+        TyKind::Int(_)
+            | TyKind::Float(_)
+            | TyKind::Bool
+            | TyKind::Str
+            | TyKind::Unknown
+            | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
+    )
 }
 
 /// Returns a type used for errors
@@ -1501,12 +1998,12 @@ mod diagnostics {
         code_model::{src::HasSource, StructKind},
         diagnostics::{
             AccessUnknownField, BreakOutsideLoop, BreakWithValueOutsideLoop, CannotApplyBinaryOp,
-            CannotApplyUnaryOp, CyclicType, DiagnosticSink, ExpectedFunction, FieldCountMismatch,
-            IncompatibleBranch, InvalidCast, InvalidLhs, InvalidTupleDestructure,
-            LiteralOutOfRange, MethodNotFound, MethodNotInScope, MismatchedStructLit,
-            MismatchedType, MissingElseBranch, MissingFields, NoFields, NoSuchField,
-            ParameterCountMismatch, PrivateAccess, ReturnMissingExpression, UnresolvedType,
-            UnresolvedValue,
+            CannotApplyUnaryOp, CyclicType, DiagnosticSink, ExpectedFunction, ExprError,
+            FieldCountMismatch, IncompatibleBranch, InvalidCast, InvalidLhs,
+            InvalidTupleDestructure, LiteralOutOfRange, MethodNotFound, MethodNotInScope,
+            MismatchedStructLit, MismatchedType, MissingElseBranch, MissingFields, NoFields,
+            NoSuchField, ParameterCountMismatch, PrivateAccess, ReturnMissingExpression,
+            TypeAnnotationNeeded, UnresolvedType, UnresolvedValue,
         },
         ids::FunctionId,
         ty::{cast::InvalidCastReason, infer::ExprOrPatId},
@@ -1528,6 +2025,9 @@ mod diagnostics {
         ExpectedFunction {
             id: ExprId,
             found: Ty,
+        },
+        TypeAnnotationNeeded {
+            id: ExprOrPatId,
         },
         ParameterCountMismatch {
             id: ExprId,
@@ -1636,6 +2136,12 @@ mod diagnostics {
             field_with_same_name: Option<Ty>,
             associated_function_with_same_name: Option<FunctionId>,
         },
+        /// A free-form error attached to an expression or pattern; see
+        /// `crate::diagnostics::ExprError`.
+        ExprError {
+            id: ExprOrPatId,
+            message: String,
+        },
     }
 
     impl InferenceDiagnostic {
@@ -1662,6 +2168,26 @@ mod diagnostics {
                     .unwrap();
 
                     sink.push(UnresolvedValue { file, expr });
+                }
+                InferenceDiagnostic::TypeAnnotationNeeded { id } => {
+                    // Unlike most diagnostics this one can point at a node
+                    // the source map has no entry for -- a compiler-generated
+                    // expression has no syntax to blame -- so a missing entry
+                    // is skipped rather than unwrapped.
+                    let expr = match id {
+                        ExprOrPatId::ExprId(id) => body.expr_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                        ExprOrPatId::PatId(id) => body.pat_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                    };
+
+                    if let Some(expr) = expr {
+                        sink.push(TypeAnnotationNeeded { file, expr });
+                    }
                 }
                 InferenceDiagnostic::UnresolvedType { id } => {
                     let type_ref = body.type_ref_syntax(*id).expect("If this is not found, it must be a type ref generated by the library which should never be unresolved.");
@@ -2030,7 +2556,66 @@ mod diagnostics {
                         .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr());
                     sink.push(PrivateAccess { file, expr });
                 }
+                InferenceDiagnostic::ExprError { id, message } => {
+                    // A compiler-generated node has no syntax to blame; skip
+                    // it rather than unwrap, as `TypeAnnotationNeeded` does.
+                    let node = match id {
+                        ExprOrPatId::ExprId(id) => body.expr_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                        ExprOrPatId::PatId(id) => body.pat_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                    };
+                    if let Some(node) = node {
+                        sink.push(ExprError {
+                            file,
+                            node,
+                            message: message.clone(),
+                        });
+                    }
+                }
             }
         }
     }
+}
+
+/// Replaces every type parameter belonging to `owner` with the corresponding
+/// entry of `substitution`.
+///
+/// This is instantiation: a declaration's types are written in terms of its
+/// own parameters, and a use site says what those parameters are. Applying
+/// the substitution is what turns the declared `T` into the `i32` the caller
+/// actually wrote.
+///
+/// Parameters belonging to some *other* owner are left alone. That matters
+/// inside a generic function that calls another generic function: the
+/// caller's own `T` is a fixed type from the body's point of view, and
+/// rewriting it with the callee's arguments would confuse two unrelated
+/// parameters that happen to share a name.
+///
+/// An index past the end of `substitution` is also left alone, which happens
+/// when a type is written with fewer arguments than it has parameters. There
+/// is no substitute that would be more correct than the parameter itself,
+/// and silently supplying `Unknown` would turn an arity mistake into a
+/// mismatch reported somewhere else entirely.
+pub(crate) fn substitute_type_params(
+    ty: Ty,
+    owner: &GenericDefId,
+    substitution: &Substitution,
+) -> Ty {
+    if substitution.is_empty() {
+        return ty;
+    }
+
+    ty.fold(&mut |inner| match inner.interned() {
+        TyKind::TypeParam(id, _) if &id.owner == owner => substitution
+            .interned()
+            .get(id.index as usize)
+            .cloned()
+            .unwrap_or(inner),
+        _ => inner,
+    })
 }

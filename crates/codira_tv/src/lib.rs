@@ -43,10 +43,11 @@
 //!
 //! # Soundness decisions (read this before trusting a verdict)
 //!
-//! The encoding targets what `codira_smt` exposes: **linear integer
-//! arithmetic over unbounded Z3 `Int`**, plus `Bool`. `codira_smt` has no
-//! bitvector sorts, so a bit-precise wrapping-`i64` model is not
-//! expressible. Consequences, op by op:
+//! The encoding is **linear integer arithmetic over unbounded Z3 `Int`**,
+//! plus `Bool`. `codira_smt` also offers 64-bit bitvectors, which would
+//! model wrapping `i64` bit-precisely, but this crate does not use them:
+//! everything below is a statement about the unbounded encoding, and the
+//! caveats it carries are real. Consequences, op by op:
 //!
 //! * **Unbounded integers vs. wrapping `i64`.** `codira_mir::fold` defines
 //!   `Int` as wrapping two's-complement `i64`; Z3 `Int` is unbounded. A
@@ -79,10 +80,10 @@
 //!   shift amounts are `Unsupported`.
 //! * **`BitAnd`/`BitOr`/`BitXor`**: folded when both operands are constants;
 //!   otherwise `Unsupported` (not expressible in LIA without bitvectors).
-//! * **`If`**: `codira_smt` exposes no `ite` builder, so each `cf.if` is
-//!   encoded with a fresh variable `v` constrained by `cond -> v = then` and
-//!   `!cond -> v = else` (with `<->` via mutual implication for boolean
-//!   results). Again total and functional, so satisfiability is preserved in
+//! * **`If`**: each `cf.if` is encoded with a fresh variable `v` constrained by
+//!   `cond -> v = then` and `!cond -> v = else` (with `<->` via mutual
+//!   implication for boolean results) rather than with `codira_smt`'s `ite`
+//!   builders. Again total and functional, so satisfiability is preserved in
 //!   both directions.
 //! * **Error behavior**: within the accepted fragment every dynamic `FoldError`
 //!   is ruled out syntactically (nonzero constant divisors, in-range constant
@@ -102,22 +103,41 @@
 //!
 //! # Counterexamples
 //!
-//! `codira_smt` does not expose Z3's model API, so when the disagreement
-//! query is satisfiable this crate recovers a witness by **greedy bounded
-//! probing**: it re-checks satisfiability with each argument pinned to
-//! small candidate values in turn, fixing one argument at a time. Every
-//! returned witness is solver-verified (the final check is SAT with all
-//! arguments pinned), but the search is incomplete -- if only exotic
-//! values refute the rewrite, the verdict is still
-//! [`Verdict::Refuted`] with `args: None`. Witness values live in the
-//! unbounded model; they are genuine `i64` counterexamples whenever the
-//! refuting execution does not overflow.
+//! A satisfiable disagreement query is a refutation **in the unbounded
+//! model**. That is not yet a counterexample: an `Int` variable can take a
+//! value no `i64` holds, and an execution whose intermediate values leave
+//! `i64` range behaves differently once it wraps. So a witness is reported
+//! only after it has been **confirmed by running both bodies** on it under
+//! the real semantics (`codira_mir::fold_op`, via the `eval` module):
+//!
+//! 1. Read each argument's value out of the solver's model
+//!    (`codira_smt::Solver::model`). An argument whose model value does not fit
+//!    `i64` has no real counterpart, and the candidate is dropped.
+//! 2. Evaluate `before` and `after` on those values. The candidate is a witness
+//!    only if **both evaluate to a value and the values differ**. An evaluation
+//!    error on either side (`i64::MIN / -1`) is not counted as a difference:
+//!    "one side has no value" is not the claim a witness makes.
+//! 3. If the model's candidate is not confirmed, fall back to **greedy bounded
+//!    probing**: re-check satisfiability with each argument pinned to small
+//!    candidate values in turn. The model is one arbitrary satisfying
+//!    assignment and may sit out of range while a small one exists; the probe
+//!    finds those. Its result goes through the same confirmation as step 2.
+//!
+//! If no candidate is confirmed the verdict is still [`Verdict::Refuted`]
+//! (the solver's answer stands), with `args: None`. That outcome is
+//! expected, not exceptional: when the bodies differ *only* on values or
+//! executions outside `i64` range, they agree on every real input and no
+//! true witness exists. The validator does not constrain argument
+//! variables to `i64` range, so it reports such a pair as `Refuted` --
+//! rejecting a rewrite that was in fact fine, which is the safe direction
+//! for a validator to be wrong in.
 
 mod encode;
+mod eval;
 mod infer;
 
-use codira_mir::{verify_body, Body};
-use codira_smt::{BoolExpr, Context, SatResult};
+use codira_mir::{verify_body, Attr, Body};
+use codira_smt::{BoolExpr, CheckOutcome, Context, SatResult, Solver};
 
 use crate::encode::{iff, Encoder, Sym};
 
@@ -133,43 +153,51 @@ pub enum Verdict {
     /// overflow-capable op). `false` means every op involved is modeled
     /// exactly and the proof is unconditional.
     Proven { modulo_overflow: bool },
-    /// The bodies disagree on at least one input.
+    /// The solver found an assignment on which the encodings disagree.
     ///
-    /// `args`, when present, is a solver-verified witness assignment:
-    /// `args[i]` is the value of `Arg(i)` (booleans encoded as `0`/`1`;
-    /// arguments referenced by neither body filled with `0`). `None`
-    /// means the disagreement is proven but the bounded witness search
-    /// did not land on a concrete assignment.
+    /// `args`, when present, is a **confirmed** witness: both bodies were
+    /// evaluated on it under the real wrapping-`i64` semantics and
+    /// produced different values. `args[i]` is the value of `Arg(i)`
+    /// (booleans encoded as `0`/`1`; arguments referenced by neither body
+    /// filled with `0`).
+    ///
+    /// `None` means no candidate was confirmed (or witness recovery is
+    /// disabled). The disagreement then stands in the unbounded model
+    /// only; the bodies may agree on every real `i64` input. See the
+    /// crate docs, "Counterexamples".
     Refuted { args: Option<Vec<i64>> },
     /// The bodies fall outside the encodable fragment; `reason` says
     /// exactly which construct was the obstacle.
     Unsupported { reason: String },
-    /// Z3 could not decide the query.
-    Unknown,
+    /// Z3 could not decide the query; `reason` says why (`resource limit`
+    /// when the deterministic budget ran out). Never a proof.
+    Unknown { reason: String },
 }
 
 /// A configurable validator.
 ///
-/// The only knob today is whether to spend extra solver calls searching
-/// for a concrete counterexample on refutation. A per-query *timeout* is
-/// deliberately absent: `codira_smt` does not expose Z3's parameter API
-/// (`Z3_set_param_value` / solver params), so a timeout is not expressible
-/// through it -- see the crate README/summary for the wishlist.
+/// The only knob today is whether to recover a concrete counterexample on
+/// refutation. A per-query *timeout* is deliberately absent, though
+/// `codira_smt::Solver::set_timeout_ms` exists: a wall-clock budget would
+/// let the machine's load decide between `Proven` and `Unknown`, and a
+/// verdict that feeds compiler output has to be a function of its inputs
+/// alone.
 #[derive(Debug, Clone)]
 pub struct Validator {
     search_witness: bool,
 }
 
 impl Validator {
-    /// A validator with default settings (witness search enabled).
+    /// A validator with default settings (witness recovery enabled).
     pub fn new() -> Self {
         Validator {
             search_witness: true,
         }
     }
 
-    /// Disables the bounded counterexample search: refutations come back
-    /// as `Refuted { args: None }` after a single solver call.
+    /// Disables witness recovery: refutations come back as
+    /// `Refuted { args: None }` after a single solver call, with no model
+    /// read and no probing.
     pub fn without_witness_search(mut self) -> Self {
         self.search_witness = false;
         self
@@ -230,18 +258,22 @@ impl Validator {
         }
         solver.assert(disagree);
 
-        match solver.check() {
-            SatResult::Unsat => Verdict::Proven {
+        match solver.check_detailed() {
+            CheckOutcome::Unsat => Verdict::Proven {
                 modulo_overflow: enc.overflow_possible,
             },
-            SatResult::Sat => Verdict::Refuted {
+            CheckOutcome::Sat => Verdict::Refuted {
                 args: if self.search_witness {
-                    search_witness(&ctx, &enc, disagree)
+                    find_witness(&ctx, &enc, &solver, disagree, before, after)
                 } else {
                     None
                 },
             },
-            SatResult::Unknown => Verdict::Unknown,
+            // "Could not decide" is its own answer: neither a proof nor a
+            // refutation may be read into it.
+            CheckOutcome::Unknown(reason) => Verdict::Unknown {
+                reason: reason.to_string(),
+            },
         }
     }
 }
@@ -258,27 +290,131 @@ pub fn validate_rewrite(before: &Body, after: &Body) -> Verdict {
     Validator::new().validate(before, after)
 }
 
-/// Candidate values tried (in order) for each integer argument during
-/// witness recovery. Small values first: they are the counterexamples
+/// One candidate counterexample: a value for every argument either body
+/// references, in ascending argument order. Not yet a witness -- see
+/// [`confirm_witness`].
+type Candidate = Vec<(u32, Attr)>;
+
+/// Recovers a confirmed counterexample for a satisfiable disagreement
+/// query (crate docs, "Counterexamples"). `solver` must be the solver
+/// whose last `check` returned `Sat` for exactly that query, with nothing
+/// asserted since: its model is what is read.
+fn find_witness<'ctx>(
+    ctx: &'ctx Context,
+    enc: &Encoder<'_, 'ctx>,
+    solver: &Solver<'ctx>,
+    disagree: BoolExpr<'ctx>,
+    before: &Body,
+    after: &Body,
+) -> Option<Vec<i64>> {
+    // Sorted so the probe fixes arguments in a stable order: the map's
+    // iteration order must not be able to change which witness is found.
+    let mut arg_syms: Vec<(u32, Sym<'ctx>)> = enc.args.iter().map(|(i, s)| (*i, *s)).collect();
+    arg_syms.sort_by_key(|(i, _)| *i);
+
+    model_candidate(solver, &arg_syms)
+        .and_then(|candidate| confirm_witness(before, after, &candidate))
+        .or_else(|| {
+            // The model is one arbitrary satisfying assignment; it can sit
+            // outside i64 range, or on an overflowing execution, while a
+            // small real counterexample exists. The probe looks for that.
+            probe_candidate(ctx, enc, disagree, &arg_syms)
+                .and_then(|candidate| confirm_witness(before, after, &candidate))
+        })
+}
+
+/// Reads every argument's value out of the solver's model.
+///
+/// `None` if the solver has no model, or if any argument's value cannot be
+/// read as its real type: `Model::eval_int` declines a value that does not
+/// fit `i64`, and such a value is no `i64` input at all. `codira_smt`
+/// evaluates with model completion on, so an argument the model leaves
+/// unconstrained still gets a definite value rather than a miss.
+fn model_candidate<'ctx>(
+    solver: &Solver<'ctx>,
+    arg_syms: &[(u32, Sym<'ctx>)],
+) -> Option<Candidate> {
+    let model = solver.model()?;
+    arg_syms
+        .iter()
+        .map(|(index, sym)| {
+            let value = match sym {
+                Sym::Int(term, _) => Attr::Int(model.eval_int(*term)?),
+                Sym::Bool(term, _) => Attr::Bool(model.eval_bool(*term)?),
+            };
+            Some((*index, value))
+        })
+        .collect()
+}
+
+/// The gate every reported witness passes: runs both bodies on the
+/// candidate under the real semantics and returns the witness vector only
+/// if both produce a value and the values differ.
+///
+/// The solver's word is not enough. Its model satisfies the *unbounded*
+/// encoding, so the disagreement it shows may exist only because some
+/// intermediate value left `i64` range; wrapped, the bodies can agree. An
+/// evaluation error on either side also yields `None`: a witness claims
+/// two different results, and an erroring body has no result to differ.
+fn confirm_witness(before: &Body, after: &Body, candidate: &[(u32, Attr)]) -> Option<Vec<i64>> {
+    // Dense argument vector indexed by argument number; arguments no body
+    // references cannot influence either result, so 0 is as good a value
+    // as any there.
+    let len = candidate
+        .iter()
+        .map(|(i, _)| *i as usize + 1)
+        .max()
+        .unwrap_or(0);
+    let mut args = vec![Attr::Int(0); len];
+    for (index, value) in candidate {
+        args[*index as usize] = value.clone();
+    }
+
+    let differ = match (
+        eval::eval_body(before, &args)?,
+        eval::eval_body(after, &args)?,
+    ) {
+        (Attr::Int(b), Attr::Int(a)) => b != a,
+        (Attr::Bool(b), Attr::Bool(a)) => b != a,
+        // Results of different (or non-int/bool) shapes are outside what
+        // the equivalence query compared; nothing is confirmed.
+        _ => return None,
+    };
+    if !differ {
+        return None;
+    }
+
+    args.iter()
+        .map(|arg| match arg {
+            Attr::Int(v) => Some(*v),
+            Attr::Bool(b) => Some(i64::from(*b)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Candidate values tried (in order) for each integer argument by the
+/// fallback probe. Small values first: they are the counterexamples
 /// humans want to read, and the ones rewrite bugs almost always admit.
 const PROBE_CANDIDATES: &[i64] = &[
     0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8, 9, -9, 10, -10, 15, -15, 16, -16,
     17, 31, 32, 33, 63, 64, 100, -100, 127, 128, 255, 256, 1000, -1000,
 ];
 
-/// Greedy bounded witness search (see crate docs): fixes arguments one at
-/// a time to the first candidate value that keeps the disagreement
-/// satisfiable. `codira_smt` exposes neither models nor push/pop, so each
-/// probe is a fresh solver over the same assertions -- cheap at these
-/// formula sizes.
-fn search_witness<'ctx>(
+/// Greedy bounded probe (see crate docs): fixes arguments one at a time to
+/// the first candidate value that keeps the disagreement satisfiable.
+/// Each probe is a fresh solver over the same assertions -- cheap at these
+/// formula sizes, and it leaves the caller's solver and its model alone.
+///
+/// A probe that comes back `Unknown` is treated as "not this value": the
+/// candidate it yields is confirmed by evaluation before anyone sees it,
+/// so an undecided probe can cost a witness but never invent one.
+fn probe_candidate<'ctx>(
     ctx: &'ctx Context,
     enc: &Encoder<'_, 'ctx>,
     disagree: BoolExpr<'ctx>,
-) -> Option<Vec<i64>> {
-    let mut arg_syms: Vec<(u32, Sym<'ctx>)> = enc.args.iter().map(|(i, s)| (*i, *s)).collect();
-    arg_syms.sort_by_key(|(i, _)| *i);
-
+    arg_syms: &[(u32, Sym<'ctx>)],
+) -> Option<Candidate> {
     let check_with = |fixed: &[(Sym<'ctx>, i64)]| -> bool {
         let solver = ctx.solver();
         for c in &enc.constraints {
@@ -302,8 +438,8 @@ fn search_witness<'ctx>(
     };
 
     let mut fixed: Vec<(Sym<'ctx>, i64)> = Vec::with_capacity(arg_syms.len());
-    let mut values: Vec<(u32, i64)> = Vec::with_capacity(arg_syms.len());
-    for (index, sym) in &arg_syms {
+    let mut values: Candidate = Vec::with_capacity(arg_syms.len());
+    for (index, sym) in arg_syms {
         let candidates: &[i64] = match sym {
             Sym::Int(..) => PROBE_CANDIDATES,
             Sym::Bool(..) => &[1, 0],
@@ -318,20 +454,113 @@ fn search_witness<'ctx>(
             fixed.pop();
         }
         let value = chosen?;
-        values.push((*index, value));
+        values.push((
+            *index,
+            match sym {
+                Sym::Int(..) => Attr::Int(value),
+                Sym::Bool(..) => Attr::Bool(value != 0),
+            },
+        ));
+    }
+    Some(values)
+}
+
+#[cfg(test)]
+mod tests {
+    use codira_mir::OpKind;
+
+    use super::*;
+
+    /// before: x - 1        after: x + 1
+    fn sub_one_and_add_one() -> (Body, Body) {
+        let mut before = Body::new();
+        let x = before.push(OpKind::Arg(0), []);
+        let one = before.push(OpKind::Const(Attr::Int(1)), []);
+        before.push(OpKind::Sub, [x, one]);
+
+        let mut after = Body::new();
+        let x = after.push(OpKind::Arg(0), []);
+        let one = after.push(OpKind::Const(Attr::Int(1)), []);
+        after.push(OpKind::Add, [x, one]);
+        (before, after)
     }
 
-    // Dense witness vector indexed by argument number; arguments no body
-    // references cannot influence either result, so 0 is as good a value
-    // as any there.
-    let len = values
-        .iter()
-        .map(|(i, _)| *i as usize + 1)
-        .max()
-        .unwrap_or(0);
-    let mut witness = vec![0i64; len];
-    for (index, value) in values {
-        witness[index as usize] = value;
+    #[test]
+    fn confirm_accepts_a_candidate_the_bodies_differ_on() {
+        let (before, after) = sub_one_and_add_one();
+        assert_eq!(
+            confirm_witness(&before, &after, &[(0, Attr::Int(5))]),
+            Some(vec![5])
+        );
     }
-    Some(witness)
+
+    #[test]
+    fn confirm_rejects_a_candidate_the_bodies_agree_on() {
+        // The gate itself, with no solver involved: a candidate on which
+        // the bodies agree must never come out as a witness, whoever
+        // proposed it.
+        let (before, _) = sub_one_and_add_one();
+        assert_eq!(
+            confirm_witness(&before, &before, &[(0, Attr::Int(5))]),
+            None
+        );
+    }
+
+    #[test]
+    fn confirm_rejects_a_disagreement_that_exists_only_unbounded() {
+        // before: (x * 2) > i64::MAX        after: false
+        // At x = 2^62 the unbounded model says 2^63 > i64::MAX, i.e. true
+        // vs false. Really, x * 2 wraps to i64::MIN and both are false.
+        let mut before = Body::new();
+        let x = before.push(OpKind::Arg(0), []);
+        let two = before.push(OpKind::Const(Attr::Int(2)), []);
+        let doubled = before.push(OpKind::Mul, [x, two]);
+        let max = before.push(OpKind::Const(Attr::Int(i64::MAX)), []);
+        before.push(OpKind::Gt, [doubled, max]);
+
+        let mut after = Body::new();
+        after.push(OpKind::Const(Attr::Bool(false)), []);
+
+        assert_eq!(
+            confirm_witness(&before, &after, &[(0, Attr::Int(1 << 62))]),
+            None
+        );
+    }
+
+    #[test]
+    fn confirm_rejects_a_candidate_either_body_errors_on() {
+        // before: x / -1        after: x
+        // i64::MIN / -1 is an evaluation error, not a value that differs.
+        let mut before = Body::new();
+        let x = before.push(OpKind::Arg(0), []);
+        let minus_one = before.push(OpKind::Const(Attr::Int(-1)), []);
+        before.push(OpKind::Div, [x, minus_one]);
+
+        let mut after = Body::new();
+        after.push(OpKind::Arg(0), []);
+
+        assert_eq!(
+            confirm_witness(&before, &after, &[(0, Attr::Int(i64::MIN))]),
+            None
+        );
+        assert_eq!(
+            confirm_witness(&before, &after, &[(0, Attr::Int(3))]),
+            Some(vec![3])
+        );
+    }
+
+    #[test]
+    fn confirm_fills_unreferenced_arguments_and_encodes_booleans() {
+        // Only Arg(2) is referenced; Arg(0)/Arg(1) are padding.
+        let mut before = Body::new();
+        before.push(OpKind::Arg(2), []);
+        let mut after = Body::new();
+        let c = after.push(OpKind::Arg(2), []);
+        after.push(OpKind::Not, [c]);
+
+        assert_eq!(
+            confirm_witness(&before, &after, &[(2, Attr::Bool(true))]),
+            Some(vec![0, 0, 1])
+        );
+    }
 }

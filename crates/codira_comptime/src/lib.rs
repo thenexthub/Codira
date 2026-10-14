@@ -21,7 +21,7 @@ mod value;
 
 pub use elaborate::elaborate;
 pub use interp::{eval_body, eval_body_with, EvalCtx, DEFAULT_CALL_DEPTH, DEFAULT_FUEL};
-pub use value::{Env, EvalError, Value};
+pub use value::{Env, EvalError, MemState, Value};
 
 #[cfg(test)]
 mod tests;

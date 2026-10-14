@@ -1,0 +1,85 @@
+// =============================================================================
+// std/memory/page.code — OS pages, huge pages and aligned allocation
+// =============================================================================
+//
+// Direct access to the operating system's virtual memory: map pages with an
+// explicit protection, change the protection, unmap them. This is what a JIT,
+// a custom allocator or a memory-mapped data structure is built on.
+//
+// Protection is W^X: a mapping is never writable and executable at once.
+// Write code into a READ|WRITE mapping, flip it to READ|EXEC with
+// `page_protect`, then call `icache_flush` before executing it (required on
+// AArch64, a no-op on x86-64). Asking for WRITE|EXEC fails.
+//
+// Huge pages are used when the OS grants them (Windows needs the "Lock pages
+// in memory" privilege; Linux needs reserved hugetlb pages, and otherwise
+// gets a transparent-huge-page hint); `page_huge_status` reports what
+// actually happened. Everything returns 0/false on failure.
+//
+// The functions are provided by the runtime (codira_runtime::native_memory).
+// =============================================================================
+
+import root.builtin.types.*;
+
+extern "C" {
+    func codira_page_size() -> usize;
+    func codira_page_alloc(size: usize, prot: u32) -> usize;
+    func codira_page_alloc_huge(size: usize, prot: u32) -> usize;
+    func codira_page_huge_status() -> u32;
+    func codira_page_protect(addr: usize, size: usize, prot: u32) -> bool;
+    func codira_page_free(addr: usize, size: usize) -> bool;
+    func codira_icache_flush(addr: usize, size: usize);
+    func codira_aligned_alloc(size: usize, align: usize) -> usize;
+    func codira_aligned_free(addr: usize, size: usize, align: usize);
+}
+
+// Protection bits.
+public func PROT_READ() -> u32 { return 1; }
+public func PROT_WRITE() -> u32 { return 2; }
+public func PROT_EXEC() -> u32 { return 4; }
+
+// The OS page size in bytes.
+public func page_size() -> usize {
+    return codira_page_size();
+}
+
+// Map `size` bytes (rounded up to whole pages) of zeroed memory.
+public func page_alloc(size: usize, prot: u32) -> usize {
+    return codira_page_alloc(size, prot);
+}
+
+// Map `size` bytes backed by huge pages if the OS grants them.
+public func page_alloc_huge(size: usize, prot: u32) -> usize {
+    return codira_page_alloc_huge(size, prot);
+}
+
+// What the last `page_alloc_huge` on this thread got:
+// 2 = huge pages, 1 = transparent huge pages requested, 0 = regular pages.
+public func page_huge_status() -> u32 {
+    return codira_page_huge_status();
+}
+
+// Change the protection of mapped pages.
+public func page_protect(addr: usize, size: usize, prot: u32) -> bool {
+    return codira_page_protect(addr, size, prot);
+}
+
+// Unmap pages mapped by `page_alloc`/`page_alloc_huge`.
+public func page_free(addr: usize, size: usize) -> bool {
+    return codira_page_free(addr, size);
+}
+
+// Make machine code written at [addr, addr + size) visible to execution.
+public func icache_flush(addr: usize, size: usize) {
+    codira_icache_flush(addr, size);
+}
+
+// Allocate `size` zeroed bytes aligned to `align` (a power of two).
+public func aligned_alloc(size: usize, align: usize) -> usize {
+    return codira_aligned_alloc(size, align);
+}
+
+// Free memory from `aligned_alloc`; `size` and `align` must match.
+public func aligned_free(addr: usize, size: usize, align: usize) {
+    codira_aligned_free(addr, size, align);
+}

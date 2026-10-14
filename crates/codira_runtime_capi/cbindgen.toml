@@ -11,6 +11,9 @@ tab_width = 4
 
 [export]
 prefix = "Codira"
+# Rust-side page-protection bits (`codira_memory::pages`); Codira programs
+# reach page allocation through the runtime, not through this header.
+exclude = ["PROT_READ", "PROT_WRITE", "PROT_EXEC"]
 
 [enum]
 rename_variants = "QualifiedScreamingSnakeCase"

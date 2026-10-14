@@ -35,7 +35,10 @@ use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 use super::{rewrite::remap_operands, Changed, Pass, PassContext};
-use crate::op::{Body, OpId, OpKind, Region};
+use crate::{
+    op::{Body, OpId, OpKind, Region},
+    ty::TypeId,
+};
 
 /// See the module doc.
 #[derive(Debug, Default, Clone, Copy)]
@@ -95,7 +98,7 @@ fn hashconsable(kind: &OpKind) -> bool {
 fn rewrite_body(src: &Body) -> (Body, bool) {
     let mut new = Body::new();
     let mut map: FxHashMap<OpId, OpId> = FxHashMap::default();
-    let mut table: FxHashMap<(OpKind, SmallVec<[OpId; 2]>), OpId> = FxHashMap::default();
+    let mut table: FxHashMap<(OpKind, SmallVec<[OpId; 2]>, TypeId), OpId> = FxHashMap::default();
     let mut changed = false;
     let last = src.result();
 
@@ -103,7 +106,9 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
         let operands = remap_operands(op, &map);
 
         if hashconsable(&op.kind) && op.regions.is_empty() {
-            let key = (op.kind.clone(), operands.clone());
+            // The type is part of the key: `1000: u32` and `1000: i64` are
+            // the same attribute but not the same value to a later cast.
+            let key = (op.kind.clone(), operands.clone(), op.ty);
             if let Some(&first) = table.get(&key) {
                 if Some(id) != last {
                     map.insert(id, first);
@@ -111,7 +116,7 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
                     continue;
                 }
             }
-            let new_id = new.push(op.kind.clone(), operands);
+            let new_id = new.push_typed(op.kind.clone(), operands, op.ty);
             table.entry(key).or_insert(new_id);
             map.insert(id, new_id);
             continue;
@@ -130,7 +135,7 @@ fn rewrite_body(src: &Body) -> (Body, bool) {
             .collect();
         map.insert(
             id,
-            new.push_with_regions(op.kind.clone(), operands, regions),
+            new.push_with_regions_typed(op.kind.clone(), operands, regions, op.ty),
         );
     }
 

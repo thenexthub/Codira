@@ -1,0 +1,45 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    public func widen_unsigned() -> u64 {\n        let a: u32 = 1000;\n        a as u64\n    }\n\n    public func widen_signed() -> i64 {\n        let a: i32 = -5;\n        a as i64\n    }\n\n    public func narrow() -> u8 {\n        let a: i64 = 300;\n        a as u8\n    }\n\n    public func saturate() -> u8 {\n        let a: f64 = 300.7;\n        a as u8\n    }\n\n    public func narrow_sum_wraps() -> bool {\n        let a: u8 = 200;\n        let b: u8 = 100;\n        (a + b) == 44\n    }\n\n    public func f32_widens_exactly() -> f64 {\n        let a: f32 = 0.5;\n        a as f64\n    }"
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [5 x ptr]
+
+define i64 @widen_unsigned() {
+body:
+  ret i64 1000
+}
+
+define i64 @widen_signed() {
+body:
+  ret i64 -5
+}
+
+define i8 @narrow() {
+body:
+  ret i8 44
+}
+
+define i8 @saturate() {
+body:
+  ret i8 -1
+}
+
+define i1 @narrow_sum_wraps() {
+body:
+  ret i1 true
+}
+
+define double @f32_widens_exactly() {
+body:
+  ret double 5.000000e-01
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [5 x ptr] zeroinitializer

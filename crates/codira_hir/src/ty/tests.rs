@@ -650,7 +650,7 @@ fn undeclared_effect_is_a_real_diagnostic() {
     insta::assert_snapshot!(infer(
         r#"
     effect Logger {
-        func log(message: String)
+        func log(message: str)   
     }
 
     func risky() uses Logger -> i32 {
@@ -672,7 +672,7 @@ fn declared_effect_produces_no_diagnostic() {
     insta::assert_snapshot!(infer(
         r#"
     effect Logger {
-        func log(message: String)
+        func log(message: str)   
     }
 
     func risky() uses Logger -> i32 {
@@ -1600,10 +1600,10 @@ fn infer_type_alias() {
     "#),
     @"
     43..54: undefined type
-    93..94 'a': Foo
+    93..94 'a': i32
     101..124 '{     ...= a; }': ()
     111..112 'b': Bar
-    120..121 'a': Foo
+    120..121 'a': i32
     ");
 }
 
@@ -2259,12 +2259,12 @@ fn heal_contract_alternate_must_be_substitutable() {
 // `func id[T](x: T) -> T` and `struct Box[T] { v: T }` -- the shape most of
 // the stdlib is written in -- were rejected outright.
 //
-// What these pin down is *declaration* and *interior* checking. Instantiating
-// a generic (`Box { v: 7 }` at `T = i64`) additionally needs generic
-// arguments to survive type-ref lowering and a populated `Substitution`;
-// until then an instantiation still reports a mismatch, which
-// `generic_instantiation_is_not_yet_supported` records deliberately rather
-// than leaving undocumented.
+// These pin down *declaration* and *interior* checking. Instantiation --
+// `Box { v: 7 }` at `T = i64` -- is covered by
+// `generic_instantiation_binds_parameters_to_arguments`, and needed two
+// things the declaration cases do not: generic arguments surviving type-ref
+// lowering, and `TyKind::Struct` carrying a `Substitution` so that
+// `Box[i64]` is a different type from `Box[f64]`.
 
 /// A generic function's parameter is a real type in its own signature and
 /// body.
@@ -2347,16 +2347,20 @@ fn infer_generic_parameters_are_scoped_to_their_declaration() {
     ));
 }
 
-/// Instantiating a generic is *not* yet supported, and this records exactly
-/// where it stops: the declaration checks, the use does not.
+/// Instantiating a generic binds its parameters to the arguments the use
+/// site implies.
 ///
-/// Generic arguments are dropped during type-ref lowering (`TypeRef::Path`
-/// carries no arguments), so there is nothing to substitute `T` with at the
-/// use site. Monomorphisation is the follow-up; this test exists so that
-/// landing it turns a documented failure into a visible diff rather than
-/// passing silently.
+/// `Box { v: 7 }` writes no argument list, so the field value is the only
+/// thing that can say what `T` is; the literal takes a fresh inference
+/// variable for `T`, `7` unifies it with `i64` through `main`'s return
+/// type, and `b.v` reads back as `i64` rather than as `T`.
+///
+/// The remaining diagnostic is the code generator's, not the type
+/// checker's: inference is complete here, and monomorphisation -- emitting
+/// a concrete layout per instantiation -- is the separate step still to
+/// come.
 #[test]
-fn generic_instantiation_is_not_yet_supported() {
+fn generic_instantiation_binds_parameters_to_arguments() {
     insta::assert_snapshot!(infer(
         r"
     struct Box[T] { v: T }
@@ -2366,4 +2370,100 @@ fn generic_instantiation_is_not_yet_supported() {
         b.v
     }",
     ));
+}
+
+/// `print`/`println` are compiler builtins: each argument is inferred on its
+/// own, the call is `()`, and a value the runtime cannot format is an error
+/// pointing at that argument. A user definition of the same name wins.
+#[test]
+fn infer_builtin_print() {
+    insta::assert_snapshot!(infer(
+        r#"
+    struct Point { x: i32 }
+
+    func f() {
+        println("x = ", 1, " ", 2.5, " ", true)
+        print()
+        println(Point { x: 1 }, [1, 2])
+    }
+
+    func g() {
+        let print = 3;
+        print(1)
+    }
+    "#),
+    @r#"
+    104..118: `println` cannot print a value of type `Point`: only integers, floats, `bool` and `str` are printable
+    120..126: `println` cannot print a value of type `[{integer}]`: only integers, floats, `bool` and `str` are printable
+    165..170: expected function type
+    34..129 '{     ... 2]) }': ()
+    40..79 'printl... true)': ()
+    48..54 '"x = "': str
+    56..57 '1': i32
+    59..62 '" "': str
+    64..67 '2.5': f64
+    69..72 '" "': str
+    74..78 'true': bool
+    84..91 'print()': ()
+    96..127 'printl...1, 2])': ()
+    104..118 'Point { x: 1 }': Point
+    115..116 '1': i32
+    120..126 '[1, 2]': [i32]
+    121..122 '1': i32
+    124..125 '2': i32
+    140..175 '{     ...t(1) }': ()
+    150..155 'print': i32
+    158..159 '3': i32
+    165..170 'print': i32
+    165..173 'print(1)': {unknown}
+    "#);
+}
+
+/// `for` over a range binds the bounds' integer type; over an array, the
+/// element type, destructured by a tuple pattern. An array of tuples unifies
+/// element by element.
+#[test]
+fn infer_for_loops() {
+    insta::assert_snapshot!(infer(
+        r#"
+    func f(n: u8) -> i64 {
+        let ps = [(1, 10), (2, 20)]
+        var total: i64 = 0
+        for (a, b) in ps { total += a * b }
+        for i in 0..n { continue }
+        total
+    }
+    "#),
+    @"
+    7..8 'n': u8
+    21..160 '{     ...otal }': i64
+    31..33 'ps': [(i64, i64)]
+    36..54 '[(1, 1..., 20)]': [(i64, i64)]
+    37..44 '(1, 10)': (i64, i64)
+    38..39 '1': i64
+    41..43 '10': i64
+    46..53 '(2, 20)': (i64, i64)
+    47..48 '2': i64
+    50..52 '20': i64
+    63..68 'total': i64
+    76..77 '0': i64
+    82..117 'for (a... * b }': ()
+    86..92 '(a, b)': (i64, i64)
+    87..88 'a': i64
+    90..91 'b': i64
+    96..98 'ps': [(i64, i64)]
+    99..117 '{ tota... * b }': ()
+    101..106 'total': i64
+    101..115 'total += a * b': ()
+    110..111 'a': i64
+    110..115 'a * b': i64
+    114..115 'b': i64
+    122..148 'for i ...inue }': ()
+    126..127 'i': u8
+    131..132 '0': u8
+    134..135 'n': u8
+    136..148 '{ continue }': never
+    138..146 'continue': never
+    153..158 'total': i64
+    ");
 }

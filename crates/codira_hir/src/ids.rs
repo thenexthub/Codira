@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use codira_hir_input::ModuleId;
 
 use crate::{
-    item_tree::{Function, Impl, ItemTreeId, ItemTreeNode, Struct, TypeAlias},
+    item_tree::{Effect, Function, Impl, ItemTreeId, ItemTreeNode, Struct, TypeAlias},
     primitive_type::PrimitiveType,
     DefDatabase,
 };
@@ -140,6 +140,13 @@ impl_intern!(
     lookup_intern_type_alias
 );
 
+/// An algebraic effect declared with `effect Name { .. }`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct EffectId(salsa::InternId);
+
+pub(crate) type EffectLoc = ItemLoc<Effect>;
+impl_intern!(EffectId, EffectLoc, intern_effect, lookup_intern_effect);
+
 pub trait Intern {
     type ID;
     fn intern(self, db: &dyn DefDatabase) -> Self::ID;
@@ -157,6 +164,16 @@ pub enum ItemDefinitionId {
     StructId(StructId),
     TypeAliasId(TypeAliasId),
     PrimitiveType(PrimitiveType),
+    /// An effect lives in the type namespace (`uses Logger`,
+    /// `perform Logger.log(..)`), but it is not a type: type resolution
+    /// rejects it, and only `Resolver::resolve_path_as_effect` accepts it.
+    EffectId(EffectId),
+}
+
+impl From<EffectId> for ItemDefinitionId {
+    fn from(id: EffectId) -> Self {
+        ItemDefinitionId::EffectId(id)
+    }
 }
 
 impl From<ModuleId> for ItemDefinitionId {

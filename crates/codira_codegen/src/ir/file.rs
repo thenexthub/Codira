@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use codira_hir::{HasVisibility, ModuleDef};
 use inkwell::module::Module;
@@ -39,8 +39,15 @@ pub(crate) fn gen_file_ir<'ink>(
     let hir_types = &code_gen.hir_types;
 
     // Generate all exposed function and wrapper function signatures.
-    // Use a `BTreeMap` to guarantee deterministically ordered output.ures
-    let mut functions = HashMap::new();
+    //
+    // `BTreeMap`, not `HashMap`, to guarantee deterministically ordered
+    // output. `functions` is iterated below to emit bodies, and Rust seeds
+    // `HashMap`'s hasher differently per process -- so the same source
+    // compiled twice produced the same functions in a different order, and
+    // with them the LLVM intrinsic declarations their bodies pull in. That
+    // is a reproducible-build defect, and it also makes any snapshot of the
+    // emitted IR flap between runs.
+    let mut functions = BTreeMap::new();
     let mut type_definitions = HashSet::new();
     let mut wrapper_functions = BTreeMap::new();
     // `all_functions` rather than filtering `declarations`: methods declared
@@ -55,8 +62,13 @@ pub(crate) fn gen_file_ir<'ink>(
             functions.insert(f, fun);
 
             let fn_sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
-            if f.visibility(code_gen.db).is_externally_visible()
-                && !fn_sig.marshallable(code_gen.db)
+            // A function taking hidden evidence parameters always gets a
+            // wrapper with the host-visible signature: the runtime finds a
+            // function through it, and must never call the internal one
+            // with too few arguments.
+            if (f.visibility(code_gen.db).is_externally_visible()
+                && !fn_sig.marshallable(code_gen.db))
+                || crate::ir::body::has_evidence(code_gen.db, f)
             {
                 let wrapper_fun = function::gen_public_prototype(
                     code_gen.db,
@@ -91,8 +103,12 @@ pub(crate) fn gen_file_ir<'ink>(
         } else {
             Some(llvm_module.add_global(group_ir.type_table.ty(), None, TypeTable::NAME))
         };
+        let fuel_counter = group_ir
+            .fuel_counter_type
+            .map(|ty| llvm_module.add_global(ty, None, "fuelCounter"));
         ExternalGlobals {
             alloc_handle,
+            fuel_counter,
             dispatch_table,
             type_table: type_table.map(|g| unsafe { Global::from_raw(g) }),
         }
@@ -111,6 +127,7 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
+            code_gen.eidos,
         );
 
         code_gen.gen_fn_body();
@@ -128,10 +145,13 @@ pub(crate) fn gen_file_ir<'ink>(
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
+            code_gen.eidos,
         );
 
         code_gen.gen_fn_wrapper();
     }
+
+    link_native_bitcode(code_gen, &llvm_module);
 
     // Optimize all generated function bodies in one pass now that they've
     // all been emitted (LLVM's new pass manager operates module-wide, not
@@ -153,5 +173,37 @@ pub(crate) fn gen_file_ir<'ink>(
         llvm_module,
         function_definitions,
         type_definitions,
+    }
+}
+
+/// Links the package's C and C++ bitcode into `llvm_module` if it calls any
+/// of it, before the module is optimized.
+///
+/// Linking first is what makes a call into C cost nothing: once the C
+/// function is in the same module, LLVM inlines it into its Codira caller,
+/// folds constants through it and vectorizes across the boundary, exactly as
+/// it would within one C file. A module that calls no native function gets
+/// none of it. See `crate::native`.
+fn link_native_bitcode<'ink>(code_gen: &CodeGenContext<'_, 'ink>, llvm_module: &Module<'ink>) {
+    let native = &code_gen.native;
+    if native.bitcode.is_empty() {
+        return;
+    }
+    let calls_native = llvm_module.get_functions().any(|function| {
+        function.count_basic_blocks() == 0
+            && function
+                .get_name()
+                .to_str()
+                .is_ok_and(|name| native.symbols.contains(name))
+    });
+    if !calls_native {
+        return;
+    }
+    for path in &native.bitcode {
+        let native_module = Module::parse_bitcode_from_path(path, code_gen.context)
+            .unwrap_or_else(|e| panic!("could not read bitcode '{}': {e}", path.display()));
+        llvm_module
+            .link_in_module(native_module)
+            .unwrap_or_else(|e| panic!("could not link '{}': {e}", path.display()));
     }
 }

@@ -34,3 +34,7 @@ codira_compiler = { path = "../codira_compiler" }
 codira_test = { path = "../codira_test" }
 tempfile = { workspace = true }
 termcolor = { workspace = true }
+
+[[bench]]
+name = "fuel"
+harness = false

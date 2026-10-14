@@ -21,7 +21,7 @@ pub type IntrinsicsMap<'ink> = BTreeMap<FunctionPrototype, FunctionType<'ink>>;
 fn collect_intrinsic<'ink>(
     context: &'ink Context,
     target: &TargetData,
-    intrinsic: &impl Intrinsic,
+    intrinsic: &(impl Intrinsic + ?Sized),
     entries: &mut IntrinsicsMap<'ink>,
 ) {
     let prototype = intrinsic.prototype();
@@ -45,8 +45,27 @@ fn collect_expr<'ink>(
 ) {
     let expr = &body[expr_id];
 
-    // If this expression is a call, store it in the dispatch table
-    if let Expr::Call { callee, .. } = expr {
+    // A builtin call (`print`/`println`) lowers to calls into the runtime's
+    // printing functions, which therefore need dispatch table slots.
+    let uses_tasks = matches!(
+        expr,
+        Expr::Scope { .. }
+            | Expr::Spawn { .. }
+            | Expr::ChannelSend { .. }
+            | Expr::ChannelReceive { .. }
+    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel);
+    if uses_tasks {
+        for intrinsic in intrinsics::task_functions() {
+            collect_intrinsic(context, target, intrinsic, intrinsics);
+        }
+    }
+    if let Some(builtin) = infer.builtin_call(expr_id) {
+        if builtin != codira_hir::BuiltinFn::Channel {
+            for intrinsic in intrinsics::print_functions() {
+                collect_intrinsic(context, target, intrinsic, intrinsics);
+            }
+        }
+    } else if let Expr::Call { callee, .. } = expr {
         match infer[*callee].as_callable_def() {
             Some(codira_hir::CallableDef::Struct(_)) => {
                 collect_intrinsic(context, target, &intrinsics::new, intrinsics);
@@ -71,6 +90,17 @@ fn collect_expr<'ink>(
             // self.collect_intrinsic( module, entries, &intrinsics::drop);
             *needs_alloc = true;
         }
+    }
+
+    // Indexing checks its bounds and panics through the runtime when the
+    // index is out of range.
+    if let Expr::Index { .. } = expr {
+        collect_intrinsic(
+            context,
+            target,
+            &intrinsics::panic_index_out_of_bounds,
+            intrinsics,
+        );
     }
 
     if let Expr::Array(_) = expr {
@@ -113,6 +143,15 @@ pub fn collect_fn_body<'ink>(
         body,
         infer,
     );
+}
+
+/// Collects the runtime functions fuel-instrumented code calls.
+pub fn collect_fuel<'ink>(
+    context: &'ink Context,
+    target: TargetData,
+    intrinsics: &mut IntrinsicsMap<'ink>,
+) {
+    collect_intrinsic(context, &target, &intrinsics::fuel_exhausted, intrinsics);
 }
 
 /// Collects all intrinsics from a function wrapper body.

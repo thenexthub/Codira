@@ -121,6 +121,11 @@ pub enum FaultKind {
     FloatInvalidOperation,
     /// An illegal/undefined CPU instruction was executed.
     IllegalInstruction,
+    /// Fuel-instrumented Codira code used up the budget its runtime gave it
+    /// (`codira_runtime::FUEL_EXHAUSTED_EXCEPTION_CODE`). Not a hardware
+    /// fault: the runtime raises it deliberately, so resuming at the
+    /// checkpoint is always safe.
+    FuelExhausted,
 }
 
 impl fmt::Display for FaultKind {
@@ -131,6 +136,7 @@ impl fmt::Display for FaultKind {
             FaultKind::FloatDivideByZero => "float divide by zero (SIGFPE-equivalent)",
             FaultKind::FloatInvalidOperation => "invalid floating-point operation",
             FaultKind::IllegalInstruction => "illegal instruction",
+            FaultKind::FuelExhausted => "fuel exhausted",
         };
         f.write_str(s)
     }
@@ -156,6 +162,9 @@ fn classify(code: i32) -> Option<FaultKind> {
         EXCEPTION_FLT_DIVIDE_BY_ZERO => Some(FaultKind::FloatDivideByZero),
         EXCEPTION_FLT_INVALID_OPERATION => Some(FaultKind::FloatInvalidOperation),
         EXCEPTION_ILLEGAL_INSTRUCTION => Some(FaultKind::IllegalInstruction),
+        code if code as u32 == codira_runtime::FUEL_EXHAUSTED_EXCEPTION_CODE => {
+            Some(FaultKind::FuelExhausted)
+        }
         _ => None,
     }
 }

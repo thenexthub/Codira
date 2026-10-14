@@ -55,6 +55,8 @@ pub trait InternDatabase: SourceDatabase {
     fn intern_type_alias(&self, loc: ids::TypeAliasLoc) -> ids::TypeAliasId;
     #[salsa::interned]
     fn intern_impl(self, loc: ids::ImplLoc) -> ids::ImplId;
+    #[salsa::interned]
+    fn intern_effect(&self, loc: ids::EffectLoc) -> ids::EffectId;
 }
 
 #[salsa::query_group(DefDatabaseStorage)]
@@ -66,6 +68,9 @@ pub trait DefDatabase: InternDatabase + AstDatabase {
 
     #[salsa::invoke(StructData::struct_data_query)]
     fn struct_data(&self, id: ids::StructId) -> Arc<StructData>;
+
+    #[salsa::invoke(crate::code_model::EffectData::effect_data_query)]
+    fn effect_data(&self, id: ids::EffectId) -> Arc<crate::code_model::EffectData>;
 
     #[salsa::invoke(TypeAliasData::type_alias_data_query)]
     fn type_alias_data(&self, id: ids::TypeAliasId) -> Arc<TypeAliasData>;
@@ -117,6 +122,9 @@ pub trait HirDatabase: DefDatabase {
     #[salsa::invoke(crate::ty::lower::lower_type_alias_query)]
     fn lower_type_alias(&self, def: TypeAlias) -> Arc<LowerTyMap>;
 
+    #[salsa::invoke(crate::code_model::lower_effect_query)]
+    fn lower_effect(&self, def: crate::code_model::Effect) -> Arc<LowerTyMap>;
+
     #[salsa::invoke(crate::ty::callable_item_sig)]
     fn callable_sig(&self, def: CallableDef) -> FnSig;
 
@@ -140,6 +148,12 @@ pub trait HirDatabase: DefDatabase {
     /// `FunctionId`) so this query is actually callable by downstream
     /// crates like `codira_codegen` -- an incremental query nobody outside
     /// `codira_hir` can invoke isn't wired into anything.
+    /// Every proof obligation of `func` -- its own contracts, loop
+    /// invariants and termination measures, and the contracts of everything
+    /// it calls -- and what Z3 said about each. See `crate::verify`.
+    #[salsa::invoke(crate::verify::verify_function_query)]
+    fn verify_function(&self, func: Function) -> Arc<crate::verify::VerificationReport>;
+
     #[salsa::invoke(crate::mir_lower::mir_generator_query)]
     fn mir_generator(&self, func: Function) -> Option<Arc<codira_mir::Generator>>;
 

@@ -8,82 +8,142 @@
 //! Effect-obligation checking (see `spec/LANGUAGE_SPEC.md` section 6):
 //! "a function's `uses Effect, ...` clause is part of its type -- callers
 //! must either be inside a matching `handle` block or themselves declare
-//! `uses` and propagate the obligation". This module checks the *first*
-//! half of that rule -- a function calling another function that declares
-//! `uses Effect` must itself declare `uses Effect` (or a superset) -- for
-//! ordinary calls (`Expr::Call`) and method calls (`Expr::MethodCall`).
+//! `uses` and propagate the obligation".
 //!
-//! **Deliberately not checked here**: the *second* half ("or be inside a
-//! matching `handle` block"). `perform`/`handle` expressions still lower to
-//! `Expr::Missing` (see `expr.rs`'s big match and its own doc comment) --
-//! there is no HIR representation yet of which effect a `handle` block
-//! discharges, so this pass cannot know a call is covered by one. Concrete
-//! consequence: this pass will flag a call inside a correct `handle Effect
-//! { .. }` block as an undeclared-effect error today, a real (documented,
-//! not hidden) false positive until `handle` gets real HIR lowering. Until
-//! then, this check is only reliable for code with no `handle` blocks --
-//! genuinely useful there (it's real, tested detection of a real class of
-//! bug), not a complete implementation of the spec's rule.
+//! Both halves are checked, for every way an effect can be needed:
+//!
+//! * a call (`Expr::Call`, `Expr::MethodCall`) to a function that declares
+//!   `uses E`;
+//! * a `perform E.op(..)`.
+//!
+//! Either is satisfied by `uses E` on the enclosing function, or by an
+//! enclosing `handle` that has an arm for `E`. Only the `handle`'s *body* is
+//! covered: its arms run in the context of the `handle` expression itself,
+//! so an arm that performs `E` needs an outer handler (or `uses E`) just
+//! like code next to the `handle` would. Effects are compared by identity
+//! (the resolved effect), not by name.
 use super::ExprValidator;
-use crate::{diagnostics::UndeclaredEffect, resolve::resolver_for_expr, Expr, HasSource};
+use crate::{
+    code_model::Effect,
+    diagnostics::{EffectError, UndeclaredEffect},
+    resolve::{resolver_for_expr, ValueNs},
+    Expr, ExprId, HasSource,
+};
 
 impl ExprValidator<'_> {
-    /// Checks every call in this function's body against its own declared
-    /// `uses` clause.
+    /// Checks every effect the body needs against the function's own `uses`
+    /// clause and the `handle` expressions around it.
     pub(super) fn validate_effect_obligations(&self, sink: &mut crate::DiagnosticSink<'_>) {
-        if !self.has_any_call() {
+        if !self.body.exprs().any(|(_, e)| {
+            matches!(
+                e,
+                Expr::Call { .. } | Expr::MethodCall { .. } | Expr::Perform { .. }
+            )
+        }) {
             return;
         }
-        let caller_data = self.func.data(self.db);
-        let caller_effects = caller_data.effects();
+        let declared = self.func.effects(self.db);
+        let mut handled = Vec::new();
+        self.check_obligations(self.body.body_expr(), &declared, &mut handled, sink);
+    }
 
-        for (expr_id, expr) in self.body.exprs() {
-            let callee_fn = match expr {
-                Expr::Call { callee, .. } => {
-                    let resolver = resolver_for_expr(self.db, self.body.owner(), *callee);
-                    match &self.body[*callee] {
-                        Expr::Path(path) => resolver
-                            .resolve_path_as_value_fully(self.db, path)
-                            .and_then(|(ns, _)| match ns {
-                                crate::resolve::ValueNs::FunctionId(id) => Some(id),
-                                _ => None,
-                            }),
-                        _ => None,
+    fn check_obligations(
+        &self,
+        expr: ExprId,
+        declared: &[Effect],
+        handled: &mut Vec<Effect>,
+        sink: &mut crate::DiagnosticSink<'_>,
+    ) {
+        match &self.body[expr] {
+            Expr::Handle { body, arms } => {
+                let depth = handled.len();
+                for idx in 0..arms.len() {
+                    if let Some((effect, _)) = self.infer.handler_arm_target(expr, idx) {
+                        handled.push(effect);
                     }
                 }
-                Expr::MethodCall { .. } => self.infer.method_resolutions.get(&expr_id).copied(),
-                _ => None,
-            };
+                self.check_obligations(*body, declared, handled, sink);
+                handled.truncate(depth);
+                for arm in arms {
+                    self.check_obligations(arm.body, declared, handled, sink);
+                }
+                return;
+            }
+            Expr::Perform { .. } => {
+                if let Some((effect, op)) = self.infer.perform_target(expr) {
+                    if !declared.contains(&effect) && !handled.contains(&effect) {
+                        if let Some(node) = self.expr_node(expr) {
+                            let name = effect.name(self.db);
+                            let op = effect.data(self.db).ops[op].name.clone();
+                            sink.push(EffectError {
+                                file: self.func.source(self.db).file_id,
+                                node,
+                                message: format!(
+                                    "`perform {name}.{op}` needs a handler for `{name}`: wrap it \
+                                     in a `handle` with a `{name}` arm, or declare `uses {name}` \
+                                     on `{}` to pass the obligation to its callers",
+                                    self.func.name(self.db)
+                                ),
+                            });
+                        }
+                    }
+                }
+            }
+            Expr::Call { callee, .. } => {
+                let callee_fn = match &self.body[*callee] {
+                    Expr::Path(path) => resolver_for_expr(self.db, self.body.owner(), *callee)
+                        .resolve_path_as_value_fully(self.db, path)
+                        .and_then(|(ns, _)| match ns {
+                            ValueNs::FunctionId(id) => Some(crate::Function::from(id)),
+                            _ => None,
+                        }),
+                    _ => None,
+                };
+                if let Some(callee_fn) = callee_fn {
+                    self.check_call_effects(expr, callee_fn, declared, handled, sink);
+                }
+            }
+            Expr::MethodCall { .. } => {
+                if let Some(id) = self.infer.method_resolutions.get(&expr).copied() {
+                    self.check_call_effects(expr, id.into(), declared, handled, sink);
+                }
+            }
+            _ => {}
+        }
+        self.body[expr].walk_child_exprs(|child| {
+            self.check_obligations(child, declared, handled, sink);
+        });
+    }
 
-            let Some(callee_fn) = callee_fn else {
+    fn check_call_effects(
+        &self,
+        call: ExprId,
+        callee: crate::Function,
+        declared: &[Effect],
+        handled: &[Effect],
+        sink: &mut crate::DiagnosticSink<'_>,
+    ) {
+        for effect in callee.effects(self.db) {
+            if declared.contains(&effect) || handled.contains(&effect) {
+                continue;
+            }
+            let Some(syntax) = self.expr_node(call) else {
                 continue;
             };
-            let callee: crate::Function = callee_fn.into();
-            let callee_data = callee.data(self.db);
-
-            for effect in callee_data.effects() {
-                if caller_effects.contains(effect) {
-                    continue;
-                }
-                let Some(syntax) = self.body_source_map.expr_syntax(expr_id).map(|sp| {
-                    sp.value
-                        .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
-                }) else {
-                    continue;
-                };
-                sink.push(UndeclaredEffect {
-                    file: self.func.source(self.db).file_id,
-                    call: syntax,
-                    effect: effect.clone(),
-                    callee: callee_data.name().clone(),
-                });
-            }
+            sink.push(UndeclaredEffect {
+                file: self.func.source(self.db).file_id,
+                call: syntax,
+                effect: effect.name(self.db),
+                callee: callee.data(self.db).name().clone(),
+            });
         }
     }
 
-    fn has_any_call(&self) -> bool {
-        self.body
-            .exprs()
-            .any(|(_, e)| matches!(e, Expr::Call { .. } | Expr::MethodCall { .. }))
+    /// The syntax node an expression was lowered from, if it has one.
+    pub(super) fn expr_node(&self, expr: ExprId) -> Option<codira_syntax::SyntaxNodePtr> {
+        self.body_source_map.expr_syntax(expr).map(|sp| {
+            sp.value
+                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+        })
     }
 }

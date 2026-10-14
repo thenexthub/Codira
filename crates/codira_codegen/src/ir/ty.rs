@@ -35,6 +35,10 @@ pub struct HirTypeCache<'db, 'ink> {
     array_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     tuple_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     struct_to_type_id: RefCell<HashMap<codira_hir::Struct, Arc<TypeId>>>,
+
+    /// There is exactly one `str` type, so its id is a single cell rather
+    /// than a map keyed by something that never varies.
+    str_type_id: std::cell::OnceCell<Arc<TypeId>>,
 }
 
 impl<'db, 'ink> HirTypeCache<'db, 'ink> {
@@ -48,6 +52,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             struct_to_type_id: RefCell::default(),
             array_ty_to_type_id: RefCell::default(),
             tuple_ty_to_type_id: RefCell::default(),
+            str_type_id: std::cell::OnceCell::new(),
         }
     }
 
@@ -82,13 +87,26 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         usize::ir_type(self.context, &self.target_data)
     }
 
+    /// The target's data layout, for callers that need to size or align an
+    /// arbitrary LLVM type rather than one of the fixed cases above -- e.g.
+    /// lowering a `sizeof(T)`-shaped intrinsic for a `T` known only as an
+    /// already-generated `BasicTypeEnum`.
+    pub fn target_data(&self) -> &TargetData {
+        &self.target_data
+    }
+
     /// Returns the type of the specified integer type
     pub fn get_struct_type(&self, struct_ty: codira_hir::Struct) -> StructType<'ink> {
         // TODO: This assumes the contents of the codira_hir::Struct does not change. It
         // definitely does  between compilations. We have to have a way to
         // uniquely identify the `codira_hir::Struct` and  its contents.
 
-        let ty = TyKind::Struct(struct_ty);
+        // The substitution is empty rather than the struct's own
+        // parameters because this key is only ever compared against keys
+        // this same function builds, and code generation rejects a generic
+        // struct before it gets here -- there is no instantiation to
+        // distinguish.
+        let ty = TyKind::Struct(struct_ty, codira_hir::Substitution::empty());
 
         // Get the type from the cache
         if let Some(ir_ty) = self.types.borrow().get(&ty) {
@@ -231,8 +249,14 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     }
 
     /// Returns the type of the specified function definition
+    ///
+    /// A function with a `uses` clause takes one hidden evidence pointer per
+    /// effect after its ordinary parameters (see `ir::body::effects`). Only
+    /// this internal signature has them; the host-visible one
+    /// (`get_public_function_type`) never does.
     pub fn get_function_type(&self, func: codira_hir::Function) -> FunctionType<'ink> {
         let ty = self.db.callable_sig(func.into());
+        let evidence = func.effects(self.db).len();
         let param_tys: Vec<_> = self
             .receiver_and_param_tys(func, &ty)
             .map(|p| {
@@ -240,6 +264,10 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                     .expect("could not convert function argument to basic type")
                     .into()
             })
+            .chain(std::iter::repeat_n(
+                self.context.ptr_type(AddressSpace::default()).into(),
+                evidence,
+            ))
             .collect();
 
         let return_type = ty.ret();
@@ -276,6 +304,22 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         }
     }
 
+    /// Returns the IR type of a string literal: `{ ptr, usize }`.
+    ///
+    /// A fat pointer rather than a bare `ptr` to a NUL-terminated buffer,
+    /// so that taking a length is a field read rather than a scan, and so
+    /// that a literal containing a NUL byte is still one string. The bytes
+    /// themselves live in a constant global; this is only the handle.
+    pub fn get_str_type(&self) -> StructType<'ink> {
+        self.context.struct_type(
+            &[
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.get_usize_type().into(),
+            ],
+            false,
+        )
+    }
+
     /// Returns the inkwell type of the specified HIR type as a basic value. If
     /// the type cannot be represented as a basic type enum, `None` is
     /// returned.
@@ -284,9 +328,12 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty) => Some(self.get_struct_reference_type(*struct_ty)),
+            TyKind::Struct(struct_ty, _) => Some(self.get_struct_reference_type(*struct_ty)),
             TyKind::Bool => Some(self.get_bool_type().into()),
+            TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -300,9 +347,12 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty) => Some(self.get_public_struct_reference_type(*struct_ty)),
+            TyKind::Struct(struct_ty, _) => Some(self.get_public_struct_reference_type(*struct_ty)),
             TyKind::Bool => Some(self.get_bool_type().into()),
+            TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -314,7 +364,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty) => Some(self.get_struct_type(*struct_ty).into()),
+            TyKind::Struct(struct_ty, _) => Some(self.get_struct_type(*struct_ty).into()),
             TyKind::FnDef(codira_hir::CallableDef::Function(fn_ty), type_params) => {
                 if !type_params.is_empty() {
                     unimplemented!("cannot yet deal with type parameters in functions");
@@ -322,7 +372,10 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                 Some(self.get_function_type(*fn_ty).into())
             }
             TyKind::Bool => Some(self.get_bool_type().into()),
+            TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
+            // A runtime handle (see `ir::body::tasks`).
+            TyKind::Channel(_) => Some(self.get_usize_type().into()),
             _ => None,
         }
     }
@@ -374,7 +427,34 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                 }
             }
             TyKind::Bool => bool::type_id().clone(),
-            &TyKind::Struct(s) => self
+            // A channel is an opaque runtime handle. It gets an id of its own
+            // so a signature mentioning one still has reflection metadata;
+            // the host has no way to make one.
+            TyKind::Channel(_) => Arc::new(TypeId {
+                data: TypeIdData::Concrete(Guid::from_str(
+                    &ty.guid_string(self.db)
+                        .expect("a channel's element type has a guid string"),
+                )),
+                name: ty.display(self.db).to_string(),
+            }),
+            // Structural, like the tuple case below, and for the same
+            // reason: to the runtime a `str` is an anonymous value struct
+            // of a pointer and a length. There is exactly one `str`, so the
+            // id is built once from a constant name rather than cached per
+            // instantiation.
+            TyKind::Str => self
+                .str_type_id
+                .get_or_init(|| {
+                    let name = ty
+                        .guid_string(self.db)
+                        .expect("`str` has a constant guid string");
+                    Arc::new(TypeId {
+                        data: TypeIdData::Concrete(Guid::from_str(&name)),
+                        name,
+                    })
+                })
+                .clone(),
+            &TyKind::Struct(s, _) => self
                 .struct_to_type_id
                 .borrow_mut()
                 .entry(s)

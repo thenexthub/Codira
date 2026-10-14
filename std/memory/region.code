@@ -1,0 +1,65 @@
+// =============================================================================
+// std/memory/region.code — Region arenas with byte quotas
+// =============================================================================
+//
+// A Region is an arena: allocations are a pointer bump, and everything
+// allocated in it is freed at once by `reset` or `free`. A region can carry a
+// byte quota; an allocation that would exceed it returns 0 instead of growing
+// the process, so a computation can be given a hard memory budget and fail at
+// the region boundary.
+//
+// Region memory is raw and untraced, like UnsafePointer: the garbage
+// collector does not see GC references stored in it, and an address taken
+// from a region must not be used after the region is reset or freed. The
+// runtime rejects stale or forged region handles (the call returns 0/false)
+// but cannot catch a stale *address*.
+//
+// The functions are provided by the runtime (codira_runtime::native_memory).
+// =============================================================================
+
+import root.builtin.types.*;
+
+extern "C" {
+    func codira_region_new(quota: usize) -> usize;
+    func codira_region_alloc(region: usize, size: usize, align: usize) -> usize;
+    func codira_region_reset(region: usize) -> bool;
+    func codira_region_used(region: usize) -> usize;
+    func codira_region_free(region: usize) -> bool;
+}
+
+// A handle to a region. `_handle` is 0 if the region could not be created.
+public struct Region {
+    _handle: usize,
+}
+
+// Create a region without a quota.
+public func region_new() -> Region {
+    return Region { _handle: codira_region_new(0) };
+}
+
+// Create a region that hands out at most `quota` bytes (alignment padding
+// included) between resets.
+public func region_with_quota(quota: usize) -> Region {
+    return Region { _handle: codira_region_new(quota) };
+}
+
+// Allocate `size` zeroed bytes aligned to `align` (a power of two).
+// Returns the address, or 0 if the quota would be exceeded.
+public func region_alloc(region: Region, size: usize, align: usize) -> usize {
+    return codira_region_alloc(region._handle, size, align);
+}
+
+// Bytes handed out since the region was created or last reset.
+public func region_used(region: Region) -> usize {
+    return codira_region_used(region._handle);
+}
+
+// Free every allocation in the region at once. The region stays usable.
+public func region_reset(region: Region) -> bool {
+    return codira_region_reset(region._handle);
+}
+
+// Free the region and all its memory.
+public func region_free(region: Region) -> bool {
+    return codira_region_free(region._handle);
+}

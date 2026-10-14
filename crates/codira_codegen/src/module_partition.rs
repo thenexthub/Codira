@@ -90,7 +90,11 @@ pub(crate) fn build_partition(db: &dyn CodeGenDatabase) -> Arc<ModulePartition> 
             String::from("mod")
         };
 
-        partition.add_group(db, ModuleGroup::new(db, name, vec![module]));
+        let native_symbols = Arc::new(db.native_inputs().symbols.clone());
+        partition.add_group(
+            db,
+            ModuleGroup::new(db, name, vec![module]).with_native_symbols(native_symbols),
+        );
     }
     Arc::new(partition)
 }

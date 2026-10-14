@@ -77,7 +77,28 @@ impl Printer<'_> {
             ModItem::Const(it) => self.print_const(it),
             ModItem::Import(it) => self.print_use(it),
             ModItem::Impl(it) => self.print_impl(it),
+            ModItem::Effect(it) => self.print_effect(it),
         }
+    }
+
+    /// Prints an effect declaration: its name and the names of its
+    /// operations (signatures are resolved later, see `item_tree::Effect`).
+    fn print_effect(&mut self, it: LocalItemTreeId<super::Effect>) -> fmt::Result {
+        let super::Effect {
+            name,
+            visibility,
+            ops,
+            ast_id: _,
+        } = &self.tree[it];
+        self.print_visibility(*visibility)?;
+        write!(self, "effect {name} {{")?;
+        for (idx, op) in ops.iter().enumerate() {
+            if idx > 0 {
+                write!(self, ",")?;
+            }
+            write!(self, " {op}")?;
+        }
+        writeln!(self, " }}")
     }
 
     /// Prints a use statement to the buffer.

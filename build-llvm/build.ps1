@@ -1,5 +1,11 @@
-# Builds a self-contained LLVM 22.1 + MLIR + LLD installation that Codira's
-# codegen links against (via LLVM_SYS_221_PREFIX / llvm-sys 221).
+# Builds a self-contained LLVM 22.1 + MLIR + LLD + Clang installation that
+# Codira's codegen links against (via LLVM_SYS_221_PREFIX / llvm-sys 221).
+#
+# Backends: X86 and AArch64 for the native targets, RISCV for
+# riscv64gc-unknown-linux-gnu, WebAssembly for wasm output, NVPTX for GPU
+# kernels. Clang is built for compiling C/C++ sources into Codira packages and
+# for libclang header import. Each backend matches a `target-*` feature of
+# codira_codegen; leave one out here and disable its feature there.
 #
 # Mirror of the old C:\llvm14\build_llvm.bat recipe, versioned up to LLVM 22.1
 # and extended to also build MLIR (for codira_mlir) and LLD (bundled lld-link /
@@ -86,7 +92,7 @@ if (-not $Skip) {
 
     if (-not (Test-Path "$buildDir\CMakeCache.txt")) {
         Write-Log "Configuring with Ninja (LLVM, X86+AArch64, MLIR, LLD) ..."
-        $cfg = "cmake -G Ninja -S `"$srcDir\llvm`" -B `"$buildDir`" -DCMAKE_BUILD_TYPE=Release -D`"LLVM_ENABLE_PROJECTS=mlir;lld`" -D`"LLVM_TARGETS_TO_BUILD=X86;AArch64`" -DLLVM_USE_CRT_RELEASE=MD -DCMAKE_INSTALL_PREFIX=`"$InstallDir`" -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_ASSERTIONS=OFF -DLLVM_APPEND_VC_REV=OFF -DLLVM_BUILD_TOOLS=ON -DLLVM_ENABLE_DIA_SDK=OFF"
+        $cfg = "cmake -G Ninja -S `"$srcDir\llvm`" -B `"$buildDir`" -DCMAKE_BUILD_TYPE=Release -D`"LLVM_ENABLE_PROJECTS=mlir;lld;clang`" -D`"LLVM_TARGETS_TO_BUILD=X86;AArch64;RISCV;WebAssembly;NVPTX`" -DLLVM_USE_CRT_RELEASE=MD -DCMAKE_INSTALL_PREFIX=`"$InstallDir`" -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_ASSERTIONS=OFF -DLLVM_APPEND_VC_REV=OFF -DLLVM_BUILD_TOOLS=ON -DLLVM_ENABLE_DIA_SDK=OFF"
         cmd /c "$envSetup && set `"PATH=$cmakeBin;$ninjaBin;%PATH%`" && $cfg"
         if ($LASTEXITCODE -ne 0) { throw "cmake configure failed (see $log)" }
         Write-Log "Configured OK"

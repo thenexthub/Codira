@@ -16,10 +16,14 @@ mod assembly;
 mod garbage_collector;
 mod adt;
 mod array;
+mod builtins;
 mod dispatch_table;
+mod fuel;
 mod function_info;
 mod marshal;
+pub mod native_memory;
 mod reflection;
+mod tasks;
 mod utils;
 
 use std::{
@@ -48,13 +52,15 @@ pub use codira_memory::{Field, FieldData, HasStaticType, PointerType, StructType
 use codira_project::LOCKFILE_NAME;
 use dispatch_table::DispatchTable;
 use garbage_collector::GarbageCollector;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 pub use crate::{
     adt::{RootedStruct, StructRef},
     array::{ArrayRef, RawArray, RootedArray},
     assembly::{Assembly, LinkError, LinkFunctionsError},
+    builtins::capture_output,
+    fuel::FUEL_EXHAUSTED_EXCEPTION_CODE,
     function_info::{
         FunctionDefinition, FunctionPrototype, FunctionSignature, IntoFunctionDefinition,
     },
@@ -70,6 +76,12 @@ pub struct RuntimeOptions {
     pub type_table: TypeTable,
     /// Custom user injected functions
     pub user_functions: Vec<FunctionDefinition>,
+    /// The most bytes the garbage-collected heap may hold from the system, or
+    /// `None` for no limit. See [`RuntimeBuilder::heap_limit`].
+    pub heap_limit: Option<usize>,
+    /// The fuel budget of fuel-instrumented code, or `None` for no limit. See
+    /// [`RuntimeBuilder::fuel`].
+    pub fuel: Option<u64>,
 }
 
 /// Retrieve the allocator using the provided handle.
@@ -108,9 +120,25 @@ extern "C" fn new(
 
     // Safety: the Codira Compiler guarantees that `new` is never called with
     // `ptr::null()`.
-    let handle = allocator.as_ref().alloc(&type_info);
+    match allocator.as_ref().try_alloc(&type_info) {
+        Ok(handle) => handle.into(),
+        Err(err) => out_of_memory(&type_info, &err),
+    }
+}
 
-    handle.into()
+/// Ends the process when generated code cannot get memory for an object.
+///
+/// Generated code has no way to observe a failed allocation (it would
+/// dereference the null handle), and unwinding out of an `extern "C"`
+/// function through Codira frames is not defined, so exhaustion of a capped
+/// heap is a deterministic abort with a message that says why.
+#[cold]
+fn out_of_memory(ty: &Type, err: &gc::AllocError) -> ! {
+    eprintln!(
+        "codira runtime: cannot allocate `{}`: {err}. Aborting.",
+        ty.name()
+    );
+    std::process::abort()
 }
 
 extern "C" fn new_array(
@@ -128,9 +156,10 @@ extern "C" fn new_array(
     // of this function.
     let allocator = ManuallyDrop::new(unsafe { get_allocator(alloc_handle) });
 
-    let handle = allocator.as_ref().alloc_array(&type_info, length);
-
-    handle.as_raw().into()
+    match allocator.as_ref().try_alloc_array(&type_info, length) {
+        Ok(handle) => handle.as_raw().into(),
+        Err(err) => out_of_memory(&type_info, &err),
+    }
 }
 
 /// A builder for the [`Runtime`].
@@ -147,8 +176,38 @@ impl RuntimeBuilder {
                 library_path: library_path.into(),
                 type_table: TypeTable::default(),
                 user_functions: Vec::default(),
+                heap_limit: None,
+                fuel: None,
             },
         }
+    }
+
+    /// Bounds how much fuel-instrumented code (`codira build --fuel`) may
+    /// run: every function entry and every loop iteration costs one unit.
+    /// When the budget is used up the runtime reports it and ends the call
+    /// (see [`Runtime::fuel_remaining`] and the `fuel` module docs for how a
+    /// HERACLES guard observes it). Code built without instrumentation is
+    /// not metered.
+    pub fn fuel(mut self, units: u64) -> Self {
+        self.options.fuel = Some(units);
+        self
+    }
+
+    /// Caps the bytes the garbage-collected heap may hold from the system.
+    ///
+    /// When an allocation would exceed the cap, the collector runs first
+    /// (treating the allocating thread's stack conservatively as roots, since
+    /// generated code has no stack maps) and the allocation is retried. That
+    /// emergency collection only happens while a single thread allocates in
+    /// the runtime. If the memory still is not there, the process aborts with
+    /// a message naming the type and the limit.
+    ///
+    /// This is a cap on the GC heap only, not a memory quota for the program:
+    /// raw allocations (`codira_alloc`, region arenas, OS pages) and the
+    /// runtime's own bookkeeping are not counted.
+    pub fn heap_limit(mut self, bytes: usize) -> Self {
+        self.options.heap_limit = Some(bytes);
+        self
     }
 
     /// Adds a custom user function to the dispatch table.
@@ -214,6 +273,7 @@ pub struct Runtime {
     watcher_rx: Receiver<notify::Result<Event>>,
     renamed_files: HashMap<usize, PathBuf>,
     gc: Arc<GarbageCollector>,
+    fuel: fuel::FuelCounter,
 }
 
 impl Runtime {
@@ -263,12 +323,35 @@ impl Runtime {
             "new_array",
         ));
 
+        // The functions compiled `print`/`println` calls lower to.
+        options.user_functions.extend(builtins::definitions());
+
+        // Raw memory services for `std/memory/{region,page}.code`
+        options.user_functions.extend(native_memory::functions());
+
+        // What fuel-instrumented code calls when its budget runs out
+        options.user_functions.push(IntoFunctionDefinition::into(
+            fuel::fuel_exhausted as extern "C" fn(),
+            abi::FUEL_EXHAUSTED_FN_NAME,
+        ));
+
+        // `scope`, `spawn` and channels.
+        options.user_functions.extend(tasks::functions());
+
         options.user_functions.into_iter().for_each(|fn_def| {
             dispatch_table.insert_fn(fn_def.prototype.name.clone(), Arc::new(fn_def));
         });
 
         let watcher: RecommendedWatcher = notify::recommended_watcher(move |res| {
-            tx.send(res).expect("Failed to send filesystem event.");
+            // This runs on the watcher's own thread, which can still be
+            // delivering an event while the `Runtime` -- and with it the
+            // receiving end -- is being dropped. This used to `expect` the send,
+            // which turned an ordinary shutdown into a panic on that thread.
+            // With no runtime left there is nobody to reload for, so the event
+            // is simply not needed.
+            if tx.send(res).is_err() {
+                debug!("Discarding a filesystem event, the runtime no longer exists.");
+            }
         })?;
         let mut runtime = Runtime {
             assemblies: HashMap::new(),
@@ -279,7 +362,9 @@ impl Runtime {
             watcher_rx: rx,
             renamed_files: HashMap::new(),
             gc: Arc::new(self::garbage_collector::GarbageCollector::default()),
+            fuel: fuel::FuelCounter::new(options.fuel),
         };
+        runtime.gc.set_heap_limit(options.heap_limit);
 
         runtime.add_assembly(&options.library_path)?;
         Ok(runtime)
@@ -322,7 +407,7 @@ impl Runtime {
                 continue;
             }
 
-            let assembly = Assembly::load(&library_path, self.gc.clone())?;
+            let assembly = Assembly::load(&library_path, self.gc.clone(), self.fuel.as_ptr())?;
 
             let parent = library_path.parent().expect("Invalid library path");
             let extension = library_path.extension();
@@ -385,7 +470,11 @@ impl Runtime {
                     None
                 }
             })
-            .min_by(|(_, dist1), (_, dist2)| dist1.cmp(dist2));
+            // Ties are broken by name: the dispatch table is a hash map, so
+            // without this the suggestion depended on its iteration order.
+            .min_by(|(name1, dist1), (name2, dist2)| {
+                dist1.cmp(dist2).then_with(|| name1.cmp(name2))
+            });
         found_match.map(|(closest_name, _)| closest_name)
     }
 
@@ -418,10 +507,6 @@ impl Runtime {
     ///
     /// See [`Assembly::load`] for more information.
     pub unsafe fn update(&mut self) -> bool {
-        fn is_lockfile(path: &Path) -> bool {
-            path.file_name().expect("Invalid file path.") == LOCKFILE_NAME
-        }
-
         unsafe fn relink_assemblies(
             runtime: &mut Runtime,
         ) -> Result<(DispatchTable, TypeTable), LinkError> {
@@ -445,7 +530,8 @@ impl Runtime {
                     continue;
                 }
 
-                let assembly = Assembly::load(&new_path, runtime.gc.clone())?;
+                let assembly =
+                    Assembly::load(&new_path, runtime.gc.clone(), runtime.fuel.as_ptr())?;
 
                 let parent = new_path.parent().expect("Invalid library path");
                 let extension = new_path.extension();
@@ -476,43 +562,11 @@ impl Runtime {
             )
         }
 
-        let mut requires_relink = false;
-        while let Ok(Ok(event)) = self.watcher_rx.try_recv() {
-            for path in event.paths {
-                if is_lockfile(&path) {
-                    match event.kind {
-                        EventKind::Create(_) => debug!("Lockfile created"),
-                        EventKind::Remove(_) => {
-                            debug!("Lockfile deleted");
-
-                            requires_relink = true;
-                        }
-                        _ => (),
-                    }
-                } else {
-                    let path = path.canonicalize().unwrap_or_else(|_| {
-                        panic!("Failed to canonicalize path: {}.", path.to_string_lossy())
-                    });
-
-                    match event.kind {
-                        EventKind::Modify(ModifyKind::Name(_)) => {
-                            let tracker = event.attrs.tracker().expect("Invalid RENAME event.");
-                            if let Some(old_path) = self.renamed_files.remove(&tracker) {
-                                self.assemblies_to_relink.insert(old_path, path);
-                                // on_file_changed(self, &old_path, &path);
-                            } else {
-                                self.renamed_files.insert(tracker, path);
-                            }
-                        }
-                        EventKind::Modify(_) => {
-                            // TODO: don't overwrite existing
-                            self.assemblies_to_relink.insert(path.clone(), path);
-                        }
-                        _ => (),
-                    }
-                }
-            }
-        }
+        let requires_relink = drain_watcher_events(
+            &self.watcher_rx,
+            &mut self.renamed_files,
+            &mut self.assemblies_to_relink,
+        );
 
         if requires_relink {
             if self.assemblies_to_relink.is_empty() {
@@ -549,6 +603,25 @@ impl Runtime {
     /// behavior will likely change in the future.
     pub fn gc_collect(&self) -> bool {
         self.gc.collect()
+    }
+
+    /// Returns the fuel left for fuel-instrumented code, or `None` if it is
+    /// unlimited. Each function entry and loop iteration of instrumented code
+    /// costs one unit; with several threads running instrumented code the
+    /// count is approximate.
+    pub fn fuel_remaining(&self) -> Option<u64> {
+        self.fuel.remaining()
+    }
+
+    /// Returns true if any loaded assembly was built with fuel
+    /// instrumentation, i.e. if [`Runtime::fuel_remaining`] meters anything.
+    pub fn is_fuel_instrumented(&self) -> bool {
+        self.assemblies.values().any(Assembly::is_fuel_instrumented)
+    }
+
+    /// Sets the fuel left for fuel-instrumented code (`None`: unlimited).
+    pub fn set_fuel(&self, fuel: Option<u64>) {
+        self.fuel.set(fuel);
     }
 
     /// Returns statistics about the garbage collector.
@@ -656,6 +729,112 @@ impl Runtime {
 
         ArrayRef::new(RawArray(array_handle.as_raw()), self)
     }
+}
+
+/// Returns whether `path` is the lockfile the compiler holds while it writes
+/// its assemblies.
+///
+/// A path without a final component (a root, or one ending in `..`) is not a
+/// lockfile. This used to `expect` a file name, so such a path in an event
+/// would have panicked.
+fn is_lockfile(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| name == LOCKFILE_NAME)
+}
+
+/// Processes every filesystem event that is queued on `watcher_rx`, recording
+/// changed assemblies in `assemblies_to_relink`. Returns `true` if the compiler
+/// released its lockfile, which is what triggers a relink.
+///
+/// This is a free function over the parts of the [`Runtime`] it needs, so that
+/// it can be tested with hand-made events instead of real filesystem activity.
+///
+/// Nothing a filesystem can report is allowed to panic here or to hold back
+/// another event:
+///
+/// * The queue was drained with `while let Ok(Ok(event))`, which also stopped
+///   at the first *error* the watcher reported. The error itself was discarded
+///   without a trace and everything queued behind it was left for a later call,
+///   so a lockfile removal behind an error did not trigger its relink in the
+///   `update` that should have seen it.
+/// * A path was canonicalized with a panic as its failure mode, but an event
+///   only says that a file existed when the event was raised. The compiler's
+///   output directory has short-lived files in it, and one that is gone by the
+///   time its event is handled took the whole host down.
+/// * A rename was `expect`ed to carry a tracker, which not every event does.
+fn drain_watcher_events(
+    watcher_rx: &Receiver<notify::Result<Event>>,
+    renamed_files: &mut HashMap<usize, PathBuf>,
+    assemblies_to_relink: &mut BTreeMap<PathBuf, PathBuf>,
+) -> bool {
+    let mut requires_relink = false;
+
+    // `try_recv` fails once the queue is empty. It also fails if the sender is
+    // gone, but that is owned by the watcher, which lives as long as the
+    // receiver does; either way there is nothing left to process.
+    while let Ok(event) = watcher_rx.try_recv() {
+        let event = match event {
+            Ok(event) => event,
+            Err(e) => {
+                error!("The filesystem watcher reported an error: {e}");
+                continue;
+            }
+        };
+
+        for path in event.paths {
+            if is_lockfile(&path) {
+                match event.kind {
+                    EventKind::Create(_) => debug!("Lockfile created"),
+                    EventKind::Remove(_) => {
+                        debug!("Lockfile deleted");
+
+                        requires_relink = true;
+                    }
+                    _ => (),
+                }
+            } else {
+                let path = match path.canonicalize() {
+                    Ok(path) => path,
+                    Err(e) => {
+                        // The file no longer exists, so there is nothing that
+                        // could be loaded from it either.
+                        debug!(
+                            "Ignoring a filesystem event for {}: {e}",
+                            path.to_string_lossy()
+                        );
+                        continue;
+                    }
+                };
+
+                match event.kind {
+                    EventKind::Modify(ModifyKind::Name(_)) => {
+                        let Some(tracker) = event.attrs.tracker() else {
+                            // Without a tracker the two halves of a rename
+                            // cannot be matched up.
+                            warn!(
+                                "Ignoring a rename event without a tracker for {}",
+                                path.to_string_lossy()
+                            );
+                            continue;
+                        };
+
+                        if let Some(old_path) = renamed_files.remove(&tracker) {
+                            assemblies_to_relink.insert(old_path, path);
+                            // on_file_changed(self, &old_path, &path);
+                        } else {
+                            renamed_files.insert(tracker, path);
+                        }
+                    }
+                    EventKind::Modify(_) => {
+                        // TODO: don't overwrite existing
+                        assemblies_to_relink.insert(path.clone(), path);
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
+
+    requires_relink
 }
 
 /// An error that might occur when calling a codira function from Rust.
@@ -811,7 +990,12 @@ impl Runtime {
         }) {
             Ok(function_info) => function_info,
             Err(msg) => {
-                let available_names = self.dispatch_table.get_fn_names();
+                // Runtime-provided functions (`codira.print_str`, ...) are
+                // not something a caller could have meant to invoke.
+                let available_names = self
+                    .dispatch_table
+                    .get_fn_names()
+                    .filter(|name| !name.contains('.'));
                 let suggested_name =
                     Self::find_best_match_for_fn_name(function_name, available_names, None);
 
@@ -855,5 +1039,208 @@ impl Runtime {
 
         let result: ReturnType::CodiraType = unsafe { arguments.invoke(function_info.fn_ptr) };
         Ok(Marshal::marshal_from(result, self))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        collections::{BTreeMap, HashMap},
+        fs,
+        path::{Path, PathBuf},
+        sync::mpsc::channel,
+    };
+
+    use codira_project::LOCKFILE_NAME;
+    use notify::{
+        event::{CreateKind, DataChange, ModifyKind, RemoveKind, RenameMode},
+        Event, EventKind,
+    };
+
+    use crate::drain_watcher_events;
+
+    /// What `drain_watcher_events` leaves behind for a queue of events.
+    struct Drained {
+        requires_relink: bool,
+        renamed_files: HashMap<usize, PathBuf>,
+        assemblies_to_relink: BTreeMap<PathBuf, PathBuf>,
+        /// Whether every queued event was taken off the queue.
+        queue_is_empty: bool,
+    }
+
+    fn drain(events: Vec<notify::Result<Event>>) -> Drained {
+        let (tx, rx) = channel();
+        for event in events {
+            tx.send(event).unwrap();
+        }
+
+        let mut renamed_files = HashMap::new();
+        let mut assemblies_to_relink = BTreeMap::new();
+        let requires_relink =
+            drain_watcher_events(&rx, &mut renamed_files, &mut assemblies_to_relink);
+
+        Drained {
+            requires_relink,
+            renamed_files,
+            assemblies_to_relink,
+            queue_is_empty: rx.try_recv().is_err(),
+        }
+    }
+
+    fn modified(path: &Path) -> Event {
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any))).add_path(path.into())
+    }
+
+    fn renamed(path: &Path, mode: RenameMode) -> Event {
+        Event::new(EventKind::Modify(ModifyKind::Name(mode))).add_path(path.into())
+    }
+
+    fn lockfile_removed(dir: &Path) -> Event {
+        Event::new(EventKind::Remove(RemoveKind::File)).add_path(dir.join(LOCKFILE_NAME))
+    }
+
+    /// Creates a file in `dir`. Returns the path an event would report for it
+    /// and the canonical path the runtime tracks it by.
+    fn existing_file(dir: &Path, name: &str) -> (PathBuf, PathBuf) {
+        let path = dir.join(name);
+        fs::write(&path, []).unwrap();
+        let canonical = path.canonicalize().unwrap();
+        (path, canonical)
+    }
+
+    #[test]
+    fn modified_assembly_and_released_lockfile_require_relink() {
+        let dir = tempfile::tempdir().unwrap();
+        let (path, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![Ok(modified(&path)), Ok(lockfile_removed(dir.path()))]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    #[test]
+    fn lockfile_creation_does_not_require_relink() {
+        let dir = tempfile::tempdir().unwrap();
+        let lockfile = dir.path().join(LOCKFILE_NAME);
+
+        let drained = drain(vec![Ok(
+            Event::new(EventKind::Create(CreateKind::File)).add_path(lockfile)
+        )]);
+
+        assert!(!drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert!(drained.assemblies_to_relink.is_empty());
+    }
+
+    /// An error used to end the drain: the lockfile removal behind it stayed on
+    /// the queue, and the `update` that should have relinked did not.
+    #[test]
+    fn error_event_does_not_stop_draining() {
+        let dir = tempfile::tempdir().unwrap();
+        let (path, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![
+            Err(notify::Error::generic("first")),
+            Ok(modified(&path)),
+            Err(notify::Error::generic("second")),
+            Ok(lockfile_removed(dir.path())),
+            Err(notify::Error::generic("third")),
+        ]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    /// Canonicalizing the path of a file that is already gone used to panic.
+    #[test]
+    fn vanished_file_is_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        let vanished = dir.path().join("vanished.codiralib");
+        let (path, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![
+            Ok(modified(&vanished)),
+            // One event can name several paths; one of them being gone must
+            // not cost the others.
+            Ok(modified(&vanished).add_path(path)),
+            Ok(renamed(&vanished, RenameMode::From).set_tracker(1)),
+            Ok(lockfile_removed(dir.path())),
+        ]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert!(drained.renamed_files.is_empty());
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    /// A rename event without a tracker used to panic.
+    #[test]
+    fn rename_without_tracker_is_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        let (untracked, _) = existing_file(dir.path(), "untracked.codiralib");
+        let (path, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![
+            Ok(renamed(&untracked, RenameMode::To)),
+            Ok(modified(&path)),
+        ]);
+
+        assert!(!drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert!(drained.renamed_files.is_empty());
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    /// Two rename events that share a tracker are the two halves of one
+    /// rename, and that pairing is not what the fixes above were about.
+    #[test]
+    fn tracked_rename_maps_old_path_to_new_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let (old, old_canonical) = existing_file(dir.path(), "old.codiralib");
+        let (new, new_canonical) = existing_file(dir.path(), "new.codiralib");
+
+        let drained = drain(vec![
+            Ok(renamed(&old, RenameMode::From).set_tracker(7)),
+            Ok(renamed(&new, RenameMode::To).set_tracker(7)),
+        ]);
+
+        assert!(drained.queue_is_empty);
+        assert!(drained.renamed_files.is_empty());
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(old_canonical, new_canonical)])
+        );
+    }
+
+    /// A path without a final component used to panic when it was compared to
+    /// the lockfile's name.
+    #[test]
+    fn path_without_file_name_is_not_a_lockfile() {
+        let dir = tempfile::tempdir().unwrap();
+        let parent = dir.path().join("..");
+
+        let drained = drain(vec![
+            Ok(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(parent)),
+            Ok(lockfile_removed(dir.path())),
+        ]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert!(drained.assemblies_to_relink.is_empty());
     }
 }

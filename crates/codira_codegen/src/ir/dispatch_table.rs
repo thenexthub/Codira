@@ -279,10 +279,29 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
     fn collect_expr(&mut self, expr_id: ExprId, body: &Arc<Body>, infer: &InferenceResult) {
         let expr = &body[expr_id];
 
-        // If this expression is a call, store it in the dispatch table
-        if let Expr::Call { callee, .. } = expr {
+        // If this expression is a call, store it in the dispatch table. A
+        // builtin call has no callee definition: its runtime functions are
+        // intrinsics, collected by `ir::intrinsics`.
+        if infer.builtin_call(expr_id).is_some() {
+        } else if let Expr::Call { callee, .. } = expr {
             match infer[*callee].as_callable_def() {
                 Some(codira_hir::CallableDef::Function(def)) => {
+                    // An `extern "codira-intrinsic"` callee is emitted inline
+                    // at the call site and never becomes a call instruction,
+                    // so there is no symbol for the runtime to resolve. It
+                    // must not reach the dispatch table: it is `IS_EXTERN`,
+                    // so it would be recorded as an unresolved dependency,
+                    // and loading the assembly would then fail with
+                    // "Missing dependencies for functions: [load_u32, ..]"
+                    // for symbols that are not supposed to exist.
+                    // An `@asm` function is the same: its assembly is emitted at
+                    // the call site.
+                    if def.is_intrinsic(self.db) || def.is_inline_asm(self.db) {
+                        // Still walk the arguments -- they are ordinary
+                        // expressions and may contain real calls.
+                        expr.walk_child_exprs(|expr_id| self.collect_expr(expr_id, body, infer));
+                        return;
+                    }
                     if self.module_group.should_runtime_link_fn(self.db, def) {
                         let fn_module = def.module(self.db);
                         if !def.is_extern(self.db) && !self.module_group.contains(fn_module) {

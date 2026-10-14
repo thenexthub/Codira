@@ -23,7 +23,7 @@ pub(crate) fn abs_path(uri: &Url) -> anyhow::Result<AbsPathBuf> {
     uri.to_file_path()
         .ok()
         .and_then(|path| AbsPathBuf::try_from(path).ok())
-        .ok_or_else(|| anyhow::anyhow!("invalid uri: {}", uri))
+        .ok_or_else(|| anyhow::anyhow!("invalid uri: {uri}"))
 }
 
 /// Returns the `codira_hir::FileId` associated with the given `Url`.
@@ -36,7 +36,7 @@ pub(crate) fn file_id(
             .vfs
             .read()
             .file_id(&path)
-            .ok_or_else(|| anyhow::anyhow!("url does not refer to a file: {}", url))
+            .ok_or_else(|| anyhow::anyhow!("url does not refer to a file: {url}"))
             .map(|id| FileId(id.0))
     })
 }

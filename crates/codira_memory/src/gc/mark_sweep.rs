@@ -3,174 +3,100 @@
 //! Date: August 6, 2026
 //!
 //! Functionality:
-//! - Part of the Codira compiler and runtime toolchain.
+//! - Mark-sweep garbage collector over the segregated size-class heap
+//!   (`gc::heap`): host-rooted tracing, sweeping, and hot-reload memory
+//!   migration.
 use std::{
-    alloc::{Layout, LayoutError},
-    borrow::Cow,
-    collections::{HashMap, VecDeque},
-    pin::Pin,
+    alloc::Layout,
+    collections::HashMap,
     ptr::NonNull,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
-use mapping::{Mapping, StructMapping};
-use parking_lot::RwLock;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     cast,
     gc::{
-        array::ArrayHeader, Array as GcArray, Event, GcPtr, GcRuntime, Observer, RawGcPtr, Stats,
-        TypeTrace,
+        array::ArrayHeader,
+        heap::{
+            array_payload_layout, handle_of, header_of, AllocError, Heap, HeapInner, ObjectHeader,
+            PayloadMigration, COLOR_BLACK, COLOR_WHITE,
+        },
+        stack_scan, Array as GcArray, Event, GcPtr, GcRuntime, Observer, Stats, TypeTrace,
     },
-    mapping::{self, resolve_struct_to_struct_edit, Action, FieldMapping, MemoryMapper},
-    r#type::Type,
-    TypeKind,
+    mapping::{self, resolve_struct_to_struct_edit, Action, FieldMapping, Mapping, MemoryMapper},
+    r#type::{Type, TypeData},
 };
 
-/// An object that enables tracing all reference types from another object.
-pub struct Trace {
-    stack: VecDeque<CompositeTrace>,
+/// Returns the offset of the first element of an array whose elements are of
+/// type `element`, relative to the start of the array payload.
+fn array_data_offset(element: &TypeData) -> usize {
+    Layout::new::<ArrayHeader>()
+        .extend(element.reference_layout())
+        .expect("error creating combined layout of header and element")
+        .1
 }
 
-impl Trace {
-    fn new(obj: NonNull<ObjectInfo>) -> Trace {
-        let mut trace = Trace {
-            stack: VecDeque::default(),
-        };
-        let obj_ref = unsafe { obj.as_ref() };
-        match obj_ref.ty.kind() {
-            TypeKind::Primitive(_) | TypeKind::Pointer(_) => {}
-            TypeKind::Struct(_) => {
-                trace.stack.push_back(CompositeTrace::Struct(StructTrace {
-                    struct_ptr: unsafe { obj_ref.data.ptr },
-                    struct_type: obj_ref.ty.clone(),
-                    field_index: 0,
-                }));
+/// Calls `f` for every non-null GC reference stored in the payload of
+/// `header`.
+///
+/// # Safety
+///
+/// `header` must be an allocated object whose payload matches its type.
+#[inline]
+unsafe fn for_each_reference(header: &ObjectHeader, mut f: impl FnMut(NonNull<ObjectHeader>)) {
+    let ty = header.type_data();
+    let payload = header.data;
+    let mut visit = |slot: *const u8| {
+        if let Some(child) = NonNull::new(*slot.cast::<*mut ObjectHeader>()) {
+            f(child);
+        }
+    };
+
+    if let Some(element) = ty.array_element() {
+        let length = (*payload.cast::<ArrayHeader>()).length;
+        if length == 0 {
+            return;
+        }
+        let elements = payload.add(array_data_offset(element));
+        let stride = element.reference_layout().pad_to_align().size();
+        if element.is_reference() {
+            for index in 0..length {
+                visit(elements.add(index * stride));
             }
-            TypeKind::Array(arr) => {
-                let array_handle = ArrayHandle { obj };
-                trace.stack.push_back(CompositeTrace::Array(ArrayTrace {
-                    iter: array_handle.elements(),
-                    element_ty: arr.element_type(),
-                }));
+        } else {
+            let offsets = element.ref_offsets();
+            if offsets.is_empty() {
+                return;
+            }
+            for index in 0..length {
+                let element_ptr = elements.add(index * stride);
+                for &offset in offsets {
+                    visit(element_ptr.add(offset as usize));
+                }
             }
         }
-        trace
+    } else {
+        for &offset in ty.ref_offsets() {
+            visit(payload.add(offset as usize));
+        }
     }
+}
+
+/// An iterator over all GC objects referenced by another object.
+pub struct Trace {
+    references: std::vec::IntoIter<GcPtr>,
 }
 
 impl Iterator for Trace {
     type Item = GcPtr;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let top_stack = self.stack.back_mut()?;
-            let event = match top_stack {
-                CompositeTrace::Struct(s) => s.next(),
-                CompositeTrace::Array(a) => a.next(),
-            };
-
-            match event {
-                None => {
-                    self.stack.pop_back();
-                }
-                Some(TraceEvent::Reference(r)) => return Some(r.into()),
-                Some(TraceEvent::InlineStruct(s)) => {
-                    self.stack.push_back(CompositeTrace::Struct(s));
-                }
-            }
-        }
-    }
-}
-
-/// An object that enables iterating over a composite value stored somewhere in
-/// memory.
-enum CompositeTrace {
-    /// A struct
-    Struct(StructTrace),
-
-    /// An array
-    Array(ArrayTrace),
-}
-
-enum TraceEvent {
-    Reference(NonNull<ObjectInfo>),
-    InlineStruct(StructTrace),
-}
-
-impl TraceEvent {
-    /// Construct a new `TraceEvent` based on the type of data stored at the
-    /// specified location.
-    pub fn new(ptr: NonNull<u8>, ty: Cow<'_, Type>) -> Option<TraceEvent> {
-        match ty.kind() {
-            TypeKind::Primitive(_) | TypeKind::Pointer(_) => None,
-            TypeKind::Struct(s) => {
-                if s.is_gc_struct() {
-                    let deref_ptr = unsafe { ptr.cast::<NonNull<ObjectInfo>>().as_ref() };
-                    Some(TraceEvent::Reference(*deref_ptr))
-                } else {
-                    Some(TraceEvent::InlineStruct(StructTrace {
-                        struct_ptr: ptr.cast(),
-                        struct_type: ty.into_owned(),
-                        field_index: 0,
-                    }))
-                }
-            }
-            TypeKind::Array(_) => Some(TraceEvent::Reference(ptr.cast())),
-        }
-    }
-}
-
-/// A struct that enables iterating over all GC references in a struct. Structs
-/// can be stored inline or on the heap. This struct supports both.
-struct StructTrace {
-    struct_ptr: NonNull<u8>,
-    struct_type: Type,
-    field_index: usize,
-}
-
-impl Iterator for StructTrace {
-    type Item = TraceEvent;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let struct_ty = self.struct_type.as_struct()?;
-        let fields = struct_ty.fields();
-        let field_count = fields.len();
-        while self.field_index < field_count {
-            let index = self.field_index;
-            self.field_index += 1;
-
-            let field = fields.get(index).unwrap();
-            let field_ty = field.ty();
-            let field_ptr =
-                unsafe { NonNull::new_unchecked(self.struct_ptr.as_ptr().add(field.offset())) };
-
-            if let Some(event) = TraceEvent::new(field_ptr, Cow::Owned(field_ty)) {
-                return Some(event);
-            }
-        }
-        None
-    }
-}
-
-/// A struct that enables iterating over all GC references in a struct.
-///
-/// TODO: if the element type doesnt contain any references it's a bit of a
-/// waste to iterate over all elements.
-struct ArrayTrace {
-    iter: ArrayHandleIter,
-    element_ty: Type,
-}
-
-impl Iterator for ArrayTrace {
-    type Item = TraceEvent;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(event) = TraceEvent::new(self.iter.next()?, Cow::Borrowed(&self.element_ty))
-            {
-                break Some(event);
-            }
-        }
+        self.references.next()
     }
 }
 
@@ -178,19 +104,32 @@ impl TypeTrace for Type {
     type Trace = Trace;
 
     fn trace(&self, obj: GcPtr) -> Self::Trace {
-        let obj = NonNull::new(obj.as_ptr() as *mut ObjectInfo).expect("invalid gc ptr");
-        Trace::new(obj)
+        let header = header_of(obj);
+        let mut references = Vec::new();
+        // Safety: the caller provides a handle to an allocated object.
+        unsafe {
+            for_each_reference(header.as_ref(), |child| references.push(handle_of(child)));
+        }
+        Trace {
+            references: references.into_iter(),
+        }
     }
 }
 
-/// Implements a simple mark-sweep type garbage collector.
+/// Implements a mark-sweep garbage collector.
+///
+/// Objects live in a segregated size-class heap with inline headers (see the
+/// `gc::heap` module). Roots are the objects the host rooted through
+/// [`GcRuntime::root`]; there are no stack maps, so a collection must only be
+/// started when no Codira code is executing.
 pub struct MarkSweep<O>
 where
     O: Observer<Event = Event>,
 {
-    objects: RwLock<HashMap<GcPtr, Pin<Box<ObjectInfo>>>>,
+    heap: Arc<Heap>,
     observer: O,
-    stats: RwLock<Stats>,
+    /// Collections started because an allocation hit the heap limit.
+    emergency_collections: AtomicUsize,
 }
 
 impl<O> Default for MarkSweep<O>
@@ -198,11 +137,7 @@ where
     O: Observer<Event = Event> + Default,
 {
     fn default() -> Self {
-        MarkSweep {
-            objects: RwLock::new(HashMap::new()),
-            observer: O::default(),
-            stats: RwLock::new(Stats::default()),
-        }
+        Self::with_observer(O::default())
     }
 }
 
@@ -213,53 +148,186 @@ where
     /// Creates a `MarkSweep` memory collector with the specified `Observer`.
     pub fn with_observer(observer: O) -> Self {
         Self {
-            objects: RwLock::new(HashMap::new()),
+            heap: Heap::new(None),
             observer,
-            stats: RwLock::new(Stats::default()),
+            emergency_collections: AtomicUsize::new(0),
         }
-    }
-
-    /// Logs an allocation
-    fn log_alloc(&self, handle: GcPtr, size: usize) {
-        {
-            let mut stats = self.stats.write();
-            stats.allocated_memory += size;
-        }
-
-        self.observer.event(Event::Allocation(handle));
     }
 
     /// Returns the observer
     pub fn observer(&self) -> &O {
         &self.observer
     }
-}
 
-fn alloc_obj(ty: Type) -> Pin<Box<ObjectInfo>> {
-    let ptr = NonNull::new(unsafe { std::alloc::alloc_zeroed(ty.value_layout()) })
-        .expect("failed to allocate memory for new object");
-    Box::pin(ObjectInfo {
-        data: ObjectInfoData { ptr },
-        ty,
-        roots: 0,
-        color: Color::White,
-    })
-}
+    /// Returns the number of bytes the heap currently holds from the system:
+    /// size-class blocks (including cached empty blocks), individually
+    /// allocated large objects and out-of-line payloads. This is larger than
+    /// [`Stats::allocated_memory`], which only counts live payload bytes.
+    pub fn committed_bytes(&self) -> usize {
+        self.heap.committed()
+    }
 
-/// An error that might occur when requesting memory layout of a type
-#[derive(Debug)]
-pub enum MemoryLayoutError {
-    /// An error that is returned when the memory requested is to large to deal
-    /// with.
-    OutOfBounds,
+    /// Limits the bytes the heap may hold from the system (size-class blocks,
+    /// large objects and out-of-line payloads; see
+    /// [`MarkSweep::committed_bytes`]). `None` removes the limit. Lowering
+    /// the limit below the current size releases nothing; the heap simply
+    /// stops growing.
+    ///
+    /// This caps the garbage-collected heap only: raw allocations a program
+    /// makes outside the GC (arenas, `codira_alloc`, pages) are not counted.
+    pub fn set_heap_limit(&self, limit: Option<usize>) {
+        self.heap.inner.write().set_limit(limit);
+    }
 
-    /// An error that is returned by constructing a Layout
-    LayoutError(LayoutError),
-}
+    /// Returns the heap limit, if any.
+    pub fn heap_limit(&self) -> Option<usize> {
+        self.heap.inner.read().limit()
+    }
 
-impl From<LayoutError> for MemoryLayoutError {
-    fn from(err: LayoutError) -> Self {
-        MemoryLayoutError::LayoutError(err)
+    /// Returns how many collections were started because an allocation hit
+    /// the heap limit.
+    pub fn emergency_collections(&self) -> usize {
+        self.emergency_collections.load(Ordering::Relaxed)
+    }
+
+    /// Allocates an object of type `ty`, or returns why the heap could not
+    /// provide the memory.
+    ///
+    /// When the allocation would exceed the heap limit, the collector runs
+    /// first and the allocation is retried once. Because generated code has
+    /// no stack maps, that collection treats every word on the current
+    /// thread's stack and in its callee-saved registers that points into an
+    /// object as a root (a conservative scan). It only happens when no other
+    /// thread has allocated in this heap, because other threads' stacks
+    /// cannot be scanned; otherwise the allocation fails with
+    /// [`AllocError::LimitExceeded`] without collecting.
+    pub fn try_alloc(&self, ty: &Type) -> Result<GcPtr, AllocError> {
+        assert!(ty.is_concrete());
+
+        let header = self.alloc_payload(ty, ty.value_layout())?;
+        let handle = handle_of(header);
+        self.observer.event(Event::Allocation(handle));
+        Ok(handle)
+    }
+
+    /// Allocates an array of type `ty` with `n` elements, or returns why the
+    /// heap could not provide the memory. See [`MarkSweep::try_alloc`].
+    pub fn try_alloc_array(&self, ty: &Type, n: usize) -> Result<ArrayHandle, AllocError> {
+        let element = unsafe { ty.data_ptr().as_ref() }
+            .array_element()
+            .expect("array type doesnt have an element type");
+        let layout = array_payload_layout(element, n).ok_or(AllocError::TooLarge)?;
+        let header = self.alloc_payload(ty, layout)?;
+        unsafe { init_array_header(header.as_ref().data, n) };
+        self.observer.event(Event::Allocation(handle_of(header)));
+        Ok(ArrayHandle { obj: header })
+    }
+
+    /// Allocates an object with a payload of `layout`, collecting once if
+    /// the heap limit is hit and that is safe.
+    fn alloc_payload(
+        &self,
+        ty: &Type,
+        layout: Layout,
+    ) -> Result<NonNull<ObjectHeader>, AllocError> {
+        match self.heap.alloc(ty, layout) {
+            Err(err @ AllocError::LimitExceeded { .. }) => {
+                if self.heap.only_current_thread_allocates() && self.collect_with_stack_roots() {
+                    self.emergency_collections.fetch_add(1, Ordering::Relaxed);
+                    self.heap.alloc(ty, layout)
+                } else {
+                    Err(err)
+                }
+            }
+            result => result,
+        }
+    }
+
+    /// Collects with the current thread's stack and registers as additional,
+    /// conservative roots. Returns `false` without collecting when the
+    /// platform's stack cannot be scanned.
+    #[inline(never)]
+    fn collect_with_stack_roots(&self) -> bool {
+        let mut words = Vec::with_capacity(4096);
+        if !stack_scan::scan_current_thread(&mut |word| words.push(word)) {
+            return false;
+        }
+        self.collect_impl(Some(&mut words));
+        true
+    }
+
+    /// Collects all memory that is no longer referenced by rooted objects.
+    /// Returns `true` if memory was reclaimed, `false` otherwise.
+    pub fn collect(&self) -> bool {
+        self.collect_impl(None)
+    }
+
+    fn collect_impl(&self, stack_words: Option<&mut Vec<usize>>) -> bool {
+        self.observer.event(Event::Start);
+
+        let mut inner = self.heap.inner.write();
+
+        // In debug builds, validate every traced reference before following it.
+        #[cfg(debug_assertions)]
+        let known: FxHashSet<usize> = {
+            let mut known = FxHashSet::default();
+            inner.for_each_object(|o| {
+                known.insert(o.as_ptr() as usize);
+            });
+            known
+        };
+
+        // Mark all roots
+        let mut stack: Vec<NonNull<ObjectHeader>> = Vec::new();
+        inner.for_each_object(|object| {
+            let header = object.as_ptr();
+            unsafe {
+                if (*header).roots.load(std::sync::atomic::Ordering::Acquire) > 0
+                    && (*header).color == COLOR_WHITE
+                {
+                    (*header).color = COLOR_BLACK;
+                    stack.push(object);
+                }
+            }
+        });
+
+        // Objects the scanned stack may refer to are roots too
+        if let Some(words) = stack_words {
+            for object in inner.objects_referenced_by(words) {
+                let header = object.as_ptr();
+                unsafe {
+                    if (*header).color == COLOR_WHITE {
+                        (*header).color = COLOR_BLACK;
+                        stack.push(object);
+                    }
+                }
+            }
+        }
+
+        // Trace everything reachable from the roots
+        while let Some(object) = stack.pop() {
+            unsafe {
+                for_each_reference(object.as_ref(), |child| {
+                    #[cfg(debug_assertions)]
+                    assert!(
+                        known.contains(&(child.as_ptr() as usize)),
+                        "found invalid reference"
+                    );
+                    let child_header = child.as_ptr();
+                    if (*child_header).color == COLOR_WHITE {
+                        (*child_header).color = COLOR_BLACK;
+                        stack.push(child);
+                    }
+                });
+            }
+        }
+
+        let freed = inner.sweep(|handle| self.observer.event(Event::Deallocation(handle)));
+        drop(inner);
+
+        self.observer.event(Event::End);
+
+        freed > 0
     }
 }
 
@@ -269,30 +337,28 @@ impl From<LayoutError> for MemoryLayoutError {
 /// capacity. The memory layout of an array looks like this in memory:
 ///
 /// ```text
-/// object.data.array ───►┌──────────────┐
-///                       │ ArrayHeader  │
-///                       └─┬────────────┘
-///                         │ padding to align elements
-///                       ┌─┴────────────┐
-///                       │ element #1   │
-///                       └──────────────┘
-///                        :
-///                       ┌──────────────┐
-///                       │ element #n   │
-///                       └──────────────┘
+/// object.data ───►┌──────────────┐
+///                 │ ArrayHeader  │
+///                 └─┬────────────┘
+///                   │ padding to align elements
+///                 ┌─┴────────────┐
+///                 │ element #1   │
+///                 └──────────────┘
+///                  :
+///                 ┌──────────────┐
+///                 │ element #n   │
+///                 └──────────────┘
 /// ```
 pub struct ArrayHandle {
-    /// Pointer to the object handle.
-    obj: NonNull<ObjectInfo>,
+    /// Pointer to the object header.
+    obj: NonNull<ObjectHeader>,
 }
 
 impl ArrayHandle {
     /// Returns a reference to the header
     pub fn header(&self) -> &ArrayHeader {
-        // Safety: Safe because at the moment we have a reference to the object which
-        // cannot be modified. Also we can be sure this is an array at this
-        // point.
-        unsafe { self.obj.as_ref().data.array.as_ref() }
+        // Safety: the handle refers to an allocated array object.
+        unsafe { &*self.obj.as_ref().data.cast::<ArrayHeader>() }
     }
 
     /// Sets the length of the array.
@@ -302,7 +368,7 @@ impl ArrayHandle {
     /// This function is unsafe because the array elements might be left
     /// uninitialized.
     pub unsafe fn set_length(&mut self, length: usize) {
-        let header = self.obj.as_mut().data.array.as_mut();
+        let header = &mut *self.obj.as_ref().data.cast::<ArrayHeader>();
         debug_assert!(header.capacity >= length);
         header.length = length;
     }
@@ -326,25 +392,13 @@ impl ArrayHandle {
 
     /// Returns a pointer to the data.
     pub fn data(&self) -> NonNull<u8> {
-        // Determine the offset of the data relative from the start of the array
-        // pointer. This the header and the extra alignment padding between the
-        // header and the data.
-        let element_layout = self.element_layout();
-        let header_layout = Layout::new::<ArrayHeader>();
-        let (_, padded_header_size) = header_layout
-            .extend(element_layout)
-            .expect("error creating combined layout of header and element");
-
         unsafe {
-            NonNull::new_unchecked(
-                self.obj
-                    .as_ref()
-                    .data
-                    .array
-                    .as_ptr()
-                    .cast::<u8>()
-                    .add(padded_header_size),
-            )
+            let header = self.obj.as_ref();
+            let element = header
+                .type_data()
+                .array_element()
+                .expect("unable to determine element_type, type is not an array");
+            NonNull::new_unchecked(header.data.add(array_data_offset(element)))
         }
     }
 }
@@ -353,11 +407,11 @@ impl GcArray for ArrayHandle {
     type Iterator = ArrayHandleIter;
 
     fn as_raw(&self) -> GcPtr {
-        self.obj.into()
+        handle_of(self.obj)
     }
 
     fn element_type(&self) -> Type {
-        let array_ty = &unsafe { self.obj.as_ref() }.ty;
+        let array_ty = unsafe { self.obj.as_ref().type_view() };
         array_ty
             .as_array()
             .expect("unable to determine element_type, type is not an array")
@@ -373,14 +427,10 @@ impl GcArray for ArrayHandle {
     }
 
     fn elements(&self) -> Self::Iterator {
-        let length = self.length();
-        let next = self.data();
-        let element_ty = self.element_type();
-        let element_layout = element_ty.reference_layout();
         ArrayHandleIter {
-            remaining: length,
-            next,
-            stride: element_layout.pad_to_align().size(),
+            remaining: self.length(),
+            next: self.data(),
+            stride: self.element_stride(),
         }
     }
 }
@@ -415,57 +465,20 @@ impl Iterator for ArrayHandleIter {
     }
 }
 
-/// Creates a layout describing the record for `n` instances of `layout`, with a
-/// suitable amount of padding between each to ensure that each instance is
-/// given its requested size and alignment.
-///
-/// Implementation taken from `Layout::repeat` (which is currently unstable)
-fn repeat_layout(layout: Layout, n: usize) -> Result<Layout, MemoryLayoutError> {
-    let len_rounded_up = layout.size().wrapping_add(layout.align()).wrapping_sub(1)
-        & !layout.align().wrapping_sub(1);
-    let padded_size = layout.size() + len_rounded_up.wrapping_sub(layout.align());
-    let alloc_size = padded_size
-        .checked_mul(n)
-        .ok_or(MemoryLayoutError::OutOfBounds)?;
-    Layout::from_size_align(alloc_size, layout.align()).map_err(Into::into)
-}
-
-/// Allocates memory for an array type with `length` elements. `array_ty` must
-/// be an array type.
-fn alloc_array(ty: Type, length: usize) -> Pin<Box<ObjectInfo>> {
-    Box::pin(ObjectInfo {
-        data: ObjectInfoData {
-            array: array_header(&ty, length),
-        },
-        ty,
-        roots: 0,
-        color: Color::White,
-    })
-}
-
-/// Constructs an array header for an array type with `length` elements.
-fn array_header(ty: &Type, length: usize) -> NonNull<ArrayHeader> {
-    let array_ty = ty
-        .as_array()
+/// Returns the payload layout of an array of type `array_ty` with `length`
+/// elements.
+fn array_layout(array_ty: &Type, length: usize) -> Layout {
+    let element = unsafe { array_ty.data_ptr().as_ref() }
+        .array_element()
         .expect("array type doesnt have an element type");
+    array_payload_layout(element, length).expect("unable to create memory layout for array")
+}
 
-    // Allocate memory for the array data
-    let header_layout = Layout::new::<ArrayHeader>();
-    let element_ty_layout = array_ty.element_type().reference_layout();
-    let elements_layout = repeat_layout(element_ty_layout, length)
-        .expect("unable to create a memory layout for array elemets");
-    let (layout, _) = header_layout
-        .extend(elements_layout)
-        .expect("unable to create memory layout for array");
-
-    let mut array_header: NonNull<ArrayHeader> =
-        NonNull::new(unsafe { std::alloc::alloc_zeroed(layout).cast() })
-            .expect("error allocating memory for array");
-    let array = unsafe { array_header.as_mut() };
-    array.length = length;
-    array.capacity = length;
-
-    array_header
+/// Writes the length and capacity of a freshly allocated array payload.
+unsafe fn init_array_header(payload: *mut u8, length: usize) {
+    let header = &mut *payload.cast::<ArrayHeader>();
+    header.length = length;
+    header.capacity = length;
 }
 
 impl<O> GcRuntime for MarkSweep<O>
@@ -475,156 +488,267 @@ where
     type Array = ArrayHandle;
 
     fn alloc(&self, ty: &Type) -> GcPtr {
-        assert!(ty.is_concrete());
-
-        let object = alloc_obj(ty.clone());
-        let size = object.layout().size();
-
-        // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-        let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-        {
-            let mut objects = self.objects.write();
-            objects.insert(handle, object);
-        }
-
-        self.log_alloc(handle, size);
-        handle
+        self.try_alloc(ty)
+            .unwrap_or_else(|err| panic!("GC allocation of `{}` failed: {err}", ty.name()))
     }
 
     fn alloc_array(&self, ty: &Type, n: usize) -> Self::Array {
-        let object = alloc_array(ty.clone(), n);
-        let size = object.layout().size();
-
-        // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-        let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-        {
-            let mut objects = self.objects.write();
-            objects.insert(handle, object);
-        }
-
-        self.log_alloc(handle, size);
-        ArrayHandle {
-            obj: unsafe { NonNull::new_unchecked(handle.into()) },
-        }
+        self.try_alloc_array(ty, n)
+            .unwrap_or_else(|err| panic!("GC allocation of `{}` failed: {err}", ty.name()))
     }
 
     fn ptr_type(&self, handle: GcPtr) -> Type {
-        let _lock = self.objects.read();
-
-        // Convert the handle to our internal representation
-        let object_info: *const ObjectInfo = handle.into();
-
-        // Return the type of the object
-        unsafe { (*object_info).ty.clone() }
+        let _lock = self.heap.inner.read();
+        unsafe { header_of(handle).as_ref().type_view().clone() }
     }
 
     fn array(&self, handle: GcPtr) -> Option<Self::Array> {
-        let _lock = self.objects.read();
-        let obj: NonNull<ObjectInfo> =
-            NonNull::new(handle.into()).expect("cannot have a null handle here");
-        unsafe {
-            if !obj.as_ref().ty.is_array() {
-                return None;
-            }
+        let _lock = self.heap.inner.read();
+        let obj = header_of(handle);
+        if unsafe { obj.as_ref().type_data() }.is_array() {
+            Some(ArrayHandle { obj })
+        } else {
+            None
         }
-
-        Some(ArrayHandle { obj })
     }
 
     fn root(&self, handle: GcPtr) {
-        let _lock = self.objects.write();
-
-        // Convert the handle to our internal representation
-        let object_info: *mut ObjectInfo = handle.into();
-
-        unsafe { (*object_info).roots += 1 };
+        unsafe { header_of(handle).as_ref() }
+            .roots
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
     }
 
     fn unroot(&self, handle: GcPtr) {
-        let _lock = self.objects.write();
-
-        // Convert the handle to our internal representation
-        let object_info: *mut ObjectInfo = handle.into();
-
-        unsafe { (*object_info).roots -= 1 };
+        unsafe { header_of(handle).as_ref() }
+            .roots
+            .fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
     }
 
     fn stats(&self) -> Stats {
-        self.stats.read().clone()
+        Stats {
+            allocated_memory: self.heap.allocated_bytes(),
+        }
     }
 }
 
-impl<O> MarkSweep<O>
-where
-    O: Observer<Event = Event>,
-{
-    /// Collects all memory that is no longer referenced by rooted objects.
-    /// Returns `true` if memory was reclaimed, `false` otherwise.
-    pub fn collect(&self) -> bool {
-        self.observer.event(Event::Start);
+/// State shared by the migration helpers of [`MarkSweep::map_memory`].
+struct MigrationContext<'a> {
+    inner: &'a mut HeapInner,
+    conversions: &'a HashMap<Type, mapping::StructMapping>,
+    /// Payload migrations in flight, keyed by header address, with the type
+    /// the object gets once the migration completes.
+    migrations: FxHashMap<usize, (PayloadMigration, Type)>,
+    /// Objects allocated while migrating, reported to the observer afterwards.
+    new_objects: Vec<GcPtr>,
+}
 
-        let mut objects = self.objects.write();
+impl MigrationContext<'_> {
+    /// Allocates a new object during migration.
+    fn alloc(&mut self, ty: &Type, layout: Layout) -> NonNull<ObjectHeader> {
+        let header = self
+            .inner
+            .alloc_locked(ty, layout)
+            .unwrap_or_else(|err: AllocError| panic!("allocation during migration failed: {err}"));
+        self.new_objects.push(handle_of(header));
+        header
+    }
 
-        // Get all roots
-        let mut roots = objects
-            .values()
-            .filter_map(|obj| {
-                if obj.roots > 0 {
-                    Some(obj.as_ref().get_ref() as *const _ as *mut ObjectInfo)
-                } else {
-                    None
-                }
-            })
-            .collect::<VecDeque<_>>();
+    /// Returns the payload of `header` as it was before migration started.
+    fn old_payload(&self, header: NonNull<ObjectHeader>) -> NonNull<u8> {
+        match self.migrations.get(&(header.as_ptr() as usize)) {
+            Some((migration, _)) => migration.src,
+            None => unsafe { NonNull::new_unchecked(header.as_ref().data) },
+        }
+    }
 
-        // Iterate over all roots
-        while let Some(next) = roots.pop_front() {
-            let handle = (next as *const _ as RawGcPtr).into();
+    /// Starts migrating `header` to `new_ty` with a payload of `layout`.
+    /// Returns `(old payload, new payload)`.
+    fn begin(
+        &mut self,
+        header: NonNull<ObjectHeader>,
+        layout: Layout,
+        new_ty: &Type,
+    ) -> (NonNull<u8>, NonNull<u8>) {
+        let migration = unsafe { self.inner.begin_payload_migration(header, layout) }
+            .unwrap_or_else(|err| panic!("migrating an object failed: {err}"));
+        let pair = (migration.src, migration.dest);
+        self.migrations
+            .insert(header.as_ptr() as usize, (migration, new_ty.clone()));
+        pair
+    }
 
-            // Trace all other objects
-            for reference in unsafe { (*next).ty.trace(handle) } {
-                let ref_ptr = objects
-                    .get_mut(&reference)
-                    .expect("found invalid reference");
-                if ref_ptr.color == Color::White {
-                    let ptr = ref_ptr.as_ref().get_ref() as *const _ as *mut ObjectInfo;
-                    unsafe { (*ptr).color = Color::Gray };
-                    roots.push_back(ptr);
-                }
-            }
+    /// Migrates an array object to `new_ty`, mapping every element with
+    /// `element_action`. Arrays that are already being migrated are left
+    /// alone.
+    fn migrate_array(
+        &mut self,
+        header: NonNull<ObjectHeader>,
+        element_action: &Action,
+        new_ty: &Type,
+    ) {
+        if self.migrations.contains_key(&(header.as_ptr() as usize)) {
+            return;
+        }
+        let old_ty = unsafe { header.as_ref().type_view().clone() };
+        let old_element = unsafe { old_ty.data_ptr().as_ref() }
+            .array_element()
+            .expect("migrating an array that is not an array");
+        let length = unsafe { (*header.as_ref().data.cast::<ArrayHeader>()).length };
 
-            // This object has been traced
+        let (src, dest) = self.begin(header, array_layout(new_ty, length), new_ty);
+        unsafe { init_array_header(dest.as_ptr(), length) };
+
+        let new_element_ty = new_ty.as_array().expect("Must be an array.").element_type();
+        let new_element = unsafe { new_ty.data_ptr().as_ref() }
+            .array_element()
+            .expect("Must be an array.");
+        let src_stride = old_element.reference_layout().pad_to_align().size();
+        let dest_stride = new_element.reference_layout().pad_to_align().size();
+        let src_elements = unsafe { src.as_ptr().add(array_data_offset(old_element)) };
+        let dest_elements = unsafe { dest.as_ptr().add(array_data_offset(new_element)) };
+        for index in 0..length {
             unsafe {
-                (*next).color = Color::Black;
+                self.map_type(
+                    NonNull::new_unchecked(src_elements.add(index * src_stride)),
+                    NonNull::new_unchecked(dest_elements.add(index * dest_stride)),
+                    element_action,
+                    &new_element_ty,
+                );
             }
         }
+    }
 
-        // Sweep all non-reachable objects
-        let size_before = objects.len();
-        objects.retain(|h, obj| {
-            if obj.color == Color::Black {
+    fn map_struct(&mut self, mapping: &[FieldMapping], src: NonNull<u8>, dest: NonNull<u8>) {
+        for FieldMapping {
+            new_ty,
+            new_offset,
+            action,
+        } in mapping.iter()
+        {
+            let field_dest = unsafe { NonNull::new_unchecked(dest.as_ptr().add(*new_offset)) };
+            self.map_type(src, field_dest, action, new_ty);
+        }
+    }
+
+    fn conversion(&self, old_ty: &Type) -> &'_ mapping::StructMapping {
+        self.conversions.get(old_ty).unwrap_or_else(|| {
+            panic!("If the struct changed, there must also be a conversion for type: {old_ty:#?}.")
+        })
+    }
+
+    fn map_type(&mut self, src: NonNull<u8>, dest: NonNull<u8>, action: &Action, new_ty: &Type) {
+        unsafe fn field(ptr: NonNull<u8>, offset: usize) -> NonNull<u8> {
+            NonNull::new_unchecked(ptr.as_ptr().add(offset))
+        }
+        unsafe fn write_handle(dest: NonNull<u8>, header: NonNull<ObjectHeader>) {
+            *dest.cast::<GcPtr>().as_ptr() = handle_of(header);
+        }
+        unsafe fn read_header(src: NonNull<u8>) -> Option<NonNull<ObjectHeader>> {
+            NonNull::new(*src.cast::<*mut ObjectHeader>().as_ptr())
+        }
+
+        match action {
+            Action::ArrayAlloc => {
+                let header = self.alloc(new_ty, array_layout(new_ty, 0));
                 unsafe {
-                    obj.as_mut().get_unchecked_mut().color = Color::White;
+                    init_array_header(header.as_ref().data, 0);
+                    write_handle(dest, header);
                 }
-                true
-            } else {
-                let value_memory_layout = obj.layout();
-                unsafe { std::alloc::dealloc(obj.data.ptr.as_mut(), value_memory_layout) };
-                self.observer.event(Event::Deallocation(*h));
-                {
-                    let mut stats = self.stats.write();
-                    stats.allocated_memory -= value_memory_layout.size();
-                }
-                false
             }
-        });
-        let size_after = objects.len();
-
-        self.observer.event(Event::End);
-
-        size_before != size_after
+            Action::ArrayFromValue {
+                element_action,
+                old_offset,
+            } => {
+                let header = self.alloc(new_ty, array_layout(new_ty, 1));
+                let element_ty = new_ty.as_array().expect("Must be an array.").element_type();
+                let element = unsafe { element_ty.data_ptr().as_ref() };
+                unsafe {
+                    let payload = header.as_ref().data;
+                    init_array_header(payload, 1);
+                    let data = NonNull::new_unchecked(payload.add(array_data_offset(element)));
+                    self.map_type(field(src, *old_offset), data, element_action, &element_ty);
+                    write_handle(dest, header);
+                }
+            }
+            Action::ArrayMap {
+                element_action,
+                old_offset,
+            } => unsafe {
+                let src_ptr = field(src, *old_offset);
+                if let Some(array) = read_header(src_ptr) {
+                    self.migrate_array(array, element_action, new_ty);
+                }
+                std::ptr::copy_nonoverlapping(
+                    src_ptr.as_ptr(),
+                    dest.as_ptr(),
+                    std::mem::size_of::<GcPtr>(),
+                );
+            },
+            Action::Cast { old_offset, old_ty } => {
+                // A failed cast leaves the zero-initialized value in place.
+                let _ = cast::try_cast_from_to(
+                    old_ty.clone(),
+                    new_ty.clone(),
+                    unsafe { field(src, *old_offset) },
+                    dest,
+                );
+            }
+            Action::Copy { old_offset, size } => unsafe {
+                std::ptr::copy_nonoverlapping(
+                    field(src, *old_offset).as_ptr(),
+                    dest.as_ptr(),
+                    *size,
+                );
+            },
+            Action::ElementFromArray {
+                element_action,
+                old_offset,
+            } => unsafe {
+                if let Some(array) = read_header(field(src, *old_offset)) {
+                    let payload = self.old_payload(array);
+                    if (*payload.as_ptr().cast::<ArrayHeader>()).length > 0 {
+                        let old_element_ty = array.as_ref().type_view();
+                        let old_element = old_element_ty
+                            .data_ptr()
+                            .as_ref()
+                            .array_element()
+                            .expect("Must be an array.");
+                        let data = NonNull::new_unchecked(
+                            payload.as_ptr().add(array_data_offset(old_element)),
+                        );
+                        self.map_type(data, dest, element_action, new_ty);
+                    }
+                }
+            },
+            Action::StructAlloc => {
+                let header = self.alloc(new_ty, new_ty.value_layout());
+                unsafe { write_handle(dest, header) };
+            }
+            Action::StructMapFromGc { old_ty, old_offset } => unsafe {
+                if let Some(object) = read_header(field(src, *old_offset)) {
+                    let payload = self.old_payload(object);
+                    let mapping =
+                        &self.conversion(old_ty).field_mapping as *const Vec<FieldMapping>;
+                    self.map_struct(&*mapping, payload, dest);
+                }
+            },
+            Action::StructMapFromValue { old_ty, old_offset } => {
+                let header = self.alloc(new_ty, new_ty.value_layout());
+                let mapping = &self.conversion(old_ty).field_mapping as *const Vec<FieldMapping>;
+                unsafe {
+                    let payload = NonNull::new_unchecked(header.as_ref().data);
+                    self.map_struct(&*mapping, field(src, *old_offset), payload);
+                    write_handle(dest, header);
+                }
+            }
+            Action::StructMapInPlace { old_ty, old_offset } => {
+                let mapping = &self.conversion(old_ty).field_mapping as *const Vec<FieldMapping>;
+                unsafe { self.map_struct(&*mapping, field(src, *old_offset), dest) };
+            }
+            Action::ZeroInitialize => {
+                // The destination is already zero-initialized.
+            }
+        }
     }
 }
 
@@ -632,509 +756,128 @@ impl<O> MemoryMapper for MarkSweep<O>
 where
     O: Observer<Event = Event>,
 {
+    #[allow(clippy::mutable_key_type)]
     fn map_memory(&self, mapping: Mapping) -> Vec<GcPtr> {
-        unsafe fn get_field_ptr(struct_ptr: NonNull<u8>, offset: usize) -> NonNull<u8> {
-            let mut ptr = struct_ptr.as_ptr() as usize;
-            ptr += offset;
-            NonNull::new_unchecked(ptr as *mut u8)
-        }
+        let mut inner = self.heap.inner.write();
+        let objects = inner.objects();
 
-        #[allow(clippy::mutable_key_type)]
-        fn map_array(
-            new_allocations: &mut Vec<Pin<Box<ObjectInfo>>>,
-            conversions: &HashMap<Type, StructMapping>,
-            mut src_object: NonNull<ObjectInfo>,
-            element_action: &Action,
-            new_ty: &Type,
-        ) {
-            let src_array = ArrayHandle { obj: src_object };
-
-            // Initialize the array
-            let new_header = array_header(new_ty, src_array.length());
-
-            let mut dest_obj = ObjectInfo {
-                data: ObjectInfoData { array: new_header },
-                roots: unsafe { src_object.as_ref().roots },
-                color: unsafe { src_object.as_ref().color },
-                ty: new_ty.clone(),
-            };
-
-            let dest_array = ArrayHandle {
-                obj: unsafe { NonNull::new_unchecked(&mut dest_obj as *mut ObjectInfo) },
-            };
-
-            // Map array elements
-            src_array
-                .elements()
-                .zip(dest_array.elements())
-                .for_each(|(src, dest)| {
-                    map_type(
-                        new_allocations,
-                        conversions,
-                        src,
-                        dest,
-                        element_action,
-                        &new_ty.as_array().expect("Must be an array.").element_type(),
-                    );
-                });
-
-            unsafe {
-                let src_obj = src_object.as_mut();
-                std::alloc::dealloc(src_obj.data.ptr.as_mut(), src_obj.layout());
-                *src_obj = dest_obj;
-            };
-        }
-
-        #[allow(clippy::mutable_key_type)]
-        fn map_type(
-            new_allocations: &mut Vec<Pin<Box<ObjectInfo>>>,
-            conversions: &HashMap<Type, StructMapping>,
-            src: NonNull<u8>,
-            dest: NonNull<u8>,
-            action: &mapping::Action,
-            new_ty: &Type,
-        ) {
-            match action {
-                mapping::Action::ArrayAlloc => {
-                    // Initialize the array with no values
-                    let object = alloc_array(new_ty.clone(), 0);
-
-                    // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-                    let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-                    // Write handle to field
-                    let mut dest_handle = dest.cast::<GcPtr>();
-                    unsafe { *dest_handle.as_mut() = handle };
-
-                    new_allocations.push(object);
-                }
-                mapping::Action::ArrayFromValue {
-                    element_action,
-                    old_offset,
-                } => {
-                    // Initialize the array with a single value
-                    let mut object = alloc_array(new_ty.clone(), 1);
-
-                    let array_handle = ArrayHandle {
-                        obj: unsafe {
-                            NonNull::new_unchecked(&mut *object.as_mut() as *mut ObjectInfo)
-                        },
-                    };
-
-                    // Map single element to array
-                    map_type(
-                        new_allocations,
-                        conversions,
-                        unsafe { get_field_ptr(src, *old_offset) },
-                        array_handle.data(),
-                        element_action,
-                        &new_ty.as_array().expect("Must be an array.").element_type(),
-                    );
-
-                    // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-                    let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-                    // Write handle to field
-                    let mut dest_handle = dest.cast::<GcPtr>();
-                    unsafe { *dest_handle.as_mut() = handle };
-
-                    new_allocations.push(object);
-                }
-                mapping::Action::ArrayMap {
-                    element_action,
-                    old_offset,
-                } => {
-                    let src_ptr = unsafe { get_field_ptr(src, *old_offset) };
-
-                    // Safety: we already hold a write lock on `objects`, so this is legal.
-                    let src_obj = unsafe { *src_ptr.cast::<NonNull<ObjectInfo>>().as_ref() };
-
-                    map_array(
-                        new_allocations,
-                        conversions,
-                        src_obj,
-                        element_action,
-                        new_ty,
-                    );
-
-                    unsafe {
-                        std::ptr::copy_nonoverlapping(
-                            src_ptr.as_ptr(),
-                            dest.as_ptr(),
-                            std::mem::size_of::<GcPtr>(),
-                        );
-                    }
-                }
-                mapping::Action::Cast { old_offset, old_ty } => {
-                    if !cast::try_cast_from_to(
-                        old_ty.clone(),
-                        new_ty.clone(),
-                        unsafe { get_field_ptr(src, *old_offset) },
-                        dest,
-                    ) {
-                        // Failed to cast. Use the previously zero-initialized
-                        // value instead
-                    }
-                }
-                mapping::Action::Copy {
-                    old_offset,
-                    size: size_in_bytes,
-                } => unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        get_field_ptr(src, *old_offset).as_ptr(),
-                        dest.as_ptr(),
-                        *size_in_bytes,
-                    );
-                },
-                mapping::Action::ElementFromArray {
-                    element_action,
-                    old_offset,
-                } => {
-                    // Safety: we already hold a write lock on `objects`, so this is legal.
-                    let obj = unsafe {
-                        *get_field_ptr(src, *old_offset)
-                            .cast::<NonNull<ObjectInfo>>()
-                            .as_ref()
-                    };
-
-                    let array_handle = ArrayHandle { obj };
-
-                    if array_handle.header().length > 0 {
-                        // Map single element from array
-                        map_type(
-                            new_allocations,
-                            conversions,
-                            array_handle.data(),
-                            dest,
-                            element_action,
-                            new_ty,
-                        );
-                    } else {
-                        // zero initialize
-                    }
-                }
-                mapping::Action::StructAlloc => {
-                    let object = alloc_obj(new_ty.clone());
-
-                    // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-                    let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-                    // Write handle to field
-                    let mut dest_handle = dest.cast::<GcPtr>();
-                    unsafe { *dest_handle.as_mut() = handle };
-
-                    new_allocations.push(object);
-                }
-                mapping::Action::StructMapFromGc { old_ty, old_offset } => {
-                    let conversion = conversions.get(old_ty).unwrap_or_else(|| {
-                        panic!(
-                            "If the struct changed, there must also be a conversion for type: {old_ty:#?}.",
-                        )
-                    });
-
-                    // Safety: we already hold a write lock on `objects`, so this is legal.
-                    let object = unsafe {
-                        *get_field_ptr(src, *old_offset)
-                            .cast::<NonNull<ObjectInfo>>()
-                            .as_ref()
-                    };
-
-                    // Map heap-allocated struct to in-memory struct
-                    map_struct(
-                        new_allocations,
-                        conversions,
-                        &conversion.field_mapping,
-                        // SAFETY: pointer is guaranteed to be valid
-                        unsafe { object.as_ref().data.ptr },
-                        dest,
-                    );
-                }
-                mapping::Action::StructMapFromValue { old_ty, old_offset } => {
-                    let object = alloc_obj(new_ty.clone());
-
-                    let conversion = conversions.get(old_ty).unwrap_or_else(|| {
-                        panic!(
-                            "If the struct changed, there must also be a conversion for type: {old_ty:#?}.",
-                        )
-                    });
-
-                    // Map in-memory struct to heap-allocated struct
-                    map_struct(
-                        new_allocations,
-                        conversions,
-                        &conversion.field_mapping,
-                        unsafe { get_field_ptr(src, *old_offset) },
-                        // SAFETY: pointer is guaranteed to be valid
-                        unsafe { object.as_ref().data.ptr },
-                    );
-
-                    // We want to return a pointer to the `ObjectInfo`, to be used as handle.
-                    let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-
-                    // Write handle to field
-                    let mut dest_handle = dest.cast::<GcPtr>();
-                    unsafe { *dest_handle.as_mut() = handle };
-
-                    new_allocations.push(object);
-                }
-                mapping::Action::StructMapInPlace { old_ty, old_offset } => {
-                    let conversion = conversions.get(old_ty).unwrap_or_else(|| {
-                        panic!(
-                            "If the struct changed, there must also be a conversion for type: {old_ty:#?}.",
-                        )
-                    });
-
-                    map_struct(
-                        new_allocations,
-                        conversions,
-                        &conversion.field_mapping,
-                        unsafe { get_field_ptr(src, *old_offset) },
-                        dest,
-                    );
-                }
-                mapping::Action::ZeroInitialize => {
-                    // Use previously zero-initialized memory
-                }
-            }
-        }
-
-        #[allow(clippy::mutable_key_type)]
-        fn map_struct(
-            new_allocations: &mut Vec<Pin<Box<ObjectInfo>>>,
-            conversions: &HashMap<Type, StructMapping>,
-            mapping: &[FieldMapping],
-            src: NonNull<u8>,
-            dest: NonNull<u8>,
-        ) {
-            for FieldMapping {
-                new_ty,
-                new_offset,
-                action,
-            } in mapping.iter()
-            {
-                let field_dest = unsafe { get_field_ptr(dest, *new_offset) };
-                map_type(
-                    new_allocations,
-                    conversions,
-                    src,
-                    field_dest,
-                    action,
-                    new_ty,
-                );
-            }
-        }
-
-        let mut objects = self.objects.write();
-
-        // Determine which types are still allocated with deleted types
+        // Determine which objects still use deleted types
         let deleted = objects
             .iter()
-            .filter_map(|(ptr, object_info)| {
-                if mapping.deletions.contains(&object_info.ty) {
-                    Some(*ptr)
-                } else {
-                    None
-                }
+            .filter(|o| {
+                mapping
+                    .deletions
+                    .contains(&*unsafe { o.as_ref().type_view() })
             })
+            .map(|o| handle_of(*o))
             .collect();
 
-        // Update type pointers of types that didn't change
-        for (old_ty, new_ty) in mapping.identical {
-            for object_info in objects.values_mut() {
-                if object_info.ty == old_ty {
-                    object_info.set(ObjectInfo {
-                        data: ObjectInfoData {
-                            ptr: unsafe { object_info.data.ptr },
-                        },
-                        roots: object_info.roots,
-                        color: object_info.color,
-                        ty: new_ty.clone(),
-                    });
-                }
+        // Update the types of objects whose type didn't change
+        let identical: HashMap<Type, Type> = mapping.identical.iter().cloned().collect();
+        for object in &objects {
+            let header = object.as_ptr();
+            let new_ty = identical.get(&*unsafe { (*header).type_view() });
+            if let Some(new_ty) = new_ty {
+                inner.register_type(new_ty);
+                unsafe { (*header).ty = new_ty.data_ptr().as_ptr() };
             }
         }
 
-        let mut new_allocations = Vec::new();
-
-        // Map struct types
-        objects
-            .values_mut()
-            .filter(|object_info| object_info.ty.is_struct())
-            .for_each(|object_info| {
-                if let Some(conversion) = mapping.struct_mappings.get(&object_info.ty) {
-                    let old_layout = object_info.ty.value_layout();
-                    let src = unsafe { object_info.data.ptr };
-                    let dest = unsafe {
-                        NonNull::new_unchecked(std::alloc::alloc_zeroed(
-                            conversion.new_ty.value_layout(),
-                        ))
-                    };
-
-                    map_struct(
-                        &mut new_allocations,
-                        &mapping.struct_mappings,
-                        &conversion.field_mapping,
-                        src,
-                        dest,
-                    );
-
-                    unsafe { std::alloc::dealloc(src.as_ptr(), old_layout) };
-
-                    object_info.set(ObjectInfo {
-                        data: ObjectInfoData { ptr: dest },
-                        roots: object_info.roots,
-                        color: object_info.color,
-                        ty: conversion.new_ty.clone(),
-                    });
+        // Plan the struct and array migrations
+        let mut struct_migrations = Vec::new();
+        let mut array_migrations = Vec::new();
+        let mut retyped_arrays = Vec::new();
+        for &object in &objects {
+            let ty = unsafe { object.as_ref().type_view() };
+            if ty.is_struct() {
+                if let Some(conversion) = mapping.struct_mappings.get(&*ty) {
+                    struct_migrations.push((object, conversion));
                 }
-            });
-
-        // Map rooted array types
-        objects
-            .values_mut()
-            .filter(|object_info| object_info.ty.is_array())
-            .for_each(|object_info| {
-                let mut ty = object_info.ty.clone();
-                let mut stack = Vec::new();
-
-                while let Some(array) = ty.as_array() {
-                    stack.push(ty.clone());
-                    ty = array.element_type();
+            } else if ty.is_array() {
+                // Find the innermost element type
+                let mut element_ty = ty.clone();
+                let mut depth = 0;
+                while let Some(array) = element_ty.as_array() {
+                    element_ty = array.element_type();
+                    depth += 1;
                 }
 
-                let old_element_ty = ty;
-                if let Some(conversion) = mapping.struct_mappings.get(&old_element_ty) {
+                if let Some(conversion) = mapping.struct_mappings.get(&element_ty) {
                     let mut new_ty = conversion.new_ty.clone();
-                    while stack.pop().is_some() {
+                    for _ in 0..depth {
                         new_ty = new_ty.array_type();
                     }
 
-                    // Only arrays containing structs need to be mapped, as an array of arrays merely
-                    // contains `GcPtr`s.
+                    // Only arrays containing structs need to be mapped, as an array of
+                    // arrays merely contains `GcPtr`s.
                     let new_element_ty = new_ty.as_array().unwrap().element_type();
                     if new_element_ty.is_struct() {
                         // Conversion between ADTs are already handled in struct mappings
-                        assert!(old_element_ty.is_struct());
-
+                        assert!(element_ty.is_struct());
                         let element_action =
-                            resolve_struct_to_struct_edit(&old_element_ty, &new_element_ty, 0);
-
-                        map_array(
-                            &mut new_allocations,
-                            &mapping.struct_mappings,
-                            unsafe {
-                                NonNull::new_unchecked(
-                                    &mut *object_info.as_mut() as *mut ObjectInfo
-                                )
-                            },
-                            &element_action,
-                            &new_ty,
-                        );
+                            resolve_struct_to_struct_edit(&element_ty, &new_element_ty, 0);
+                        array_migrations.push((object, element_action, new_ty));
                     } else {
-                        // Update the type of arrays of arrays
-                        object_info.as_mut().ty = conversion.new_ty.clone();
+                        retyped_arrays.push((object, new_ty));
                     }
                 }
-            });
+            }
+        }
 
-        // Retroactively store newly allocated objects
-        // This cannot be done while mapping because we hold a mutable reference to
-        // objects
-        for object in new_allocations {
-            let size = object.layout().size();
-            // We want to return a pointer to the `ObjectInfo`, to
-            // be used as handle.
-            let handle = (&*object.as_ref() as *const _ as RawGcPtr).into();
-            objects.insert(handle, object);
+        let mut ctx = MigrationContext {
+            inner: &mut inner,
+            conversions: &mapping.struct_mappings,
+            migrations: FxHashMap::default(),
+            new_objects: Vec::new(),
+        };
 
-            self.log_alloc(handle, size);
+        // Detach every struct payload first, so that mapping one object can
+        // read the old payload of any other object regardless of order.
+        let mut struct_payloads = Vec::with_capacity(struct_migrations.len());
+        for (object, conversion) in &struct_migrations {
+            let (src, dest) = ctx.begin(
+                *object,
+                conversion.new_ty.value_layout(),
+                &conversion.new_ty,
+            );
+            struct_payloads.push((src, dest, *conversion));
+        }
+        for (src, dest, conversion) in struct_payloads {
+            ctx.map_struct(&conversion.field_mapping, src, dest);
+        }
+        for (object, element_action, new_ty) in &array_migrations {
+            ctx.migrate_array(*object, element_action, new_ty);
+        }
+
+        // Complete the migrations: switch types and release the old payloads
+        let migrations = std::mem::take(&mut ctx.migrations);
+        let new_objects = std::mem::take(&mut ctx.new_objects);
+        let migrated: FxHashSet<usize> = migrations.keys().copied().collect();
+        for (address, (migration, new_ty)) in migrations {
+            inner.register_type(&new_ty);
+            unsafe { (*(address as *mut ObjectHeader)).ty = new_ty.data_ptr().as_ptr() };
+            inner.finish_payload_migration(migration);
+        }
+        for (object, new_ty) in retyped_arrays {
+            // An array whose element type changed shape (e.g. `[[T]]` to
+            // `[T]`) was migrated through its owner's field mapping; that
+            // migration decides its type, not the element-type rename.
+            if migrated.contains(&(object.as_ptr() as usize)) {
+                continue;
+            }
+            inner.register_type(&new_ty);
+            unsafe { (*object.as_ptr()).ty = new_ty.data_ptr().as_ptr() };
+        }
+
+        // Types no live object uses anymore no longer need to be kept alive
+        inner.prune_types();
+        drop(inner);
+        self.heap.bump_type_epoch();
+
+        for handle in new_objects {
+            self.observer.event(Event::Allocation(handle));
         }
 
         deleted
-    }
-}
-
-/// Coloring used in the Mark Sweep phase.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Color {
-    /// A white object has not been seen yet by the mark phase
-    White,
-
-    /// A gray object has been seen by the mark phase but has not yet been
-    /// visited
-    Gray,
-
-    /// A black object has been visited by the mark phase
-    Black,
-}
-
-/// An indirection table that stores the address to the actual memory, the type
-/// of the object and meta information.
-#[repr(C)]
-struct ObjectInfo {
-    pub data: ObjectInfoData,
-    pub roots: u32,
-    pub color: Color,
-    pub ty: Type,
-}
-
-#[repr(C)]
-union ObjectInfoData {
-    pub ptr: NonNull<u8>,
-    pub array: NonNull<ArrayHeader>,
-}
-
-/// An `ObjectInfo` is thread-safe.
-unsafe impl Send for ObjectInfo {}
-
-unsafe impl Sync for ObjectInfo {}
-
-impl From<GcPtr> for *const ObjectInfo {
-    fn from(ptr: GcPtr) -> Self {
-        ptr.as_ptr() as Self
-    }
-}
-
-impl From<GcPtr> for *mut ObjectInfo {
-    fn from(ptr: GcPtr) -> Self {
-        ptr.as_ptr() as Self
-    }
-}
-
-impl From<*const ObjectInfo> for GcPtr {
-    fn from(info: *const ObjectInfo) -> Self {
-        (info as RawGcPtr).into()
-    }
-}
-
-impl From<*mut ObjectInfo> for GcPtr {
-    fn from(info: *mut ObjectInfo) -> Self {
-        (info as RawGcPtr).into()
-    }
-}
-
-impl From<NonNull<ObjectInfo>> for GcPtr {
-    fn from(info: NonNull<ObjectInfo>) -> Self {
-        (info.as_ptr() as RawGcPtr).into()
-    }
-}
-
-impl ObjectInfo {
-    /// Returns the layout of the data pointed to by data
-    pub fn layout(&self) -> Layout {
-        match self.ty.kind() {
-            TypeKind::Struct(_) | TypeKind::Primitive(_) | TypeKind::Pointer(_) => {
-                self.ty.value_layout()
-            }
-            TypeKind::Array(array) => {
-                let elem_count = unsafe { self.data.array.as_ref().capacity };
-                let elem_layout = repeat_layout(array.element_type().value_layout(), elem_count)
-                    .expect("unable to determine layout of array elements");
-                let (layout, _) = Layout::new::<ArrayHeader>()
-                    .extend(elem_layout)
-                    .expect("unable to determine layout of array");
-                layout
-            }
-        }
     }
 }

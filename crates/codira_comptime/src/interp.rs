@@ -45,11 +45,14 @@
 //! module-level comptime bindings, while per-call data travels exclusively
 //! through `core.arg` values.
 
-use codira_mir::{fold_op, Attr, Body, GeneratorStore, Op, OpId, OpKind};
+use codira_mir::{
+    fold_cast, fold_typed_op, normalize, Attr, Body, CastMode, FoldError, GeneratorStore, MemOp,
+    Op, OpId, OpKind,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    value::{EvalError, Value},
+    value::{EvalError, MemState, Value},
     Env,
 };
 
@@ -113,6 +116,7 @@ impl<'a> EvalCtx<'a> {
             fuel: self.fuel,
             depth: 0,
             depth_limit: self.call_depth,
+            next_alloc: 0,
         };
         interp.eval_toplevel(body, env)
     }
@@ -147,6 +151,10 @@ struct Interp<'a> {
     fuel: u64,
     depth: usize,
     depth_limit: usize,
+    /// The id the next `mem.alloc` evaluated gets. Allocations are
+    /// numbered in evaluation order, so the same body always allocates the
+    /// same ids.
+    next_alloc: u32,
 }
 
 /// What evaluating one region body produced: a plain result value (or
@@ -208,7 +216,7 @@ impl Interp<'_> {
                 ));
             }
 
-            let value = self.eval_op(op, &values, env, args, frames)?;
+            let value = self.eval_op(body, op, &values, env, args, frames)?;
             last_value = Some(value.clone());
             values.insert(id, value);
         }
@@ -225,6 +233,7 @@ impl Interp<'_> {
 
     fn eval_op(
         &mut self,
+        body: &Body,
         op: &Op,
         values: &FxHashMap<OpId, Value>,
         env: &Env,
@@ -232,7 +241,9 @@ impl Interp<'_> {
         frames: &mut Vec<Vec<Value>>,
     ) -> Result<Value, EvalError> {
         match &op.kind {
-            OpKind::Const(attr) => attr_to_value(attr, env),
+            // In the representation the op's type has at run time: an `f32`
+            // literal is an `f32`, not the `f64` it was parsed as.
+            OpKind::Const(attr) => attr_to_value(&normalize(attr.clone(), op.ty), env),
 
             OpKind::ParamRef(name) => env.lookup(name),
 
@@ -456,17 +467,33 @@ impl Interp<'_> {
 
             OpKind::Yield => unreachable!("yield handled in eval_in"),
 
+            OpKind::Mem(mem) => self.eval_mem(*mem, op, values),
+
             // Every remaining kind is a pure attribute-level computation:
             // delegate to the shared fold hook. Scalar `Value`s convert to
             // `Attr`s losslessly; `Tuple` has no `Attr` form, so using a
             // tuple as a pure-op operand is a type mismatch.
+            // A conversion's meaning depends on both its source and target
+            // types, so it is folded by `fold_cast` with both. An operand
+            // whose type is unknown makes it decline (an error here), never
+            // guess.
+            OpKind::Cast(kind, CastMode::Wrapping) => {
+                let [operand] = op.operands.as_slice() else {
+                    return Err(EvalError::Fold(FoldError::WrongOperandCount));
+                };
+                let attr = value_to_attr(&operand_value(values, *operand)?)?;
+                let folded = fold_cast(*kind, &attr, body.get(*operand).ty, op.ty)?;
+                attr_to_value(&folded, env)
+            }
+
             pure => {
                 let attrs = op
                     .operands
                     .iter()
                     .map(|operand| value_to_attr(&operand_value(values, *operand)?))
                     .collect::<Result<Vec<_>, _>>()?;
-                let folded = fold_op(pure, &attrs)?;
+                let operand_tys: Vec<_> = op.operands.iter().map(|o| body.get(*o).ty).collect();
+                let folded = fold_typed_op(pure, &attrs, &operand_tys, op.ty)?;
                 attr_to_value(&folded, env)
             }
         }
@@ -484,6 +511,94 @@ impl Interp<'_> {
         match self.eval_in(body, env, args, frames, false)? {
             Outcome::Value(value) => Ok(value),
             Outcome::Yielded(_) => unreachable!("non-loop region cannot yield"),
+        }
+    }
+
+    /// Memory operations -- see `codira_mir::mem` for the model. Memory is
+    /// a value here exactly as in the IR: a store returns a new state and the
+    /// state it was given stays readable.
+    fn eval_mem(
+        &mut self,
+        mem: MemOp,
+        op: &Op,
+        values: &FxHashMap<OpId, Value>,
+    ) -> Result<Value, EvalError> {
+        let operand = |n: usize| -> Result<Value, EvalError> {
+            let id = op
+                .operands
+                .get(n)
+                .ok_or(EvalError::Fold(codira_mir::FoldError::WrongOperandCount))?;
+            operand_value(values, *id)
+        };
+        let state = |value: Value| match value {
+            Value::Mem(state) => Ok(state),
+            other => Err(EvalError::TypeMismatch {
+                expected: "memory state",
+                found: other.type_name(),
+            }),
+        };
+        let pointer = |value: Value| match value {
+            Value::Ptr { alloc, index } => Ok((alloc, index)),
+            other => Err(EvalError::TypeMismatch {
+                expected: "pointer",
+                found: other.type_name(),
+            }),
+        };
+        // The cell a pointer names in a state, checked.
+        let cell = |state: &MemState, alloc: u32, index: i64| -> Result<usize, EvalError> {
+            let cells = state.cells.get(&alloc).ok_or(EvalError::DanglingPointer)?;
+            usize::try_from(index)
+                .ok()
+                .filter(|&i| i < cells.len())
+                .ok_or(EvalError::OutOfBounds {
+                    index,
+                    len: cells.len(),
+                })
+        };
+
+        match mem {
+            MemOp::Entry => Ok(Value::Mem(MemState::default())),
+            MemOp::Alloc { count, .. } => {
+                let mut next = state(operand(0)?)?;
+                let id = self.next_alloc;
+                self.next_alloc += 1;
+                std::sync::Arc::make_mut(&mut next.cells).insert(id, vec![None; count as usize]);
+                next.fresh = Some(id);
+                Ok(Value::Mem(next))
+            }
+            MemOp::Addr => {
+                let alloc = state(operand(0)?)?
+                    .fresh
+                    .ok_or(EvalError::DanglingPointer)?;
+                Ok(Value::Ptr { alloc, index: 0 })
+            }
+            MemOp::Load => {
+                let memory = state(operand(0)?)?;
+                let (alloc, index) = pointer(operand(1)?)?;
+                let at = cell(&memory, alloc, index)?;
+                memory.cells[&alloc][at]
+                    .clone()
+                    .ok_or(EvalError::UninitializedLoad)
+            }
+            MemOp::Store => {
+                let mut next = state(operand(0)?)?;
+                let (alloc, index) = pointer(operand(1)?)?;
+                let value = operand(2)?;
+                let at = cell(&next, alloc, index)?;
+                std::sync::Arc::make_mut(&mut next.cells)
+                    .get_mut(&alloc)
+                    .expect("checked by cell()")[at] = Some(value);
+                next.fresh = None;
+                Ok(Value::Mem(next))
+            }
+            MemOp::Offset { .. } => {
+                let (alloc, index) = pointer(operand(0)?)?;
+                let delta = operand(1)?.as_int()?;
+                Ok(Value::Ptr {
+                    alloc,
+                    index: index.wrapping_add(delta),
+                })
+            }
         }
     }
 
@@ -536,9 +651,9 @@ fn value_to_attr(value: &Value) -> Result<Attr, EvalError> {
         Value::Float(v) => Ok(Attr::float(*v)),
         Value::Str(s) => Ok(Attr::Str(s.clone())),
         Value::Unit => Ok(Attr::Unit),
-        Value::Tuple(_) => Err(EvalError::TypeMismatch {
+        Value::Tuple(_) | Value::Mem(_) | Value::Ptr { .. } => Err(EvalError::TypeMismatch {
             expected: "a scalar (int, bool, float, string, or unit)",
-            found: "tuple",
+            found: value.type_name(),
         }),
     }
 }

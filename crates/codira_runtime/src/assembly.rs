@@ -97,6 +97,7 @@ pub struct Assembly {
     library: TempLibrary,
     info: abi::AssemblyInfo<'static>,
     allocator: Arc<GarbageCollector>,
+    fuel_instrumented: bool,
 }
 
 impl Assembly {
@@ -117,7 +118,11 @@ impl Assembly {
     /// unloaded.
     ///
     /// See [`libloading::Library::new`] for more information.
-    pub unsafe fn load(library_path: &Path, gc: Arc<GarbageCollector>) -> Result<Self, LoadError> {
+    pub unsafe fn load(
+        library_path: &Path,
+        gc: Arc<GarbageCollector>,
+        fuel_counter: *mut i64,
+    ) -> Result<Self, LoadError> {
         let mut library = CodiraLibrary::new(library_path)?;
 
         let version = library.get_abi_version();
@@ -130,12 +135,14 @@ impl Assembly {
 
         let allocator_ptr = Arc::into_raw(gc.clone()) as *mut std::ffi::c_void;
         library.set_allocator_handle(allocator_ptr);
+        let fuel_instrumented = library.set_fuel_counter(fuel_counter);
 
         let assembly = Assembly {
             info: library.get_info(),
             library_path: library_path.to_path_buf(),
             library: library.into_inner(),
             allocator: gc,
+            fuel_instrumented,
         };
 
         Ok(assembly)
@@ -165,6 +172,12 @@ impl Assembly {
         } else {
             Err(failed_to_link)
         }
+    }
+
+    /// Returns true if the library was built with fuel instrumentation and
+    /// is metered by the runtime's fuel counter.
+    pub fn is_fuel_instrumented(&self) -> bool {
+        self.fuel_instrumented
     }
 
     /// Private implementation of runtime linking
@@ -362,6 +375,21 @@ impl Assembly {
         // Clone the dispatch table, such that we can roll back if linking fails
         let mut dispatch_table = dispatch_table.clone();
 
+        // The heap migrations this relink asks for, in the order the assemblies
+        // were linked. They are only *collected* while linking and applied once
+        // every assembly has linked.
+        //
+        // The two tables above are clones, so an error leaves the caller's
+        // originals untouched, and the new assemblies are simply dropped. The
+        // heap has no such copy: `map_memory` rewrites live objects in place.
+        // It used to run here, per assembly, before that assembly's functions
+        // were linked. An unresolved function then returned an error with the
+        // old code and the old tables still installed, but with every live
+        // object already rewritten to a layout that code was never compiled
+        // against. Nothing below needs the migrated heap -- linking only reads
+        // the tables -- so the migration can wait until nothing can fail.
+        let mut memory_mappings: Vec<(Arc<GarbageCollector>, Mapping)> = Vec::new();
+
         while let Some(mut entry) = assemblies_to_link.pop_front() {
             let (ref old_assembly, ref mut new_assembly) = entry;
 
@@ -410,12 +438,12 @@ impl Assembly {
             Assembly::link_all_types(&type_table, types_to_link)
                 .map_err(LinkError::MissingTypes)?;
 
-            // Memory map allocated object
+            // Work out how allocated objects have to be memory mapped. This only
+            // compares the old types to the new ones; the objects themselves are
+            // not touched until all assemblies have linked.
             if let Some((old_assembly, old_types)) = old_types {
                 let mapping = Mapping::new(&old_types, &new_types);
-                let _deleted_objects = old_assembly.allocator.map_memory(mapping);
-                // DISCUSSION: Do we need to maintain an assembly for the type
-                // LUT of allocated objects with deleted types?
+                memory_mappings.push((old_assembly.allocator.clone(), mapping));
             }
 
             // Remove the old assembly's functions from the dispatch table
@@ -452,6 +480,14 @@ impl Assembly {
 
             // Remove assemblies that no longer have dependencies
             dependencies.retain(|_, dependencies| !dependencies.is_empty());
+        }
+
+        // Every assembly linked, so from here on the relink cannot be refused:
+        // memory map allocated objects.
+        for (allocator, mapping) in memory_mappings {
+            let _deleted_objects = allocator.map_memory(mapping);
+            // DISCUSSION: Do we need to maintain an assembly for the type
+            // LUT of allocated objects with deleted types?
         }
 
         let mut newly_linked = HashMap::new();

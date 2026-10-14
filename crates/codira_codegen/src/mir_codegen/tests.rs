@@ -489,6 +489,34 @@ fn jit_runs_float_comparison_with_ordered_predicate() {
     );
 }
 
+/// `!=` is the one comparison that must be *unordered*: it is the
+/// negation of `==`, so it holds whenever `==` does not -- including when
+/// either side is NaN. `fold.rs` folds it that way, and the generated code
+/// has to agree with the folder or a constant and a run-time value of the
+/// same expression would differ.
+#[test]
+fn jit_runs_float_not_equal_as_unordered() {
+    // `fn(x: f64) -> f64 { if x != 2.5 { 1.0 } else { -1.0 } }`
+    let mut body = Body::new();
+    let x = body.push(OpKind::Arg(0), []);
+    let limit = body.push(OpKind::Const(Attr::float(2.5)), []);
+    let cond = body.push(OpKind::Ne, [x, limit]);
+    let mut then_body = Body::new();
+    then_body.push(OpKind::Const(Attr::float(1.0)), []);
+    let mut else_body = Body::new();
+    else_body.push(OpKind::Const(Attr::float(-1.0)), []);
+    body.push_with_regions(
+        OpKind::If,
+        [cond],
+        [Region::new(then_body), Region::new(else_body)],
+    );
+
+    assert_eq!(
+        run_f64_unary(&body, &[2.5, 3.0, f64::NAN]),
+        vec![-1.0, 1.0, 1.0]
+    );
+}
+
 #[test]
 fn jit_runs_float_negation() {
     // `fn(x: f64) -> f64 { -(x * 1.5) }` -- Neg on a float value is fneg.
@@ -839,4 +867,164 @@ fn checked_casts_are_refused_until_the_obligation_is_discharged() {
         super::lower_mir_body(&context, &builder, &module, function, &body, &[arg]).is_none(),
         "a Checked cast must be refused, not silently truncated"
     );
+}
+
+// ---- memory (codira_mir::mem) --------------------------------------------
+
+mod memory {
+    use codira_mir::{Attr, Body, MemOp, OpId, OpKind, Region, TypeId};
+    use inkwell::{context::Context, OptimizationLevel};
+
+    use super::{init_native_target, run_i64_unary};
+
+    fn int(body: &mut Body, v: i64) -> OpId {
+        body.push_typed(OpKind::Const(Attr::Int(v)), [], TypeId::I64)
+    }
+
+    fn mem(body: &mut Body, op: MemOp, operands: &[OpId], ty: TypeId) -> OpId {
+        body.push_typed(OpKind::Mem(op), operands.iter().copied(), ty)
+    }
+
+    #[test]
+    fn a_local_slot_round_trips_a_value() {
+        // slot = x; slot = slot * 3; return slot + 1
+        let mut body = Body::new();
+        let x = body.push_typed(OpKind::Arg(0), [], TypeId::I64);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(
+            &mut body,
+            MemOp::Alloc {
+                site: 0,
+                elem: TypeId::I64,
+                count: 1,
+            },
+            &[m0],
+            TypeId::MEM,
+        );
+        let p = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        let m2 = mem(&mut body, MemOp::Store, &[m1, p, x], TypeId::MEM);
+        let v = mem(&mut body, MemOp::Load, &[m2, p], TypeId::I64);
+        let three = int(&mut body, 3);
+        let tripled = body.push_typed(OpKind::Mul, [v, three], TypeId::I64);
+        let m3 = mem(&mut body, MemOp::Store, &[m2, p, tripled], TypeId::MEM);
+        let w = mem(&mut body, MemOp::Load, &[m3, p], TypeId::I64);
+        let one = int(&mut body, 1);
+        body.push_typed(OpKind::Add, [w, one], TypeId::I64);
+        assert_eq!(run_i64_unary(&body, &[0, 5, -7]), vec![1, 16, -20]);
+    }
+
+    /// `c[i] = a[i] + b[i]` for `i` in `0..n`, through pointer arguments,
+    /// returning `n`. The memory state threads through the loop as a
+    /// carried value and leaves it in the result tuple.
+    fn vector_add() -> Body {
+        let mut body = Body::new();
+        let n = body.push_typed(OpKind::Arg(3), [], TypeId::I64);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let start = int(&mut body, 0);
+        let step = int(&mut body, 1);
+
+        let mut lane = Body::new();
+        let i = lane.push_typed(OpKind::BlockArg(0), [], TypeId::I64);
+        let m = lane.push_typed(OpKind::BlockArg(1), [], TypeId::MEM);
+        let a = lane.push_typed(OpKind::Arg(0), [], TypeId::PTR);
+        let b = lane.push_typed(OpKind::Arg(1), [], TypeId::PTR);
+        let c = lane.push_typed(OpKind::Arg(2), [], TypeId::PTR);
+        let elem = MemOp::Offset { elem: TypeId::I64 };
+        let ai = mem(&mut lane, elem, &[a, i], TypeId::PTR);
+        let bi = mem(&mut lane, elem, &[b, i], TypeId::PTR);
+        let ci = mem(&mut lane, elem, &[c, i], TypeId::PTR);
+        let x = mem(&mut lane, MemOp::Load, &[m, ai], TypeId::I64);
+        let y = mem(&mut lane, MemOp::Load, &[m, bi], TypeId::I64);
+        let sum = lane.push_typed(OpKind::Add, [x, y], TypeId::I64);
+        let next = mem(&mut lane, MemOp::Store, &[m, ci, sum], TypeId::MEM);
+        lane.push(OpKind::Yield, [next]);
+
+        let done = body.push_with_regions_typed(
+            OpKind::For,
+            [start, n, step, m0],
+            [Region::with_args(2, lane)],
+            TypeId::MEM,
+        );
+        let out = body.push(OpKind::Tuple, [done, n]);
+        body.push_typed(OpKind::TupleGet(1), [out], TypeId::I64);
+        body
+    }
+
+    #[test]
+    fn a_loop_adds_two_vectors_through_pointer_arguments() {
+        let body = vector_add();
+        codira_mir::verify_body(&body).unwrap();
+        codira_mir::check_types(&body).unwrap();
+        init_native_target();
+        let context = Context::create();
+        let module = context.create_module("mir_memory");
+        let builder = context.create_builder();
+        let ptr = context.ptr_type(inkwell::AddressSpace::default());
+        let i64_ty = context.i64_type();
+        let function = module.add_function(
+            "vadd",
+            i64_ty.fn_type(&[ptr.into(), ptr.into(), ptr.into(), i64_ty.into()], false),
+            None,
+        );
+        let entry = context.append_basic_block(function, "entry");
+        builder.position_at_end(entry);
+        let args: Vec<_> = function.get_param_iter().collect();
+        let result =
+            super::super::lower_mir_body(&context, &builder, &module, function, &body, &args)
+                .expect("vector add lowers");
+        builder.build_return(Some(&result)).unwrap();
+        assert!(function.verify(true));
+
+        let engine = module
+            .create_jit_execution_engine(OptimizationLevel::None)
+            .unwrap();
+        type VAdd = unsafe extern "C" fn(*const i64, *const i64, *mut i64, i64) -> i64;
+        let vadd: inkwell::execution_engine::JitFunction<'_, VAdd> =
+            unsafe { engine.get_function("vadd") }.unwrap();
+        let a: Vec<i64> = (0..100).collect();
+        let b: Vec<i64> = (0..100).map(|v| v * 1000).collect();
+        let mut c = vec![-1i64; 101];
+        let n = unsafe { vadd.call(a.as_ptr(), b.as_ptr(), c.as_mut_ptr(), 100) };
+        assert_eq!(n, 100);
+        for i in 0..100 {
+            assert_eq!(c[i], a[i] + b[i]);
+        }
+        // Nothing past n was written.
+        assert_eq!(c[100], -1);
+    }
+
+    #[test]
+    fn a_body_that_breaks_the_memory_rules_is_not_lowered() {
+        // Two stores from one state: refused, not emitted in some order.
+        let mut body = Body::new();
+        let x = body.push_typed(OpKind::Arg(0), [], TypeId::I64);
+        let m0 = mem(&mut body, MemOp::Entry, &[], TypeId::MEM);
+        let m1 = mem(
+            &mut body,
+            MemOp::Alloc {
+                site: 0,
+                elem: TypeId::I64,
+                count: 1,
+            },
+            &[m0],
+            TypeId::MEM,
+        );
+        let p = mem(&mut body, MemOp::Addr, &[m1], TypeId::PTR);
+        mem(&mut body, MemOp::Store, &[m1, p, x], TypeId::MEM);
+        let m3 = mem(&mut body, MemOp::Store, &[m1, p, x], TypeId::MEM);
+        mem(&mut body, MemOp::Load, &[m3, p], TypeId::I64);
+        assert!(codira_mir::verify_body(&body).is_err());
+
+        let context = Context::create();
+        let module = context.create_module("refused");
+        let builder = context.create_builder();
+        let i64_ty = context.i64_type();
+        let function = module.add_function("f", i64_ty.fn_type(&[i64_ty.into()], false), None);
+        builder.position_at_end(context.append_basic_block(function, "entry"));
+        let arg = function.get_nth_param(0).unwrap();
+        assert!(
+            super::super::lower_mir_body(&context, &builder, &module, function, &body, &[arg])
+                .is_none()
+        );
+    }
 }

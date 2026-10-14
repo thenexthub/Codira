@@ -8,7 +8,9 @@
 //! `Driver` is a stateful compiler frontend that enables incremental
 //! compilation by retaining state from previous compilation.
 
-use codira_codegen::{AssemblyIr, CodeGenDatabase, ModuleGroup, TargetAssembly};
+use codira_codegen::{
+    AssemblyIr, CodeGenDatabase, EidosOptions, ModuleGroup, ModuleGroupId, TargetAssembly,
+};
 use codira_hir::{AstDatabase, DiagnosticSink, Module};
 use codira_hir_input::{FileId, PackageSet, SourceDatabase, SourceRoot, SourceRootId};
 use codira_paths::RelativePathBuf;
@@ -22,11 +24,14 @@ mod config;
 mod display_color;
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     convert::TryInto,
     io::Cursor,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -48,6 +53,92 @@ pub use self::{config::Config, display_color::DisplayColor};
 use crate::diagnostics_snippets::{emit_hir_diagnostic, emit_syntax_error};
 
 pub const WORKSPACE: SourceRootId = SourceRootId(0);
+
+/// Which compiler phase produced a diagnostic.
+///
+/// Worth distinguishing because the two say different things about the
+/// compiler: a syntax error is a parser that cannot read the language,
+/// while a semantic error is a parser that could and a type system that
+/// then objected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DiagnosticKind {
+    Syntax,
+    Semantic,
+}
+
+impl std::fmt::Display for DiagnosticKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagnosticKind::Syntax => f.write_str("syntax"),
+            DiagnosticKind::Semantic => f.write_str("semantic"),
+        }
+    }
+}
+
+/// A single diagnostic, reduced to what a tool needs to report or compare it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckDiagnostic {
+    pub kind: DiagnosticKind,
+    /// 1-based line number, as a human would cite it.
+    pub line: u32,
+    pub message: String,
+}
+
+/// Aggregate counts produced by a single diagnostic pass.
+///
+/// Exists so a caller that wants both a human-rendered report and the
+/// summary counts derived from it does not have to walk every module's
+/// diagnostics twice to get them -- see `Driver::emit_diagnostics_with_counts`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DiagnosticCounts {
+    pub total_files: usize,
+    pub clean_files: usize,
+    pub syntax: usize,
+    pub semantic: usize,
+}
+
+/// What `Driver::sync_source_directory` found to be different on disk.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SyncSummary {
+    /// Files on disk the driver did not know about.
+    pub added: usize,
+    /// Files whose contents differ from what the driver last saw.
+    pub updated: usize,
+    /// Files the driver knew about that are no longer on disk.
+    pub removed: usize,
+}
+
+impl SyncSummary {
+    /// The number of files that changed in any way.
+    pub fn total(&self) -> usize {
+        self.added + self.updated + self.removed
+    }
+
+    /// Whether the driver already matched the disk.
+    pub fn is_unchanged(&self) -> bool {
+        self.total() == 0
+    }
+}
+
+/// Every diagnostic belonging to one source file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileDiagnostics {
+    /// Path relative to the checked source directory, using `/` separators.
+    pub relative_path: String,
+    pub diagnostics: Vec<CheckDiagnostic>,
+}
+
+impl FileDiagnostics {
+    /// Whether this file is free of diagnostics.
+    pub fn is_clean(&self) -> bool {
+        self.diagnostics.is_empty()
+    }
+
+    /// The number of diagnostics of a given kind.
+    pub fn count_of(&self, kind: DiagnosticKind) -> usize {
+        self.diagnostics.iter().filter(|d| d.kind == kind).count()
+    }
+}
 
 pub struct Driver {
     db: CompilerDatabase,
@@ -133,10 +224,29 @@ impl Driver {
 
         // Determine output directory
         let output_dir = ensure_package_output_dir(&package, &config)
-            .map_err(|e| anyhow::anyhow!("could not create package output directory: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("could not create package output directory: {e}"))?;
+
+        let native_output_dir = output_dir.join("native");
+        let target = config.target.clone();
 
         // Construct the driver
         let mut driver = Driver::with_config(config, output_dir);
+        driver.apply_eidos_settings(package.manifest().eidos());
+
+        // Compile the package's C, C++ and assembly, if it has any. This
+        // happens once, when the package is loaded: a watch or a daemon
+        // session does not see a change to a native source until the
+        // package is loaded again.
+        let native = package.manifest().native();
+        if !native.is_empty() {
+            let inputs = crate::native_build::compile_native_sources(
+                package.root(),
+                native,
+                &target,
+                &native_output_dir,
+            )?;
+            driver.db.set_native_inputs(Arc::new(inputs));
+        }
 
         // Iterate over all files in the source directory of the package and store their
         // information in the database
@@ -175,6 +285,108 @@ impl Driver {
         driver.db.set_packages(Arc::new(package_set));
 
         Ok((package, driver))
+    }
+
+    /// Constructs a driver over every `.code` file under `source_directory`,
+    /// with no manifest involved.
+    ///
+    /// `with_package_path` is the build path: it needs a `codira.toml` because
+    /// it is going to *write* a `.codiralib`, and the manifest is what names
+    /// it. Checking writes nothing, so requiring a manifest would only mean
+    /// that a directory of sources -- the standard library being the case
+    /// that matters -- could not be type-checked at all without first being
+    /// dressed up as a package it is not.
+    pub fn with_source_directory<P: AsRef<Path>>(
+        source_directory: P,
+        config: Config,
+    ) -> Result<Driver, anyhow::Error> {
+        let source_directory = source_directory.as_ref();
+        if !source_directory.is_dir() {
+            anyhow::bail!(
+                "'{}' is not a directory of Codira sources",
+                source_directory.display()
+            );
+        }
+
+        // Checking produces no artifacts, so the output directory is never
+        // written to; it only has to be a path the driver can hold.
+        let out_dir = config
+            .out_dir
+            .clone()
+            .unwrap_or_else(|| source_directory.to_path_buf());
+        let mut driver = Driver::with_config(config, out_dir);
+
+        for source_file_path in iter_source_files(source_directory) {
+            let relative_path = compute_source_relative_path(source_directory, &source_file_path)?;
+
+            let file_contents = std::fs::read_to_string(&source_file_path).map_err(|e| {
+                anyhow::anyhow!(
+                    "could not read contents of '{}': {}",
+                    source_file_path.display(),
+                    e
+                )
+            })?;
+
+            let file_id = driver.alloc_file_id(&relative_path)?;
+            driver.db.set_file_text(file_id, Arc::from(file_contents));
+            driver.db.set_file_source_root(file_id, WORKSPACE);
+            driver
+                .source_root
+                .insert_file(file_id, relative_path.clone());
+        }
+
+        driver
+            .db
+            .set_source_root(WORKSPACE, Arc::new(driver.source_root.clone()));
+
+        let mut package_set = PackageSet::default();
+        package_set.add_package(WORKSPACE);
+        driver.db.set_packages(Arc::new(package_set));
+
+        Ok(driver)
+    }
+}
+
+impl Driver {
+    /// Applies a package's `[eidos]` table on top of the build mode the
+    /// driver was configured with. Keys the table leaves out keep the
+    /// compiler's defaults.
+    ///
+    /// Only an actual change is written: the options are a salsa input,
+    /// and setting one -- even to the value it already has -- invalidates
+    /// everything compiled from it.
+    pub fn apply_eidos_settings(&mut self, settings: &codira_project::EidosSettings) {
+        let current = self.db.eidos_options();
+        let defaults = EidosOptions::default();
+        let options = EidosOptions {
+            mode: current.mode,
+            max_egraph_nodes_per_region: settings
+                .max_egraph_nodes_per_region
+                .unwrap_or(defaults.max_egraph_nodes_per_region),
+            max_egraph_iterations: settings
+                .max_egraph_iterations
+                .unwrap_or(defaults.max_egraph_iterations),
+            exact_extraction_budget: settings
+                .exact_extraction_budget
+                .unwrap_or(defaults.exact_extraction_budget),
+        };
+        if options != current {
+            self.db.set_eidos_options(options);
+        }
+    }
+
+    /// Turns fuel instrumentation on or off for the code this driver
+    /// generates (`codira build --fuel`): a counter decrement at every
+    /// function entry and loop back-edge, checked against zero.
+    pub fn set_fuel_instrumentation(&mut self, enabled: bool) {
+        if self.db.fuel_instrumentation() != enabled {
+            self.db.set_fuel_instrumentation(enabled);
+        }
+    }
+
+    /// The build mode and e-graph bounds this driver compiles with.
+    pub fn eidos_options(&self) -> EidosOptions {
+        self.db.eidos_options()
     }
 }
 
@@ -289,6 +501,134 @@ impl Driver {
         Ok(has_error)
     }
 
+    /// Renders every diagnostic like `emit_diagnostics`, and additionally
+    /// returns the counts a summary line needs.
+    ///
+    /// A caller that wants both pretty output and a "N of M files clean"
+    /// summary previously got that by calling `collect_diagnostics` (a full
+    /// structured pass) *and* `emit_diagnostics` (a full rendering pass) --
+    /// each one independently re-running every module's diagnostic
+    /// validators, since only `infer()` itself is salsa-memoized and the
+    /// validators that turn its result into diagnostics are not. On this
+    /// repository's own standard library (77 files, ~3000 diagnostics) that
+    /// second pass measured as the single largest phase in `codira check`,
+    /// ahead of type inference. This does the walk once.
+    pub fn emit_diagnostics_with_counts(
+        &self,
+        writer: &mut dyn std::io::Write,
+        display_color: DisplayColor,
+    ) -> Result<DiagnosticCounts, anyhow::Error> {
+        let emit_colors = display_color.should_enable();
+        let mut counts = DiagnosticCounts::default();
+
+        for package in codira_hir::Package::all(&self.db) {
+            for module in package.modules(&self.db) {
+                let Some(file_id) = module.file_id(&self.db) else {
+                    continue;
+                };
+                counts.total_files += 1;
+
+                let parse = self.db.parse(file_id);
+                let source_code = self.db.file_text(file_id);
+                let relative_file_path = self.db.file_relative_path(file_id);
+                let line_index = self.db.line_index(file_id);
+
+                let mut file_has_diagnostic = false;
+
+                for syntax_error in parse.errors().iter() {
+                    emit_syntax_error(
+                        syntax_error,
+                        relative_file_path.as_str(),
+                        &source_code,
+                        &line_index,
+                        emit_colors,
+                        writer,
+                    )?;
+                    counts.syntax += 1;
+                    file_has_diagnostic = true;
+                }
+
+                let mut error = None;
+                module.diagnostics(
+                    &self.db,
+                    &mut DiagnosticSink::new(|d| {
+                        counts.semantic += 1;
+                        file_has_diagnostic = true;
+                        if let Err(e) =
+                            emit_hir_diagnostic(d, &self.db, file_id, emit_colors, writer)
+                        {
+                            error = Some(e);
+                        }
+                    }),
+                );
+                if let Some(e) = error {
+                    return Err(e.into());
+                }
+
+                if !file_has_diagnostic {
+                    counts.clean_files += 1;
+                }
+            }
+        }
+
+        Ok(counts)
+    }
+
+    /// Collects every diagnostic in the database as structured data, one
+    /// entry per source file, sorted by path.
+    ///
+    /// `emit_diagnostics` renders directly to a writer, which is right for a
+    /// terminal and useless to anything that needs to *count* or *compare*
+    /// diagnostics -- a ratchet test, a CI gate, an IDE. Those callers would
+    /// otherwise have to scrape rendered snippets, so they get the data
+    /// before it becomes text.
+    pub fn collect_diagnostics(&self) -> Vec<FileDiagnostics> {
+        let mut per_file: Vec<FileDiagnostics> = Vec::new();
+
+        for package in codira_hir::Package::all(&self.db) {
+            for module in package.modules(&self.db) {
+                let Some(file_id) = module.file_id(&self.db) else {
+                    continue;
+                };
+
+                let parse = self.db.parse(file_id);
+                let line_index = self.db.line_index(file_id);
+                let relative_path = self.db.file_relative_path(file_id).to_string();
+
+                let mut diagnostics: Vec<CheckDiagnostic> = parse
+                    .errors()
+                    .iter()
+                    .map(|syntax_error| CheckDiagnostic {
+                        kind: DiagnosticKind::Syntax,
+                        line: line_index.line_col(syntax_error.location().offset()).line + 1,
+                        message: syntax_error.to_string(),
+                    })
+                    .collect();
+
+                module.diagnostics(
+                    &self.db,
+                    &mut DiagnosticSink::new(|d| {
+                        diagnostics.push(CheckDiagnostic {
+                            kind: DiagnosticKind::Semantic,
+                            line: line_index.line_col(d.highlight_range().start()).line + 1,
+                            message: d.message(),
+                        });
+                    }),
+                );
+
+                diagnostics.sort_by(|a, b| a.line.cmp(&b.line).then(a.message.cmp(&b.message)));
+
+                per_file.push(FileDiagnostics {
+                    relative_path,
+                    diagnostics,
+                });
+            }
+        }
+
+        per_file.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+        per_file
+    }
+
     /// Returns all diagnostics as a human readable string
     pub fn emit_diagnostics_to_string(
         &self,
@@ -297,10 +637,7 @@ impl Driver {
         let mut compiler_errors: Vec<u8> = Vec::new();
         if self.emit_diagnostics(&mut Cursor::new(&mut compiler_errors), display_color)? {
             Ok(Some(String::from_utf8(compiler_errors).map_err(|e| {
-                anyhow::anyhow!(
-                    "could not convert compiler diagnostics to valid UTF8: {}",
-                    e
-                )
+                anyhow::anyhow!("could not convert compiler diagnostics to valid UTF8: {e}")
             })?))
         } else {
             Ok(None)
@@ -363,6 +700,16 @@ impl Driver {
     pub fn write_all_assemblies(&mut self, force: bool) -> Result<(), anyhow::Error> {
         let _lock = self.acquire_filesystem_output_lock()?;
 
+        // `build_partition` gives every module its own independent
+        // `ModuleGroup` (own LLVM context, own output file, no shared
+        // state), so their `target_assembly`/`assembly_ir` queries can be
+        // computed concurrently. Warm them all before the loop below so
+        // that loop -- which must stay serial, since it does file I/O and
+        // updates `module_to_temp_assembly_path` in a fixed order -- pays
+        // for at most one group's codegen at a time (cache hit) instead of
+        // the sum of every group's codegen (cache miss, one after another).
+        self.warm_assemblies_in_parallel();
+
         // Create a copy of all current files
         for package in codira_hir::Package::all(&self.db) {
             for module in package.modules(&self.db) {
@@ -375,6 +722,62 @@ impl Driver {
         }
 
         Ok(())
+    }
+
+    /// Pre-computes every module group's `target_assembly`/`assembly_ir`
+    /// query on a pool of worker threads, so the serial write loop in
+    /// `write_all_assemblies` finds a warm Salsa cache waiting for it.
+    ///
+    /// Each worker gets its own `db.snapshot()`: a read-only handle onto the
+    /// same revision, backed by the same underlying query storage, so a
+    /// value computed through a snapshot is visible to `self.db` afterward
+    /// exactly as if `self.db` had computed it directly. Workers claim
+    /// groups one at a time from a shared atomic counter rather than a
+    /// fixed slice per thread, because module sizes in a real package are
+    /// wildly uneven -- a static split would leave threads that drew small
+    /// modules idle while one thread is still working through the largest.
+    ///
+    /// This is sound only because nothing reachable from `CodeGenDatabase`'s
+    /// query storage is un-`Send` anymore: see `codira_codegen::db`'s
+    /// `build_target_machine`, which is what made `CompilerDatabase`
+    /// eligible for `ParallelDatabase` at all.
+    fn warm_assemblies_in_parallel(&self) {
+        use codira_hir::salsa::ParallelDatabase;
+
+        let module_partition = self.db.module_partition();
+        let group_ids: Vec<ModuleGroupId> = module_partition.iter().map(|(id, _)| id).collect();
+
+        let num_threads = std::thread::available_parallelism()
+            .map_or(1, std::num::NonZeroUsize::get)
+            .min(group_ids.len());
+
+        // Nothing to gain from spinning up threads for one group, or fewer
+        // groups than there are cores to run them on.
+        if num_threads <= 1 {
+            return;
+        }
+
+        let next_index = AtomicUsize::new(0);
+        let emit_ir = self.emit_ir;
+
+        std::thread::scope(|scope| {
+            for _ in 0..num_threads {
+                let db = self.db.snapshot();
+                let group_ids = &group_ids;
+                let next_index = &next_index;
+                scope.spawn(move || loop {
+                    let idx = next_index.fetch_add(1, Ordering::Relaxed);
+                    let Some(&group_id) = group_ids.get(idx) else {
+                        break;
+                    };
+                    if emit_ir {
+                        let _ = db.assembly_ir(group_id);
+                    } else {
+                        let _ = db.target_assembly(group_id);
+                    }
+                });
+            }
+        });
     }
 
     /// Acquires a filesystem lock on the output directory. This ensures that
@@ -445,7 +848,7 @@ impl Driver {
         module: Module,
         force: bool,
     ) -> Result<bool, anyhow::Error> {
-        log::trace!("writing target assembly for {:?}", module);
+        log::trace!("writing target assembly for {module:?}");
 
         // Find the module group to which the module belongs
         let module_partition = self.db.module_partition();
@@ -456,11 +859,17 @@ impl Driver {
 
         // Get the compiled assembly
         let assembly = self.db.target_assembly(module_group_id);
+        // A target can refuse code it cannot hold (WebAssembly refuses code
+        // that needs the Codira runtime); that is the build's error.
+        if let Some(reason) = assembly.error() {
+            anyhow::bail!("{reason}");
+        }
 
-        // Determine the filename of the group
+        // Determine the filename of the group (`.codiralib`, or `.wasm` for
+        // a WebAssembly target)
         let assembly_path = self
             .path_for_module_group(module_group)
-            .with_extension(TargetAssembly::EXTENSION);
+            .with_extension(assembly.extension());
 
         // Did the assembly change since last time?
         if !force
@@ -487,7 +896,7 @@ impl Driver {
     /// Generates IR for the specified module and stores it in the output
     /// location.
     fn write_assembly_ir(&mut self, module: codira_hir::Module) -> Result<(), anyhow::Error> {
-        log::trace!("writing assembly IR for {:?}", module);
+        log::trace!("writing assembly IR for {module:?}");
 
         // Find the module group to which the module belongs
         let module_partition = self.db.module_partition();
@@ -577,7 +986,13 @@ impl Driver {
 
         self.file_id_to_path
             .insert(file_id, to.as_ref().to_relative_path_buf());
-        self.path_to_file_id.remove(from.as_ref()); // FileId now belongs to to
+        // The `FileId` now belongs to `to`. Both halves of that have to be
+        // recorded: forgetting the old path alone leaves the file with no
+        // path that leads to it, and the next edit to it under its new
+        // name panics in `update_file` as "not part of the source root".
+        self.path_to_file_id.remove(from.as_ref());
+        self.path_to_file_id
+            .insert(to.as_ref().to_relative_path_buf(), file_id);
 
         self.source_root.remove_file(file_id);
         self.source_root
@@ -586,6 +1001,96 @@ impl Driver {
             .set_source_root(WORKSPACE, Arc::new(self.source_root.clone()));
 
         file_id
+    }
+}
+
+impl Driver {
+    /// Brings the driver in line with the source files under
+    /// `source_directory` as they are on disk right now: files that
+    /// appeared are added, files whose contents differ are updated, and
+    /// files that are gone are removed.
+    ///
+    /// This is what lets a driver outlive a single build without a file
+    /// watcher. A watcher reports changes eventually; a build that runs
+    /// before the event for the latest save arrives compiles the previous
+    /// contents and reports success. Reading the directory is the only
+    /// way to *know* what is in it, so that is what this does, every
+    /// time -- and afterwards the driver is in exactly the state a driver
+    /// freshly created from the directory would be in.
+    ///
+    /// Contents are compared, not timestamps. Modification times have
+    /// coarse and filesystem-dependent resolution, so two saves in quick
+    /// succession can share one, and tools that restore files restore
+    /// their times with them. A file is only handed to salsa when its
+    /// bytes actually differ, which keeps every query that depends on an
+    /// untouched file cached.
+    pub fn sync_source_directory(
+        &mut self,
+        source_directory: &Path,
+    ) -> Result<SyncSummary, anyhow::Error> {
+        let mut summary = SyncSummary::default();
+
+        // Files the driver currently considers part of the package. A
+        // path the driver has seen before but since removed still has a
+        // `FileId` reserved in `path_to_file_id`, so being known is not
+        // the same as being live.
+        let live: HashSet<FileId> = self.source_root.files().collect();
+        let mut on_disk: HashSet<FileId> = HashSet::with_capacity(live.len());
+
+        for source_file_path in iter_source_files(source_directory) {
+            let relative_path = compute_source_relative_path(source_directory, &source_file_path)?;
+
+            let contents = match std::fs::read_to_string(&source_file_path) {
+                Ok(contents) => contents,
+                // Deleted between listing the directory and reading the
+                // file: it is not on disk, which is all that matters.
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "could not read contents of '{}': {}",
+                        source_file_path.display(),
+                        e
+                    ))
+                }
+            };
+
+            let live_file_id = self
+                .path_to_file_id
+                .get(&relative_path)
+                .copied()
+                .filter(|file_id| live.contains(file_id));
+
+            let file_id = if let Some(file_id) = live_file_id {
+                if *self.db.file_text(file_id) != *contents {
+                    self.db.set_file_text(file_id, Arc::from(contents));
+                    summary.updated += 1;
+                }
+                file_id
+            } else {
+                let file_id = self.alloc_file_id(&relative_path)?;
+                self.db.set_file_text(file_id, Arc::from(contents));
+                self.db.set_file_source_root(file_id, WORKSPACE);
+                self.source_root.insert_file(file_id, relative_path);
+                summary.added += 1;
+                file_id
+            };
+            on_disk.insert(file_id);
+        }
+
+        for file_id in live.difference(&on_disk) {
+            self.source_root.remove_file(*file_id);
+            summary.removed += 1;
+        }
+
+        // The set of files is itself a salsa input. Setting it bumps the
+        // revision even when the value is identical, so it is only set
+        // when the set really changed.
+        if summary.added + summary.removed > 0 {
+            self.db
+                .set_source_root(WORKSPACE, Arc::new(self.source_root.clone()));
+        }
+
+        Ok(summary)
     }
 }
 

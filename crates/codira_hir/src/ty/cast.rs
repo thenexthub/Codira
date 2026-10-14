@@ -205,9 +205,10 @@ fn classify(ty: &Ty) -> Class {
         TyKind::InferenceVar(InferTy::Type(_)) | TyKind::Unknown | TyKind::TypeAlias(_) => {
             Class::Unknown
         }
-        TyKind::Struct(_)
+        TyKind::Struct(..)
         | TyKind::Tuple(..)
         | TyKind::Array(_)
+        | TyKind::Channel(_)
         | TyKind::FnDef(..)
         // A generic parameter is not a numeric type *here*, whatever it is
         // instantiated with later. `Other` rejects the cast, which is the
@@ -215,6 +216,11 @@ fn classify(ty: &Ty) -> Class {
         // conversion until `T` is known, and silently permitting it would
         // mean choosing one arbitrarily.
         | TyKind::TypeParam(..)
+        // A string is not a number and casting one to an integer would have
+        // to mean something -- its address, its length, its first byte --
+        // that the language has not chosen. `Other` rejects it rather than
+        // picking.
+        | TyKind::Str
         | TyKind::Never => Class::Other,
     }
 }

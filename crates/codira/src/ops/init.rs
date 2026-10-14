@@ -62,8 +62,8 @@ version="0.1.0"
 
         write(
             main_file_path,
-            r#"public func main() -> f64 {
-    3.14159
+            r#"public func main() {
+    println("Hello, world!")
 }
 "#,
         )?;

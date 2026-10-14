@@ -33,3 +33,98 @@ intrinsics! {
     /// Note that the elements in the array are left uninitialized.
     pub fn new_array(type_handle: *const ffi::c_void, length: usize, alloc_handle: *mut ffi::c_void) -> *const *mut ffi::c_void;
 }
+
+runtime_functions! {
+    /// Writes `len` bytes of UTF-8 starting at `data` to standard output.
+    pub fn print_str(data: *const u8, len: usize) -> () = "codira.print_str";
+
+    /// Writes a signed integer in decimal.
+    pub fn print_i64(value: i64) -> () = "codira.print_i64";
+
+    /// Writes an unsigned integer in decimal.
+    pub fn print_u64(value: u64) -> () = "codira.print_u64";
+
+    /// Writes a 128-bit signed integer, passed as its low and high halves
+    /// because a 128-bit integer has no portable C calling convention.
+    pub fn print_i128(low: u64, high: u64) -> () = "codira.print_i128";
+
+    /// Writes a 128-bit unsigned integer, passed as its low and high halves.
+    pub fn print_u128(low: u64, high: u64) -> () = "codira.print_u128";
+
+    /// Writes an `f32` in its shortest round-trip form.
+    pub fn print_f32(value: f32) -> () = "codira.print_f32";
+
+    /// Writes an `f64` in its shortest round-trip form.
+    pub fn print_f64(value: f64) -> () = "codira.print_f64";
+
+    /// Writes `true` or `false`. Passed as a byte rather than an `i1`: the C
+    /// ABI only defines the low byte of a `bool` argument, and LLVM makes no
+    /// promise about the rest of the register for an `i1`.
+    pub fn print_bool(value: u8) -> () = "codira.print_bool";
+
+    /// Called by fuel-instrumented code when the fuel counter drops below
+    /// zero. The runtime ends the call (see `codira_runtime`); if a host's
+    /// handler returns, execution continues with the counter still negative.
+    pub fn fuel_exhausted() -> () = "codira.fuel_exhausted";
+}
+
+runtime_functions! {
+    /// Opens a `scope`: returns a handle that owns the scope's tasks and
+    /// channels.
+    pub fn scope_begin() -> usize = "codira.scope_begin";
+
+    /// Runs `entry(copy of args[..size])` as a task of `scope`.
+    pub fn scope_spawn(scope: usize, entry: usize, args: usize, size: usize) -> () = "codira.scope_spawn";
+
+    /// Waits for every task of `scope`, then frees its channels and the
+    /// scope itself.
+    pub fn scope_end(scope: usize) -> () = "codira.scope_end";
+
+    /// Creates a channel of `capacity` elements of `element_size` bytes,
+    /// owned by `scope`.
+    pub fn channel_new(scope: usize, capacity: usize, element_size: usize) -> usize = "codira.channel_new";
+
+    /// Sends the element at address `value`, waiting while the channel is full.
+    pub fn channel_send(channel: usize, value: usize) -> () = "codira.channel_send";
+
+    /// Receives the next element into address `out`, waiting while there is none.
+    pub fn channel_receive(channel: usize, out: usize) -> () = "codira.channel_receive";
+}
+
+/// Every runtime function `scope`, `spawn` and channels lower to, collected
+/// together like [`print_functions`].
+pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
+    [
+        &scope_begin,
+        &scope_spawn,
+        &scope_end,
+        &channel_new,
+        &channel_send,
+        &channel_receive,
+    ]
+}
+
+runtime_functions! {
+    /// Reports an out-of-range index into an array of length `len`, at
+    /// `file:line:column`, and terminates the program. Never returns. The
+    /// index travels as 64 bits plus its signedness, so `-1` reads as `-1`.
+    pub fn panic_index_out_of_bounds(index: u64, index_is_signed: u8, len: u64, file: *const u8, file_len: usize, line: u32, column: u32) -> () = "codira.panic_index_out_of_bounds";
+}
+
+/// Every runtime function a `print`/`println` call may need, collected
+/// together so the dispatch table has all of them whenever a module prints
+/// anything at all. Which ones a given call uses depends on its argument
+/// types; listing them all costs one pointer each and keeps the collection
+/// pass from having to repeat code generation's type dispatch.
+pub fn print_functions() -> [&'static dyn Intrinsic; 8] {
+    [
+        &print_str,
+        &print_i64,
+        &print_u64,
+        &print_i128,
+        &print_u128,
+        &print_f32,
+        &print_f64,
+        &print_bool,
+    ]
+}

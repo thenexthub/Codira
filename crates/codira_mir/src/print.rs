@@ -89,6 +89,14 @@ fn print_into(body: &Body, indent: usize, out: &mut String) {
                 print_bare_operands(&op.operands, &numbering, out);
                 out.push(')');
             }
+            OpKind::Mem(crate::MemOp::Alloc { site, elem, count }) => {
+                let _ = write!(out, "(site {site}, {} x {count})", elem_name(*elem));
+                print_operand_list(&op.operands, &numbering, out);
+            }
+            OpKind::Mem(crate::MemOp::Offset { elem }) => {
+                let _ = write!(out, "({})", elem_name(*elem));
+                print_operand_list(&op.operands, &numbering, out);
+            }
             _ => print_operand_list(&op.operands, &numbering, out),
         }
 
@@ -160,6 +168,16 @@ fn print_attr(attr: &Attr, out: &mut String) {
     }
 }
 
+/// A memory op's element type. Primitives print by name; a composite needs
+/// the `TypeStore` that interned it, which the printer does not have.
+fn elem_name(elem: crate::TypeId) -> String {
+    if elem.is_composite() {
+        "composite".to_string()
+    } else {
+        crate::TypeStore::new().display(elem)
+    }
+}
+
 fn op_name(kind: &OpKind) -> &'static str {
     match kind {
         OpKind::Const(_) => "core.const",
@@ -210,5 +228,13 @@ fn op_name(kind: &OpKind) -> &'static str {
         OpKind::While => "cf.while",
         OpKind::For => "cf.for",
         OpKind::Yield => "cf.yield",
+        OpKind::Mem(mem) => match mem {
+            crate::MemOp::Entry => "mem.entry",
+            crate::MemOp::Alloc { .. } => "mem.alloc",
+            crate::MemOp::Addr => "mem.addr",
+            crate::MemOp::Load => "mem.load",
+            crate::MemOp::Store => "mem.store",
+            crate::MemOp::Offset { .. } => "mem.offset",
+        },
     }
 }

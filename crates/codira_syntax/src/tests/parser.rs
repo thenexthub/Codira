@@ -118,6 +118,24 @@ fn effects_and_handlers() {
 }
 
 #[test]
+fn scopes_spawns_and_channels() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func run(ch: Channel[i32]) {
+            scope {
+                spawn work(1)
+                ch <- 2
+                let x = <-ch
+            }
+            if scope { 1 }
+            let scope = 3
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn attributes_and_extern_blocks() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"
@@ -1492,4 +1510,207 @@ fn indexing_then_method_call_stays_indexing() {
         .first_child()
         .expect("a method call has a receiver");
     assert_eq!(receiver.kind(), SyntaxKind::INDEX_EXPR);
+}
+
+/// Contract clauses: `requires`/`ensures` between a signature and its body,
+/// `invariant`/`decreases` between a loop header and its body, and `ghost`
+/// before `let`. All five are contextual -- the same words stay usable as
+/// ordinary names everywhere else.
+#[test]
+fn contract_clauses_parse_into_their_own_nodes() {
+    let parse = SourceFile::parse(
+        r#"
+    func div(a: i64, b: i64) -> i64
+        requires b != 0
+        requires a >= 0
+        ensures result <= a
+    {
+        ghost let start = a;
+        var i = 0;
+        while i < 10 invariant i >= 0 invariant i <= 10 decreases 10 - i {
+            i += 1;
+        }
+        loop invariant i >= 0 {
+            break;
+        }
+        a / b
+    }
+    func names_stay_names(requires: i64, ensures: i64) -> i64 {
+        let invariant = requires;
+        let decreases = ensures;
+        let ghost = invariant + decreases;
+        ghost
+    }
+    "#,
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    let file = parse.tree();
+
+    let funcs: Vec<ast::FunctionDef> = file
+        .syntax()
+        .descendants()
+        .filter_map(ast::FunctionDef::cast)
+        .collect();
+    let div = &funcs[0];
+    let requires: Vec<String> = div
+        .requires_clauses()
+        .map(|c| c.expr().unwrap().syntax().text().to_string())
+        .collect();
+    assert_eq!(requires, ["b != 0", "a >= 0"]);
+    let ensures: Vec<String> = div
+        .ensures_clauses()
+        .map(|c| c.expr().unwrap().syntax().text().to_string())
+        .collect();
+    assert_eq!(ensures, ["result <= a"]);
+    assert!(
+        div.body().is_some(),
+        "the clauses must not swallow the body"
+    );
+
+    let lets: Vec<ast::LetStmt> = div
+        .syntax()
+        .descendants()
+        .filter_map(ast::LetStmt::cast)
+        .collect();
+    assert!(lets[0].is_ghost());
+    assert!(!lets[1].is_ghost());
+
+    let while_expr = div
+        .syntax()
+        .descendants()
+        .find_map(ast::WhileExpr::cast)
+        .unwrap();
+    let invariants: Vec<String> = while_expr
+        .invariant_clauses()
+        .map(|c| c.expr().unwrap().syntax().text().to_string())
+        .collect();
+    assert_eq!(invariants, ["i >= 0", "i <= 10"]);
+    assert_eq!(
+        while_expr
+            .decreases_clause()
+            .and_then(|d| d.expr())
+            .unwrap()
+            .syntax()
+            .text()
+            .to_string(),
+        "10 - i"
+    );
+    assert_eq!(
+        while_expr
+            .condition()
+            .and_then(|c| c.expr())
+            .unwrap()
+            .syntax()
+            .text()
+            .to_string(),
+        "i < 10"
+    );
+
+    let loop_expr = div
+        .syntax()
+        .descendants()
+        .find_map(ast::LoopExpr::cast)
+        .unwrap();
+    assert_eq!(loop_expr.invariant_clauses().count(), 1);
+    assert!(loop_expr.decreases_clause().is_none());
+
+    // The second function uses every contract word as a plain name.
+    let plain = &funcs[1];
+    assert_eq!(plain.requires_clauses().count(), 0);
+    assert!(plain
+        .syntax()
+        .descendants()
+        .filter_map(ast::LetStmt::cast)
+        .all(|l| !l.is_ghost()));
+}
+
+/// `secret` is a type qualifier only where a type follows, and `oblivious`
+/// a modifier only before `func`; both stay ordinary names elsewhere.
+#[test]
+fn secret_and_oblivious_are_contextual() {
+    let parse = SourceFile::parse(
+        r#"
+    oblivious func f(key: secret u64, n: u64) -> secret u64 {
+        let k: secret u64 = key;
+        k
+    }
+    func g(secret: u64, oblivious: u64) -> u64 { secret + oblivious }
+    "#,
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    let funcs: Vec<ast::FunctionDef> = parse
+        .tree()
+        .syntax()
+        .descendants()
+        .filter_map(ast::FunctionDef::cast)
+        .collect();
+    assert!(funcs[0].is_oblivious());
+    assert!(!funcs[1].is_oblivious());
+    let secret_types = parse
+        .tree()
+        .syntax()
+        .descendants()
+        .filter(|n| n.kind() == SyntaxKind::SECRET_TYPE)
+        .count();
+    assert_eq!(secret_types, 3);
+}
+
+/// `for x in a..b { .. }`, `a..=b`, `for (i, v) in xs`, and `continue`.
+#[test]
+fn for_loops_ranges_and_continue() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func f(xs: [i32], n: i32) {
+            for i in 0..10 {
+                if i == 3 { continue }
+                continue;
+            }
+            for i in 1..=n + 1 {}
+            for (a, _) in xs {}
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+/// A range binds looser than arithmetic and comparison, and its second `.`
+/// never lexes as a tuple index (`0..10` is not `0.` then `.10`).
+#[test]
+fn range_precedence_and_lexing() {
+    let expr = only_initializer("0..10");
+    assert_eq!(expr.syntax().kind(), SyntaxKind::RANGE_EXPR);
+    let ast::ExprKind::RangeExpr(range) = expr.kind() else {
+        panic!("expected a range")
+    };
+    assert!(!range.is_inclusive());
+    assert_eq!(range.end().unwrap().syntax().text().to_string(), "10");
+
+    let expr = only_initializer("a + 1..=b * 2");
+    let ast::ExprKind::RangeExpr(range) = expr.kind() else {
+        panic!("expected a range")
+    };
+    assert!(range.is_inclusive());
+    assert_eq!(range.start().unwrap().syntax().kind(), SyntaxKind::BIN_EXPR);
+    assert_eq!(range.end().unwrap().syntax().kind(), SyntaxKind::BIN_EXPR);
+
+    // A tuple index still lexes as one.
+    let expr = only_initializer("t.0");
+    assert_eq!(expr.syntax().kind(), SyntaxKind::FIELD_EXPR);
+}
+
+/// `continue` is contextual: as a binding or in an expression it is an
+/// ordinary identifier.
+#[test]
+fn continue_is_still_an_identifier() {
+    let parse = SourceFile::parse(
+        "func f() -> i32 {
+    let continue = 1
+    continue + 1
+}",
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    assert!(!parse
+        .syntax_node()
+        .descendants()
+        .any(|n| n.kind() == SyntaxKind::CONTINUE_EXPR));
 }

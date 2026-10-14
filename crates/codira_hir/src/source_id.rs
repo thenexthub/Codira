@@ -78,6 +78,7 @@ register_ast_id_node! {
         Extend,
         TypeAliasDef,
         ConstDef,
+        EffectDef,
     Param, SelfParam
 }
 

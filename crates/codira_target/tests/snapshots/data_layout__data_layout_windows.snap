@@ -1,8 +1,7 @@
 ---
 source: crates/codira_target/tests/data_layout.rs
-assertion_line: 9
 expression: layout
-
+snapshot_kind: text
 ---
 TargetDataLayout {
     endian: Little,
@@ -48,10 +47,10 @@ TargetDataLayout {
     },
     i128_align: AbiAndPrefAlign {
         abi: Align {
-            pow2: 3,
+            pow2: 4,
         },
         pref: Align {
-            pow2: 3,
+            pow2: 4,
         },
     },
     f32_align: AbiAndPrefAlign {

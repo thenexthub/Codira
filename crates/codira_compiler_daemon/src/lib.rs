@@ -3,7 +3,21 @@
 //! Date: August 6, 2026
 //!
 //! Functionality:
-//! - Part of the Codira compiler and runtime toolchain.
+//! - Compilers that stay alive between builds.
+//!
+//! Two of them live here. Watch mode (`compile_and_watch_manifest`) owns one
+//! package and rebuilds it whenever a source file changes. The build daemon
+//! (`server`, `client`) serves any number of packages to any number of
+//! `codira build --daemon` invocations over a loopback socket.
+//!
+//! Both exist for the same reason: most of what a one-shot build costs is
+//! not compiling. It is starting a process, initializing LLVM, and rebuilding
+//! a salsa database that the previous build had already filled in.
+pub mod client;
+pub mod protocol;
+pub mod server;
+pub mod state;
+
 use std::{
     io::stderr,
     path::Path,
@@ -91,7 +105,7 @@ pub fn compile_and_watch_manifest(
                     let from_relative_path = compute_source_relative_path(&source_directory, from)?;
                     let to_relative_path = compute_source_relative_path(&source_directory, to)?;
 
-                    log::info!("Renaming {} to {}", from_relative_path, to_relative_path,);
+                    log::info!("Renaming {from_relative_path} to {to_relative_path}",);
                     driver.rename(from_relative_path, to_relative_path);
                     recompile(&mut driver, display_color)?;
                 }
@@ -103,7 +117,7 @@ pub fn compile_and_watch_manifest(
                     for path in event.paths.iter().filter(|p| is_source_file(p)) {
                         // Simply remove the source file from the source root
                         let relative_path = compute_source_relative_path(&source_directory, path)?;
-                        log::info!("Removing {}", relative_path);
+                        log::info!("Removing {relative_path}");
                         // TODO: Remove assembly files if there are no files referencing it.
                         driver.remove_file(relative_path);
                         driver.emit_diagnostics(&mut stderr(), display_color)?;
@@ -113,7 +127,7 @@ pub fn compile_and_watch_manifest(
                     for path in event.paths.iter().filter(|p| is_source_file(p)) {
                         let relative_path = compute_source_relative_path(&source_directory, path)?;
                         let file_contents = std::fs::read_to_string(path)?;
-                        log::info!("Creating {}", relative_path);
+                        log::info!("Creating {relative_path}");
                         driver.add_file(relative_path, file_contents);
                         recompile(&mut driver, display_color)?;
                     }
@@ -122,7 +136,7 @@ pub fn compile_and_watch_manifest(
                     for path in event.paths.iter().filter(|p| is_source_file(p)) {
                         let relative_path = compute_source_relative_path(&source_directory, path)?;
                         let file_contents = std::fs::read_to_string(path)?;
-                        log::info!("Modifying {}", relative_path);
+                        log::info!("Modifying {relative_path}");
                         driver.update_file(relative_path, file_contents);
                         recompile(&mut driver, display_color)?;
                     }

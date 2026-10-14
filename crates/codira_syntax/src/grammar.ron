@@ -156,6 +156,34 @@ Grammar(
         "mut",
         "def",
         "data",
+        // Verification contracts (see `codira_hir`'s `verify` module):
+        // `requires`/`ensures` after a function signature, `invariant`/
+        // `decreases` after a `while` condition or `loop`, and `ghost`
+        // before a `let`. Each is promoted only in that position, so all
+        // five stay ordinary identifiers everywhere else.
+        "requires",
+        "ensures",
+        "invariant",
+        "decreases",
+        "ghost",
+        // Information flow (see `codira_hir`'s `verify::flow`): `secret` as a
+        // type qualifier, `oblivious` before `func`.
+        "secret",
+        "oblivious",
+        // `scope { .. }`: a structured-concurrency scope -- every task
+        // `spawn`ed inside it is joined before it is left. Promoted only
+        // when directly followed by `{` where a block may start, so `scope`
+        // stays an ordinary identifier everywhere else (`if scope { .. }`
+        // still tests a variable named `scope`).
+        "scope",
+        // Synthesis: `choose x where pred` (see `codira_hir`'s
+        // `verify::synth`). `??`, the other synthesis hole, is two `?`
+        // tokens and needs no keyword.
+        "choose",
+        // `continue`, promoted only where it stands alone as an expression
+        // (followed by `}`, `;`, a line break or the end of input), so a
+        // binding named `continue` is still an ordinary identifier.
+        "continue",
     ],
     literals: [
         "INT_NUMBER",
@@ -180,6 +208,10 @@ Grammar(
         "RET_TYPE",
         "VISIBILITY",
         "USES_CLAUSE",
+        "REQUIRES_CLAUSE",
+        "ENSURES_CLAUSE",
+        "INVARIANT_CLAUSE",
+        "DECREASES_CLAUSE",
 
         "PARAM_LIST",
         "PARAM",
@@ -222,6 +254,7 @@ Grammar(
         "NEVER_TYPE",
         "OPTIONAL_TYPE",
         "REFINEMENT_TYPE",
+        "SECRET_TYPE",
 
         "SUPERVISOR_DEF",
         "SUPERVISOR_ITEM_LIST",
@@ -247,6 +280,9 @@ Grammar(
         "WHILE_EXPR",
         "LOOP_EXPR",
         "BREAK_EXPR",
+        "FOR_EXPR",
+        "CONTINUE_EXPR",
+        "RANGE_EXPR",
         "ARRAY_EXPR",
         "TUPLE_EXPR",
         "CLOSURE_EXPR",
@@ -257,10 +293,13 @@ Grammar(
         "MATCH_ARM",
         "PERFORM_EXPR",
         "SPAWN_EXPR",
+        "SCOPE_EXPR",
         "HANDLE_EXPR",
         "HANDLER_ARM_LIST",
         "HANDLER_ARM",
         "TRY_EXPR",
+        "HOLE_EXPR",
+        "CHOOSE_EXPR",
 
         "TRANSFER_EXPR",
         "CHANNEL_RECV_EXPR",
@@ -320,7 +359,19 @@ Grammar(
                 "GenericParamsOwner",
             ],
             options: [ "ParamList", ["body", "BlockExpr"], "RetType", "UsesClause" ],
+            collections: [
+                ("requires_clauses", "RequiresClause"),
+                ("ensures_clauses", "EnsuresClause"),
+            ],
         ),
+        // `requires <expr>` / `ensures <expr>` -- a function contract clause.
+        // Inside `ensures`, `result` names the return value.
+        "RequiresClause": (options: ["Expr"]),
+        "EnsuresClause": (options: ["Expr"]),
+        // `invariant <expr>` / `decreases <expr>` -- a loop contract clause,
+        // written between a `while` condition (or `loop`) and the body.
+        "InvariantClause": (options: ["Expr"]),
+        "DecreasesClause": (options: ["Expr"]),
         "RetType": (options: ["TypeRef"]),
         "GenericParamList": (collections: [("generic_params", "GenericParam")]),
         "GenericParam": (
@@ -463,12 +514,15 @@ Grammar(
         ),
 
         "LoopExpr": (
-            traits: ["LoopBodyOwner"]
+            traits: ["LoopBodyOwner"],
+            options: [ "DecreasesClause" ],
+            collections: [ ("invariant_clauses", "InvariantClause") ],
         ),
 
         "WhileExpr": (
             traits: ["LoopBodyOwner"],
-            options: [ "Condition" ]
+            options: [ "Condition", "DecreasesClause" ],
+            collections: [ ("invariant_clauses", "InvariantClause") ],
         ),
 
         "PathExpr": (options: ["Path"]),
@@ -498,6 +552,16 @@ Grammar(
             options: [ "Condition" ]
         ),
         "BreakExpr": (options: ["Expr"]),
+        // `for pat in iterable { .. }`. The iterable is the first `Expr`
+        // child and the body the `BlockExpr` that follows it.
+        "ForExpr": (
+            traits: ["LoopBodyOwner"],
+            options: [ "Pat", ["iterable", "Expr"] ],
+        ),
+        "ContinueExpr": (),
+        // `a..b` (half-open) or `a..=b` (inclusive). The operands are read
+        // with `start`/`end` in `expr_extensions`, like `BinExpr`'s.
+        "RangeExpr": (),
         "ArrayExpr": (
             collections: [
                 [ "exprs", "Expr" ]
@@ -541,6 +605,9 @@ Grammar(
         "TransferExpr": (
             options: [ ["expr", "Expr"] ]
         ),
+        "ScopeExpr": (
+            options: [ ["body", "BlockExpr"] ]
+        ),
         "ChannelRecvExpr": (
             options: [ ["expr", "Expr"] ]
         ),
@@ -553,6 +620,15 @@ Grammar(
             options: [ "Path", "ParamList", ["body", "Expr"] ]
         ),
         "TryExpr": (options: ["Expr"]),
+        // `??` -- a hole `codira synth` fills with an expression proven to
+        // meet the function's contract.
+        "HoleExpr": (),
+        // `choose x where pred` -- a value `codira synth` replaces with an
+        // expression proven to satisfy `pred`.
+        "ChooseExpr": (
+            traits: ["NameOwner"],
+            options: [["predicate", "Expr"]],
+        ),
 
         "Expr": (
             enum: [
@@ -570,6 +646,9 @@ Grammar(
                 "WhileExpr",
                 "ReturnExpr",
                 "BreakExpr",
+                "ForExpr",
+                "ContinueExpr",
+                "RangeExpr",
                 "BlockExpr",
                 "ArrayExpr",
                 "TupleExpr",
@@ -580,11 +659,14 @@ Grammar(
                 "MatchExpr",
                 "PerformExpr",
                 "SpawnExpr",
+                "ScopeExpr",
                 "HandleExpr",
                 "TryExpr",
                 "TransferExpr",
                 "ChannelRecvExpr",
                 "ChannelSendExpr",
+                "HoleExpr",
+                "ChooseExpr",
             ]
         ),
 
@@ -623,6 +705,9 @@ Grammar(
         "NeverType": (),
         "OptionalType": (options: ["TypeRef"]),
         "RefinementType": (options: [["base", "TypeRef"], ["binder", "NameRef"], ["predicate", "Expr"]]),
+        // `secret T` -- the information-flow qualifier. Erases to `T`
+        // everywhere except the flow checker.
+        "SecretType": (options: ["TypeRef"]),
         "TypeRef": (
             enum: [
                 "PathType",
@@ -635,6 +720,7 @@ Grammar(
                 "NeverType",
                 "OptionalType",
                 "RefinementType",
+                "SecretType",
             ]
         ),
 

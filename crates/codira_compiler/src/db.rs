@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use codira_codegen::{CodeGenDatabase, CodeGenDatabaseStorage};
+use codira_codegen::{CodeGenDatabase, CodeGenDatabaseStorage, EidosOptions};
 use codira_hir::{salsa, HirDatabase};
 
 use crate::Config;
@@ -31,6 +31,8 @@ impl CompilerDatabase {
 
         // Set the initial configuration
         db.set_config(config);
+        db.set_fuel_instrumentation(false);
+        db.set_native_inputs(std::sync::Arc::default());
 
         db
     }
@@ -39,7 +41,28 @@ impl CompilerDatabase {
     pub fn set_config(&mut self, config: &Config) {
         self.set_target(config.target.clone());
         self.set_optimization_level(config.optimization_lvl);
+        // The bounds start at the compiler's defaults; a package's
+        // `[eidos]` table overrides them once its manifest is read
+        // (`Driver::with_package_path`).
+        self.set_eidos_options(EidosOptions::default().with_mode(config.mode));
     }
 }
 
 impl salsa::Database for CompilerDatabase {}
+
+/// Lets `Driver::write_all_assemblies` hand each module group its own
+/// read-only view of the database and compile it on its own thread.
+///
+/// Salsa's own requirement for this (`ParallelDatabase: Database + Send`,
+/// and every query's key/value types `Send` too -- see the trait's doc
+/// comment) is exactly what removing the memoized `Rc<TargetMachine>` from
+/// `CodeGenDatabase` was for: an `Rc` field anywhere in the query storage
+/// would have made this `impl` impossible to write, full stop, because it
+/// would have made `CompilerDatabase` itself not `Send`.
+impl codira_hir::salsa::ParallelDatabase for CompilerDatabase {
+    fn snapshot(&self) -> codira_hir::salsa::Snapshot<Self> {
+        codira_hir::salsa::Snapshot::new(CompilerDatabase {
+            storage: self.storage.snapshot(),
+        })
+    }
+}

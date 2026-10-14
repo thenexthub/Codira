@@ -87,6 +87,7 @@ pub(crate) fn symbol_kind(symbol_kind: SymbolKind) -> lsp_types::SymbolKind {
         SymbolKind::Module => lsp_types::SymbolKind::MODULE,
         SymbolKind::Method => lsp_types::SymbolKind::METHOD,
         SymbolKind::Extend => lsp_types::SymbolKind::OBJECT,
+        SymbolKind::Effect => lsp_types::SymbolKind::INTERFACE,
     }
 }
 
@@ -166,6 +167,7 @@ pub(crate) fn completion_item_kind(
             SymbolKind::Struct | SymbolKind::TypeAlias => lsp_types::CompletionItemKind::STRUCT,
             SymbolKind::Method => lsp_types::CompletionItemKind::METHOD,
             SymbolKind::Extend => lsp_types::CompletionItemKind::TEXT,
+            SymbolKind::Effect => lsp_types::CompletionItemKind::INTERFACE,
         },
         CompletionItemKind::Attribute => lsp_types::CompletionItemKind::ENUM_MEMBER,
     }

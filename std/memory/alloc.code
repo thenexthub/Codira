@@ -15,8 +15,8 @@
 //   aligned_free(addr, size, align) — synonym for deallocate
 // =============================================================================
 
-import std.builtin.types;
-import std.builtin.error;
+import root.builtin.types.*;
+import root.builtin.error.*;
 
 // =============================================================================
 // Allocator trait
@@ -31,7 +31,7 @@ public trait Allocator {
     func allocate(self, size: usize, align: usize) -> usize;
 
     // Deallocate a block previously allocated with the same size/align.
-    func deallocate(self, addr: usize, size: usize, align: usize) -> void;
+    func deallocate(self, addr: usize, size: usize, align: usize) ;
 
     // Resize a block.  May move it.  Returns the (possibly new) address.
     // If the block cannot be grown in place, a new block is allocated,
@@ -64,11 +64,18 @@ extend Layout {
 }
 
 // Create a layout for a single value of type T.
+//
+// `sizeof`/`alignof` need a value of type `T` to infer `T` from, and there
+// is none in scope here -- `of[T]()` is called precisely when the caller
+// has no `T` value yet (before allocating one). Left genuinely unresolved:
+// see `std/memory/pointer.code`'s note on why there is no honest way to
+// answer this without a language feature (explicit generic call syntax)
+// this compiler does not have yet.
 extend Layout {
     public func of[T]() -> Layout {
         return Layout {
-            size: __intrinsic_sizeof(),
-            align: __intrinsic_alignof(),
+            size: sizeof_of_pointee(),
+            align: alignof_of_pointee(),
         };
     }
 }
@@ -77,8 +84,8 @@ extend Layout {
 // Handles inter-element padding.
 extend Layout {
     public func array[T](count: usize) -> Layout {
-        let elem_size = __intrinsic_sizeof();
-        let elem_align = __intrinsic_alignof();
+        let elem_size = sizeof_of_pointee();
+        let elem_align = alignof_of_pointee();
         // Stride = size rounded up to alignment.
         let stride = (elem_size + elem_align - 1) & (0 - elem_align);
         return Layout {
@@ -151,7 +158,7 @@ extend DefaultAllocator {
 
 // Free a block.
 extend DefaultAllocator {
-    public func deallocate(self, addr: usize, size: usize, align: usize) -> void {
+    public func deallocate(self, addr: usize, size: usize, align: usize) {
         if addr == 0 {
             return;
         }
@@ -205,7 +212,7 @@ public func allocate(size: usize, align: usize) -> usize {
 }
 
 // Free a block.
-public func deallocate(addr: usize, size: usize, align: usize) -> void {
+public func deallocate(addr: usize, size: usize, align: usize) {
     _global_allocator.deallocate(addr, size, align);
 }
 
@@ -220,7 +227,7 @@ public func aligned_alloc(size: usize, align: usize) -> usize {
 }
 
 // Convenience alias.
-public func aligned_free(addr: usize, size: usize, align: usize) -> void {
+public func aligned_free(addr: usize, size: usize, align: usize) {
     deallocate(addr, size, align);
 }
 
@@ -239,13 +246,13 @@ public func alloc_array[T](count: usize) -> Pointer[T] {
 }
 
 // Free a single T allocation.
-public func free_one[T](ptr: Pointer[T]) -> void {
+public func free_one[T](ptr: Pointer[T]) {
     let layout = Layout.of();
     deallocate(ptr.address(), layout.size, layout.align);
 }
 
 // Free an array allocation.
-public func free_array[T](ptr: Pointer[T], count: usize) -> void {
+public func free_array[T](ptr: Pointer[T], count: usize) {
     let layout = Layout.array(count);
     deallocate(ptr.address(), layout.size, layout.align);
 }

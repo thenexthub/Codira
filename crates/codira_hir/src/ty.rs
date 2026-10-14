@@ -36,9 +36,16 @@ mod tests;
 /// A kind of type.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum TyKind {
-    /// An abstract datatype (structures, tuples, or enumerations)
+    /// A struct type, with the arguments its generic parameters were
+    /// instantiated with.
+    ///
+    /// The substitution is what makes `Box[i32]` and `Box[f64]` different
+    /// types. Without it they were the same `Ty`, so a field of type `T`
+    /// had no concrete type to be read as, and unifying the two succeeded.
+    /// It is empty for a non-generic struct, which is the common case.
+    ///
     /// TODO: Add enumerations
-    Struct(Struct),
+    Struct(Struct, Substitution),
 
     /// The primitive floating point type. Written as `float`.
     Float(FloatTy),
@@ -48,6 +55,14 @@ pub enum TyKind {
 
     /// The primitive boolean type. Written as `bool`.
     Bool,
+
+    /// The type of a string literal. Written as `str`.
+    ///
+    /// Static, immutable UTF-8 bytes in the program image, represented as an
+    /// address and a byte length. The length is carried rather than implied
+    /// by a terminator so that taking a length is not a scan, and so that a
+    /// literal containing a NUL byte is still one string.
+    Str,
 
     /// A tuple type. For example `(f32, f64, bool)`.
     Tuple(usize, Substitution),
@@ -78,6 +93,11 @@ pub enum TyKind {
 
     /// An dynamically sized array type
     Array(Ty),
+
+    /// `Channel[T]`: a bounded, blocking channel of `T` values between
+    /// tasks (see `expr::validator::tasks`). A runtime handle; its lifetime
+    /// is the `scope` that created it.
+    Channel(Ty),
 
     /// A bound generic type parameter: the `T` of `func map[T](..)` or
     /// `struct Box[T]`.
@@ -118,7 +138,7 @@ impl TyKind {
 impl HasVisibility for TyKind {
     fn visibility(&self, db: &dyn HirDatabase) -> Visibility {
         match self {
-            TyKind::Struct(strukt) => strukt.visibility(db),
+            TyKind::Struct(strukt, _) => strukt.visibility(db),
             TyKind::TypeAlias(type_alias) => type_alias.visibility(db),
             TyKind::FnDef(callable_def, _) => callable_def.visibility(db),
             _ => Visibility::Public,
@@ -149,15 +169,24 @@ impl Ty {
         TyKind::Tuple(0, Substitution::empty()).intern()
     }
 
-    /// Constructs a new struct type
+    /// Constructs a new struct type with no generic arguments applied.
+    ///
+    /// Only correct for a struct that has no generic parameters. An
+    /// instantiated generic struct is built by `Ty::struct_with_substitution`,
+    /// which is what the type lowerer uses once it has the arguments.
     pub fn struct_ty(strukt: Struct) -> Ty {
-        TyKind::Struct(strukt).intern()
+        TyKind::Struct(strukt, Substitution::empty()).intern()
+    }
+
+    /// Constructs a struct type with its generic parameters instantiated.
+    pub fn struct_with_substitution(strukt: Struct, substitution: Substitution) -> Ty {
+        TyKind::Struct(strukt, substitution).intern()
     }
 
     /// If this type represents a struct type, returns the type of the struct.
     pub fn as_struct(&self) -> Option<Struct> {
         match self.interned() {
-            TyKind::Struct(s) => Some(*s),
+            TyKind::Struct(s, _) => Some(*s),
             _ => None,
         }
     }
@@ -212,7 +241,7 @@ impl Ty {
     /// This name needs to be unique as it is used to generate a type's `Guid`.
     pub fn guid_string(&self, db: &dyn HirDatabase) -> Option<String> {
         match self.interned() {
-            &TyKind::Struct(s) => {
+            &TyKind::Struct(s, _) => {
                 let name = s.name(db).to_string();
 
                 Some(if s.data(db).memory_kind == StructMemoryKind::Gc {
@@ -238,9 +267,15 @@ impl Ty {
                 })
             }
             TyKind::Bool => Some("core::bool".to_string()),
+            // `str` is structural, like a tuple: there is one `str` type and
+            // its layout -- a pointer and a length -- is fixed by the
+            // compiler rather than by a declaration site, so the name is a
+            // constant.
+            TyKind::Str => Some("core::str".to_string()),
             TyKind::Float(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Int(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Array(ty) => Some(format!("[{}]", ty.display(db))),
+            TyKind::Channel(ty) => Some(format!("core::Channel[{}]", ty.guid_string(db)?)),
             // A tuple is a structural type: two tuples are the same type
             // exactly when their element types match, so the name is built
             // from the elements rather than from a declaration site. `()`
@@ -278,7 +313,9 @@ impl Ty {
     /// `u32`
     pub fn type_parameters(&self) -> Option<&Substitution> {
         match self.interned() {
-            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) => Some(substs),
+            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) | TyKind::Struct(_, substs) => {
+                Some(substs)
+            }
             _ => None,
         }
     }
@@ -288,7 +325,9 @@ impl Ty {
     /// `Option<u32>`, this returns the `u32`
     pub fn type_parameters_mut(&mut self) -> Option<&mut Substitution> {
         match self.interned_mut() {
-            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) => Some(substs),
+            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) | TyKind::Struct(_, substs) => {
+                Some(substs)
+            }
             _ => None,
         }
     }
@@ -296,9 +335,16 @@ impl Ty {
     /// Returns true if the other type has the same type constructor
     pub fn equals_ctor(&self, other: &Ty) -> bool {
         match (self.interned(), other.interned()) {
-            (TyKind::Struct(s1), TyKind::Struct(s2)) => s1 == s2,
-            (TyKind::Tuple(_, substs1), TyKind::Tuple(_, substs2)) => substs1 == substs2,
-            (TyKind::Array(_), TyKind::Array(_)) | (TyKind::Bool, TyKind::Bool) => true,
+            (TyKind::Struct(s1, _), TyKind::Struct(s2, _)) => s1 == s2,
+            // Arity only: the elements are the constructor's *arguments*,
+            // which the caller unifies one by one. Comparing them here made
+            // `(1, 2)` fail to unify with `(3, 4)` while both elements were
+            // still distinct integer variables -- so an array of tuples
+            // reported "expected `'0`" on its second element.
+            (TyKind::Tuple(arity1, _), TyKind::Tuple(arity2, _)) => arity1 == arity2,
+            (TyKind::Array(_), TyKind::Array(_))
+            | (TyKind::Channel(_), TyKind::Channel(_))
+            | (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
             (TyKind::Int(i1), TyKind::Int(i2)) => i1 == i2,
             (TyKind::FnDef(def, _), TyKind::FnDef(def2, _)) => def == def2,
@@ -405,10 +451,24 @@ impl FnSig {
 impl HirDisplay for Ty {
     fn hir_fmt(&self, f: &mut HirFormatter<'_, '_>) -> fmt::Result {
         match self.interned() {
-            TyKind::Struct(s) => write!(f, "{}", s.name(f.db)),
+            TyKind::Struct(s, substitution) => {
+                write!(f, "{}", s.name(f.db))?;
+                if substitution.is_empty() {
+                    return Ok(());
+                }
+                write!(f, "[")?;
+                for (i, arg) in substitution.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    arg.hir_fmt(f)?;
+                }
+                write!(f, "]")
+            }
             TyKind::Float(ty) => write!(f, "{ty}"),
             TyKind::Int(ty) => write!(f, "{ty}"),
             TyKind::Bool => write!(f, "bool"),
+            TyKind::Str => write!(f, "str"),
             // The parameter's written name is what the reader needs; the
             // (owner, index) identity is an implementation detail.
             TyKind::TypeParam(_, name) => write!(f, "{name}"),
@@ -444,6 +504,7 @@ impl HirDisplay for Ty {
                 write!(f, ") -> {}", sig.ret().display(f.db))
             }
             TyKind::Array(elem_ty) => write!(f, "[{}]", elem_ty.display(f.db)),
+            TyKind::Channel(elem_ty) => write!(f, "Channel[{}]", elem_ty.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }
     }
@@ -481,7 +542,9 @@ pub trait TypeWalk {
 impl TypeWalk for Ty {
     fn walk(&self, f: &mut impl FnMut(&Ty)) {
         match self.interned() {
-            TyKind::Array(elem_ty) => f(elem_ty),
+            // Recurse, not just visit: an element type can itself contain
+            // types (`[(T, U)]`), which a resolution pass must reach too.
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk(f),
             _ => {
                 if let Some(substs) = self.type_parameters() {
                     substs.walk(f);
@@ -493,7 +556,7 @@ impl TypeWalk for Ty {
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Ty)) {
         match self.interned_mut() {
-            TyKind::Array(elem_ty) => f(elem_ty),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk_mut(f),
             _ => {
                 if let Some(substs) = self.type_parameters_mut() {
                     substs.walk_mut(f);

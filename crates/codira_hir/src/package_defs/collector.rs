@@ -11,7 +11,8 @@ use rustc_hash::FxHashMap;
 use super::PackageDefs;
 use crate::{
     ids::{
-        FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId, StructLoc, TypeAliasLoc,
+        EffectLoc, FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId, StructLoc,
+        TypeAliasLoc,
     },
     item_scope::{ImportType, ItemScope, PerNsGlobImports},
     item_tree::{
@@ -19,7 +20,7 @@ use crate::{
         TypeAlias,
     },
     name_resolution::ReachedFixedPoint,
-    package_defs::diagnostics::DefDiagnostic,
+    package_defs::{diagnostics::DefDiagnostic, PRELUDE_MODULE_NAME},
     path::ImportAlias,
     visibility::RawVisibility,
     DefDatabase, InFile, Name, Path, PerNs, Visibility,
@@ -113,6 +114,7 @@ pub(super) fn collect(db: &dyn DefDatabase, package_id: PackageId) -> PackageDef
             id: package_id,
             modules: ArenaMap::default(),
             module_tree: db.module_tree(package_id),
+            prelude: None,
             diagnostics: Vec::default(),
         },
         unresolved_imports: Vec::default(),
@@ -208,6 +210,20 @@ impl DefCollector<'_> {
         // every module, all local definitions are accessible. This is the
         // starting point for the import resolution.
         collect_modules_recursive(self, module_tree.root, None);
+
+        // Find the prelude before resolving imports, not after: an import
+        // path's first segment goes through the same unqualified lookup as
+        // any other name, so a package whose prelude is only registered
+        // afterwards would resolve its own imports under different rules
+        // than the code that follows them.
+        //
+        // Its *contents* are still empty at this point -- they arrive via
+        // the prelude's own imports during the loop below -- but the
+        // fixed-point iteration is what that loop is for.
+        self.package_defs.prelude = module_tree[module_tree.root]
+            .children
+            .get(PRELUDE_MODULE_NAME)
+            .copied();
 
         // Now, as long as we have unresolved imports, try to resolve them, or part of
         // them.
@@ -535,6 +551,7 @@ impl<'a> ModCollectorContext<'a, '_> {
                 ModItem::Function(id) => self.collect_function(id),
                 ModItem::Struct(id) => self.collect_struct(id),
                 ModItem::TypeAlias(id) => self.collect_type_alias(id),
+                ModItem::Effect(id) => self.collect_effect(id),
                 ModItem::Import(id) => {
                     self.collect_import(id);
                     continue;
@@ -626,6 +643,25 @@ impl<'a> ModCollectorContext<'a, '_> {
             name: &adt.name,
             visibility: &self.item_tree[adt.visibility],
             has_constructor: !matches!(adt.fields, Fields::Record(_)),
+        }
+    }
+
+    /// Collects the definition data from an `effect` declaration.
+    fn collect_effect(&self, id: LocalItemTreeId<item_tree::Effect>) -> DefData<'a> {
+        let effect = &self.item_tree[id];
+        DefData {
+            id: EffectLoc {
+                module: ModuleId {
+                    package: self.def_collector.package_id,
+                    local_id: self.module_id,
+                },
+                id: ItemTreeId::new(self.file_id, id),
+            }
+            .intern(self.def_collector.db)
+            .into(),
+            name: &effect.name,
+            visibility: &self.item_tree[effect.visibility],
+            has_constructor: false,
         }
     }
 

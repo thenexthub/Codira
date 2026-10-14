@@ -189,6 +189,32 @@ impl Diagnostic for ExpectedFunction {
     }
 }
 
+/// A type that inference could not pin down.
+///
+/// Reached when a generic parameter is left undetermined -- nothing in the
+/// call constrains it, and unlike an integer or float variable there is no
+/// sensible default to fall back on. `let x = List.new();` with no other
+/// use of `x` is the canonical case.
+#[derive(Debug)]
+pub struct TypeAnnotationNeeded {
+    pub file: FileId,
+    pub expr: SyntaxNodePtr,
+}
+
+impl Diagnostic for TypeAnnotationNeeded {
+    fn message(&self) -> String {
+        "type annotations needed: the type of this expression is ambiguous".to_string()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.expr.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 #[derive(Debug)]
 pub struct ExportedPrivate {
     pub file: FileId,
@@ -641,12 +667,9 @@ impl Diagnostic for PossiblyUninitializedVariable {
 
 /// A call to a function declaring `uses Effect, ...` (see
 /// `spec/LANGUAGE_SPEC.md` section 6) from a caller that doesn't itself
-/// declare `Effect` in its own `uses` clause. Emitted by
-/// `expr::validator::effect_obligation` -- the "declare `uses` and
-/// propagate the obligation" half of the spec's effect-obligation rule
-/// (the "or be inside a matching `handle` block" half is not checked yet,
-/// since `handle` still lowers to `Expr::Missing`; see that validator's
-/// module doc for the precise scope).
+/// declare `Effect` in its own `uses` clause and does not make the call
+/// inside a `handle` that handles `Effect`. Emitted by
+/// `expr::validator::effect_obligation`.
 #[derive(Debug)]
 pub struct UndeclaredEffect {
     pub file: FileId,
@@ -658,13 +681,39 @@ pub struct UndeclaredEffect {
 impl Diagnostic for UndeclaredEffect {
     fn message(&self) -> String {
         format!(
-            "call to `{}` requires effect `{}`, which is not declared in this function's `uses` clause",
+            "call to `{}` requires effect `{}`, which is neither declared in this function's `uses` clause nor handled by an enclosing `handle`",
             self.callee, self.effect
         )
     }
 
     fn source(&self) -> InFile<SyntaxNodePtr> {
         InFile::new(self.file, self.call.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A misuse of algebraic effects: an unknown effect or operation, a
+/// `perform` with no handler, a misplaced `resume`, a handler arm that does
+/// not fit its operation, and the version-1 restrictions on handler arms
+/// (see `expr::validator::effects`). One type with a message rather than one
+/// per rule, because every rule reads as a sentence about what was written.
+#[derive(Debug)]
+pub struct EffectError {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for EffectError {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
     }
 
     fn as_any(&self) -> &(dyn Any + Send + 'static) {
@@ -694,6 +743,166 @@ impl Diagnostic for UnsatisfiableRefinement {
 
     fn source(&self) -> InFile<SyntaxNodePtr> {
         InFile::new(self.file, self.type_ref.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A proof obligation `crate::verify` could not discharge: a contract,
+/// refinement, loop invariant, termination measure or division-safety
+/// condition that Z3 refuted (with a counterexample in `notes`), or could
+/// not decide within its deterministic budget, or that is outside the
+/// fragment the verifier models. All three are errors: an unproven
+/// obligation is never reported as success.
+#[derive(Debug)]
+pub struct ContractViolation {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+    /// The counterexample, in Codira syntax, and the values at the failing
+    /// point.
+    pub notes: Vec<String>,
+}
+
+impl Diagnostic for ContractViolation {
+    fn message(&self) -> String {
+        if self.notes.is_empty() {
+            self.message.clone()
+        } else {
+            format!("{} ({})", self.message, self.notes.join("; "))
+        }
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// An SMT well-formedness check (the satisfiability of a refinement or of a
+/// healing postcondition) that Z3 could not decide -- typically because its
+/// deterministic `rlimit` budget ran out. Reported rather than read as a
+/// pass: nobody has shown the check succeeds.
+#[derive(Debug)]
+pub struct UndecidedSmtCheck {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    /// What was being decided, as a phrase ("whether the refinement ...").
+    pub what: String,
+    /// Why Z3 gave up (`resource limit` for the budget).
+    pub reason: String,
+}
+
+impl Diagnostic for UndecidedSmtCheck {
+    fn message(&self) -> String {
+        format!("could not decide {}: unknown ({})", self.what, self.reason)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A breach of the information-flow or constant-time rules for `secret`
+/// data (see `crate::verify::flow`).
+#[derive(Debug)]
+pub struct SecretFlow {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for SecretFlow {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A synthesis hole (`??` or `choose`) that has not been filled: the
+/// program has no code there until `codira synth` writes some.
+#[derive(Debug)]
+pub struct UnfilledHole {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    /// `` `??` `` or `` `choose` ``.
+    pub what: String,
+}
+
+impl Diagnostic for UnfilledHole {
+    fn message(&self) -> String {
+        format!(
+            "unfilled synthesis hole {}: run `codira synth` to fill it with an expression proven \
+             to meet the contract",
+            self.what
+        )
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A `@test` function the test runner could not call: see
+/// `expr::validator::test_fn` for the required shape.
+#[derive(Debug)]
+pub struct InvalidTestFunction {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub reason: String,
+}
+
+impl Diagnostic for InvalidTestFunction {
+    fn message(&self) -> String {
+        format!("invalid `@test` function: {}", self.reason)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A breach of the rules that make erasing ghost code sound (see
+/// `crate::verify`'s `ghost` module): an effect inside a contract clause or
+/// ghost initializer, or a ghost binding named from executable code.
+#[derive(Debug)]
+pub struct GhostRuleViolation {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for GhostRuleViolation {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
     }
 
     fn as_any(&self) -> &(dyn Any + Send + 'static) {
@@ -1341,6 +1550,103 @@ impl Diagnostic for UnsupportedByCodegen {
 
     fn source(&self) -> InFile<SyntaxNodePtr> {
         InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A `comptime { .. }` block that the interpreter could have evaluated ran
+/// out of its deterministic budget first.
+///
+/// An error rather than a quiet fallback to run-time evaluation: `comptime`
+/// asks for the value at compile time, and computing it at run time instead
+/// would change what the program costs without saying so. The budgets are
+/// counted in evaluation steps and call depth, never in time, so the same
+/// block fails the same way on every machine.
+pub use crate::comptime_fold::ComptimeLimit;
+
+#[derive(Debug)]
+pub struct ComptimeBudgetExhausted {
+    pub file: FileId,
+    pub block: SyntaxNodePtr,
+    pub limit: ComptimeLimit,
+}
+
+impl Diagnostic for ComptimeBudgetExhausted {
+    fn message(&self) -> String {
+        match self.limit {
+            ComptimeLimit::Fuel(fuel) => format!(
+                "comptime block did not finish within its compile-time evaluation budget of \
+                 {fuel} steps"
+            ),
+            ComptimeLimit::CallDepth(depth) => format!(
+                "comptime block exceeded the compile-time call depth limit of {depth} nested \
+                 calls"
+            ),
+        }
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.block.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A type or usage error whose explanation is carried as text.
+///
+/// Most diagnostics here are one struct per failure, which suits an IDE that
+/// wants to offer a fix per kind. The language features added since --
+/// builtins, ranges, `for` loops, `match` -- each have several narrow ways to
+/// be misused whose only consumer is a person reading the message, so they
+/// share this one carrier rather than growing a struct apiece.
+#[derive(Debug)]
+pub struct ExprError {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for ExprError {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// An `@asm(...)` declaration that cannot be emitted: a malformed attribute,
+/// operands that do not line up with the constraint string, a type inline
+/// assembly cannot carry, or no variant for the target being compiled for.
+///
+/// These are checked here rather than left to LLVM, whose inline-assembly
+/// verifier only runs in builds with assertions: a release LLVM accepts a
+/// mismatched constraint string and fails much later, inside instruction
+/// selection, with nothing that points back at the source.
+#[derive(Debug)]
+pub struct InvalidInlineAsm {
+    pub file: FileId,
+    pub func: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for InvalidInlineAsm {
+    fn message(&self) -> String {
+        format!("invalid `@asm`: {}", self.message)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.func.clone())
     }
 
     fn as_any(&self) -> &(dyn Any + Send + 'static) {

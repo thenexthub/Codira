@@ -28,19 +28,31 @@ pub struct CodeGenContext<'db, 'ink> {
 
     /// The target to generate code for
     pub target_machine: Rc<TargetMachine>,
+
+    /// The e-graph optimizer Eidos runs with, or `None` when this build
+    /// skips Eidos (`--mode=dev`). Read once from the salsa inputs here so
+    /// every function body of the group sees the same answer.
+    pub eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// The package's native code (see `crate::native`)
+    pub native: std::sync::Arc<crate::NativeInputs>,
+    /// Whether generated code is fuel-instrumented (`--fuel`).
+    pub fuel: bool,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
     /// Constructs a new `CodeGenContext` from an LLVM context and a
     /// `CodeGenDatabase`.
     pub fn new(context: &'ink Context, db: &'db dyn CodeGenDatabase) -> Self {
-        let target_machine = db.target_machine().0;
+        let target_machine = crate::db::build_target_machine(db);
         Self {
             context,
             rust_types: RefCell::new(HashMap::default()),
             hir_types: HirTypeCache::new(context, db, target_machine.get_target_data()),
             optimization_level: db.optimization_level(),
             target_machine,
+            eidos: db.eidos_options().optimizer(&db.target()),
+            native: db.native_inputs(),
+            fuel: db.fuel_instrumentation(),
             db,
         }
     }

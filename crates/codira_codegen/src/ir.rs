@@ -21,6 +21,7 @@ pub(crate) mod dispatch_table;
 pub mod file;
 pub(crate) mod file_group;
 pub mod function;
+pub(crate) mod intrinsic_ops;
 mod intrinsics;
 mod reference;
 pub mod ty;
@@ -105,6 +106,30 @@ impl<'ink> IsIrType<'ink> for isize {
             _ => panic!("unsupported pointer byte size"),
         }
     }
+}
+
+/// Fixed-width scalars, for the runtime functions `print` lowers to.
+macro_rules! impl_scalar_ir_type {
+    ($($ty:ty => $kind:ident :: $method:ident),+ $(,)?) => {
+        $(
+            impl<'ink> IsIrType<'ink> for $ty {
+                type Type = inkwell::types::$kind<'ink>;
+
+                fn ir_type(context: &'ink Context, _target: &TargetData) -> Self::Type {
+                    context.$method()
+                }
+            }
+        )+
+    };
+}
+
+impl_scalar_ir_type! {
+    u8 => IntType::i8_type,
+    u32 => IntType::i32_type,
+    i64 => IntType::i64_type,
+    u64 => IntType::i64_type,
+    f32 => FloatType::f32_type,
+    f64 => FloatType::f64_type,
 }
 
 pub trait IsPointerType<'ink> {

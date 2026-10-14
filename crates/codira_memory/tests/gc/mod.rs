@@ -5,6 +5,7 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 mod alloc;
+mod heap;
 mod structs;
 #[macro_use]
 mod util;

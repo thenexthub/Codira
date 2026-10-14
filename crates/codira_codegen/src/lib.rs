@@ -10,8 +10,13 @@ pub use crate::{
     assembly::{AssemblyIr, TargetAssembly},
     code_gen::AssemblyBuilder,
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
+    eidos_options::{BuildMode, EidosOptions},
+    linker::{in_process_lld_available, link_mode, LinkMode, LINK_MODE_ENV},
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
+    native::NativeInputs,
+    target_cpu::{resolve_target_cpu, TargetCpuError},
+    wasm::is_wasm_target,
 };
 
 /// This library generates machine code from HIR using inkwell which is a safe
@@ -19,6 +24,7 @@ pub use crate::{
 mod code_gen;
 mod db;
 mod eidos_fold;
+mod eidos_options;
 #[macro_use]
 mod ir;
 mod assembly;
@@ -26,7 +32,11 @@ mod assembly;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
+mod run_test;
+#[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_targets;
 
 pub mod value;
 
@@ -36,4 +46,7 @@ mod linker;
 pub mod mir_codegen;
 mod module_group;
 mod module_partition;
+mod native;
+mod target_cpu;
 pub(crate) mod type_info;
+mod wasm;

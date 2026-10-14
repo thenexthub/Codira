@@ -197,7 +197,12 @@ impl Lowerer<'_> {
                 Some(body.push_typed(OpKind::Const(Attr::Int(v)), [], self.ty_of(id)))
             }
             Expr::Literal(Literal::Float(crate::expr::LiteralFloat { value, .. })) => {
-                Some(body.push_typed(OpKind::Const(Attr::float(*value)), [], self.ty_of(id)))
+                // An `f32` literal holds the nearest `f32`, not the `f64` it
+                // was parsed as; `normalize` rounds it so a later widening
+                // cast folds to the value the program actually has.
+                let ty = self.ty_of(id);
+                let attr = codira_mir::normalize(Attr::float(*value), ty);
+                Some(body.push_typed(OpKind::Const(attr), [], ty))
             }
 
             Expr::Path(path) => {
@@ -367,6 +372,11 @@ impl Lowerer<'_> {
                 // never lowers (or doesn't exist) surfaces as
                 // `UnknownCallee` at interpretation time, never as a
                 // wrong answer.
+                // A builtin (`print`, `println`) is a side effect with no
+                // generator behind it; it must never take part in folding.
+                if self.infer.builtin_call(id).is_some() {
+                    return None;
+                }
                 let Expr::Path(path) = &self.hir_body[*callee] else {
                     return None;
                 };
@@ -438,10 +448,14 @@ fn ty_to_mir_type(ty: &Ty, layout: &TargetDataLayout) -> Option<TypeId> {
         TyKind::Tuple(0, _) => Some(TypeId::UNIT),
         // A generic parameter joins these: it has no MIR type until the
         // declaration is instantiated.
-        TyKind::TypeParam(..)
+        // A string has no MIR type: this pass models scalars, and a
+        // fat pointer is neither an integer nor a float.
+        TyKind::Str
+        | TyKind::TypeParam(..)
         | TyKind::Tuple(..)
-        | TyKind::Struct(_)
+        | TyKind::Struct(..)
         | TyKind::Array(_)
+        | TyKind::Channel(_)
         | TyKind::FnDef(..)
         | TyKind::Never
         | TyKind::TypeAlias(_)

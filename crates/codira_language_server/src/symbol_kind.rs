@@ -17,4 +17,6 @@ pub enum SymbolKind {
     SelfType,
     Struct,
     TypeAlias,
+    /// An algebraic effect declaration (`effect Name { .. }`).
+    Effect,
 }

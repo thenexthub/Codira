@@ -12,6 +12,7 @@ mod db;
 pub mod diagnostics;
 mod diagnostics_snippets;
 mod driver;
+mod native_build;
 
 use std::{
     ffi::OsStr,
@@ -20,7 +21,10 @@ use std::{
 };
 
 pub use annotate_snippets::AnnotationType;
-pub use codira_codegen::OptimizationLevel;
+pub use codira_codegen::{
+    in_process_lld_available, link_mode, resolve_target_cpu, BuildMode, EidosOptions, LinkMode,
+    OptimizationLevel, TargetCpuError, LINK_MODE_ENV,
+};
 pub use codira_hir_input::FileId;
 pub use codira_paths::{RelativePath, RelativePathBuf};
 use codira_project::Package;
@@ -28,7 +32,11 @@ pub use codira_target::spec::Target;
 
 pub use crate::{
     db::CompilerDatabase,
-    driver::{Config, DisplayColor, Driver},
+    driver::{
+        CheckDiagnostic, Config, DiagnosticCounts, DiagnosticKind, DisplayColor, Driver,
+        FileDiagnostics, SyncSummary,
+    },
+    native_build::find_clang,
 };
 
 #[derive(Debug, Clone)]
@@ -99,7 +107,19 @@ pub fn compile_manifest(
     config: Config,
     emit_colors: DisplayColor,
 ) -> Result<bool, anyhow::Error> {
+    compile_manifest_with(manifest_path, config, emit_colors, |_| {})
+}
+
+/// Like [`compile_manifest`], but lets `configure` adjust the driver (for
+/// instance [`Driver::set_fuel_instrumentation`]) before it generates code.
+pub fn compile_manifest_with(
+    manifest_path: &Path,
+    config: Config,
+    emit_colors: DisplayColor,
+    configure: impl FnOnce(&mut Driver),
+) -> Result<bool, anyhow::Error> {
     let (_package, mut driver) = Driver::with_package_path(manifest_path, config)?;
+    configure(&mut driver);
 
     // Emit diagnostics. If one of the snippets is an error, abort gracefully.
     if driver.emit_diagnostics(&mut stderr(), emit_colors)? {

@@ -73,6 +73,10 @@ pub struct FunctionData {
     /// Whether this function carries the `@strict` attribute, opting it
     /// into `expr::validator::move_check`'s use-after-consume checking.
     is_strict: bool,
+    /// Whether this function carries the `@test` attribute: a test the
+    /// `codira test` runner calls (see `expr::validator::test_fn` for what
+    /// shape a test must have).
+    is_test: bool,
     /// The ABI named by an `@export("C")` attribute, if present.
     ///
     /// `spec/LANGUAGE_SPEC.md` section 10: "`@export(\"C\")` on a Codira
@@ -82,6 +86,10 @@ pub struct FunctionData {
     /// exists in the object file but is not exported from the assembly, so
     /// no external caller can find it.
     export_abi: Option<String>,
+    /// The well-formed `@asm(...)` variants on this function, in source order.
+    /// Malformed ones are left out here and reported by
+    /// `ExprValidator::validate_inline_asm`, which reads the attributes again.
+    asm_variants: Box<[crate::inline_asm::AsmVariant]>,
     /// The receiver's type, for a method declared with a `self` parameter.
     ///
     /// Deliberately kept *out* of `params`, which stays the list of ordinary
@@ -148,11 +156,21 @@ impl FunctionData {
             })
         });
 
+        let asm_variants = crate::inline_asm::asm_variants(&src).0.into_boxed_slice();
+
         let is_strict = src.attribute_list().is_some_and(|attrs| {
             attrs.attributes().any(|attr| {
                 attr.path()
                     .and_then(|p| p.segment())
                     .is_some_and(|s| matches!(s.kind(), Some(ast::PathSegmentKind::Name(n)) if n.text() == "strict"))
+            })
+        });
+
+        let is_test = src.attribute_list().is_some_and(|attrs| {
+            attrs.attributes().any(|attr| {
+                attr.path()
+                    .and_then(|p| p.segment())
+                    .is_some_and(|s| matches!(s.kind(), Some(ast::PathSegmentKind::Name(n)) if n.text() == "test"))
             })
         });
 
@@ -185,7 +203,9 @@ impl FunctionData {
             effects: func.effects.clone(),
             consuming_params,
             is_strict,
+            is_test,
             export_abi,
+            asm_variants,
             self_param,
         })
     }
@@ -224,6 +244,12 @@ impl FunctionData {
     /// Returns true if this function is an extern function.
     pub fn is_extern(&self) -> bool {
         self.flags.is_extern()
+    }
+
+    /// Returns true if this function is a compiler intrinsic, declared in an
+    /// `extern "codira-intrinsic"` block.
+    pub fn is_intrinsic(&self) -> bool {
+        self.flags.is_intrinsic()
     }
 
     /// Returns true if the first param is `self`. This is relevant to decide
@@ -284,6 +310,16 @@ impl FunctionData {
     /// The ABI named by this function's `@export("...")` attribute, if any.
     pub fn export_abi(&self) -> Option<&str> {
         self.export_abi.as_deref()
+    }
+
+    /// The well-formed `@asm(...)` variants on this function.
+    pub fn asm_variants(&self) -> &[crate::inline_asm::AsmVariant] {
+        &self.asm_variants
+    }
+
+    /// Whether this function is a `@test`.
+    pub fn is_test(&self) -> bool {
+        self.is_test
     }
 }
 
@@ -350,6 +386,11 @@ impl Function {
         self.data(db).export_abi().map(ToString::to_string)
     }
 
+    /// Whether this function is a `@test` the `codira test` runner calls.
+    pub fn is_test(self, db: &dyn HirDatabase) -> bool {
+        self.data(db).is_test()
+    }
+
     pub fn ret_type(self, db: &dyn HirDatabase) -> Ty {
         let resolver = self.id.resolver(db);
         let data = self.data(db);
@@ -379,8 +420,64 @@ impl Function {
         db.fn_data(self.id).flags.is_extern()
     }
 
+    /// Whether this function is a compiler intrinsic, which codegen emits
+    /// inline at the call site instead of calling as a symbol.
+    pub fn is_intrinsic(self, db: &dyn HirDatabase) -> bool {
+        db.fn_data(self.id).flags.is_intrinsic()
+    }
+
+    /// Whether this function is declared with `@asm(...)`: its calls are
+    /// replaced by its inline assembly, so it never becomes a symbol either.
+    pub fn is_inline_asm(self, db: &dyn HirDatabase) -> bool {
+        !db.fn_data(self.id).asm_variants().is_empty()
+    }
+
+    /// The `@asm(...)` variant that applies on the target being compiled
+    /// for, if the function has one for it.
+    pub fn inline_asm(self, db: &dyn HirDatabase) -> Option<crate::inline_asm::AsmVariant> {
+        let target = db.target();
+        crate::inline_asm::select_variant(db.fn_data(self.id).asm_variants(), &target.arch).cloned()
+    }
+
     pub(crate) fn body_source_map(self, db: &dyn HirDatabase) -> Arc<BodySourceMap> {
         db.body_with_source_map(self.id.into()).1
+    }
+
+    /// The source range of expression `expr` in this function's body, if it
+    /// came from source.
+    ///
+    /// For consumers outside this crate that report their own diagnostics
+    /// against HIR expressions -- `codira_quantum`'s compile-time elaborator
+    /// points at the line where a kernel branches on a measurement -- and so
+    /// need a location without access to the crate-private source map.
+    pub fn expr_text_range(
+        self,
+        db: &dyn HirDatabase,
+        expr: crate::ExprId,
+    ) -> Option<codira_syntax::TextRange> {
+        let source = self.body_source_map(db).expr_syntax(expr)?;
+        Some(match source.value {
+            either::Either::Left(ptr) => ptr.syntax_node_ptr().range(),
+            either::Either::Right(ptr) => ptr.syntax_node_ptr().range(),
+        })
+    }
+
+    /// The file and text range an expression of this function's body was
+    /// written at, or `None` for an expression the compiler made up.
+    ///
+    /// Code generation uses this to give a runtime panic (an out-of-range
+    /// index, say) the source location the language promises it.
+    pub fn expr_source_range(
+        self,
+        db: &dyn HirDatabase,
+        expr: crate::ExprId,
+    ) -> Option<(FileId, codira_syntax::TextRange)> {
+        let source = self.body_source_map(db).expr_syntax(expr)?;
+        let range = source
+            .value
+            .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+            .range();
+        Some((source.file_id, range))
     }
 
     pub fn diagnostics(self, db: &dyn HirDatabase, sink: &mut DiagnosticSink<'_>) {

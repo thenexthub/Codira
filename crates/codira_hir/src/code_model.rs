@@ -4,6 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
+mod effect;
 mod function;
 mod r#impl;
 mod module;
@@ -15,7 +16,9 @@ mod type_alias;
 
 use std::sync::Arc;
 
+pub(crate) use self::effect::lower_effect_query;
 pub use self::{
+    effect::{Effect, EffectData, EffectOpSig},
     function::{Function, FunctionData},
     module::{Module, ModuleDef},
     package::Package,

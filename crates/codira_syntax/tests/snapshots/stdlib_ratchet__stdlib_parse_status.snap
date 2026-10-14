@@ -1,9 +1,20 @@
 ---
 source: crates/codira_syntax/tests/stdlib_ratchet.rs
 expression: summary
+snapshot_kind: text
 ---
-64 of 64 std files parse
+79 of 79 std files parse
 
+ok    std/ai/algorithm/functional.code
+ok    std/ai/algorithm/reduction.code
+ok    std/ai/linalg/matmul.code
+ok    std/ai/linalg/vector.code
+ok    std/ai/nn/activation.code
+ok    std/ai/nn/layer.code
+ok    std/ai/quantize.code
+ok    std/ai/tensor/buffer.code
+ok    std/ai/tensor/raw.code
+ok    std/ai/tensor/shape.code
 ok    std/atomic/atomic.code
 ok    std/base64/base64.code
 ok    std/bit/bit.code
@@ -16,9 +27,11 @@ ok    std/builtin/range.code
 ok    std/builtin/simd.code
 ok    std/builtin/slice.code
 ok    std/builtin/sort.code
+ok    std/builtin/string_literal.code
 ok    std/builtin/swap.code
 ok    std/builtin/traits.code
 ok    std/builtin/tuple.code
+ok    std/builtin/type_aliases.code
 ok    std/builtin/types.code
 ok    std/collections/array.code
 ok    std/collections/binary_heap.code
@@ -53,13 +66,16 @@ ok    std/memory/alloc.code
 ok    std/memory/arc_pointer.code
 ok    std/memory/memory.code
 ok    std/memory/owned_pointer.code
+ok    std/memory/page.code
 ok    std/memory/pointer.code
+ok    std/memory/region.code
 ok    std/memory/unsafe_pointer.code
 ok    std/os/env.code
 ok    std/os/os.code
 ok    std/os/path.code
 ok    std/os/process.code
 ok    std/pathlib/path.code
+ok    std/prelude.code
 ok    std/random/random.code
 ok    std/sys/arg.code
 ok    std/sys/info.code

@@ -127,6 +127,16 @@ pub enum SyntaxKind {
     MUT_KW,
     DEF_KW,
     DATA_KW,
+    REQUIRES_KW,
+    ENSURES_KW,
+    INVARIANT_KW,
+    DECREASES_KW,
+    GHOST_KW,
+    SECRET_KW,
+    OBLIVIOUS_KW,
+    SCOPE_KW,
+    CHOOSE_KW,
+    CONTINUE_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -143,6 +153,10 @@ pub enum SyntaxKind {
     RET_TYPE,
     VISIBILITY,
     USES_CLAUSE,
+    REQUIRES_CLAUSE,
+    ENSURES_CLAUSE,
+    INVARIANT_CLAUSE,
+    DECREASES_CLAUSE,
     PARAM_LIST,
     PARAM,
     SELF_PARAM,
@@ -177,6 +191,7 @@ pub enum SyntaxKind {
     NEVER_TYPE,
     OPTIONAL_TYPE,
     REFINEMENT_TYPE,
+    SECRET_TYPE,
     SUPERVISOR_DEF,
     SUPERVISOR_ITEM_LIST,
     SUPERVISOR_ENTRY,
@@ -199,6 +214,9 @@ pub enum SyntaxKind {
     WHILE_EXPR,
     LOOP_EXPR,
     BREAK_EXPR,
+    FOR_EXPR,
+    CONTINUE_EXPR,
+    RANGE_EXPR,
     ARRAY_EXPR,
     TUPLE_EXPR,
     CLOSURE_EXPR,
@@ -209,10 +227,13 @@ pub enum SyntaxKind {
     MATCH_ARM,
     PERFORM_EXPR,
     SPAWN_EXPR,
+    SCOPE_EXPR,
     HANDLE_EXPR,
     HANDLER_ARM_LIST,
     HANDLER_ARM,
     TRY_EXPR,
+    HOLE_EXPR,
+    CHOOSE_EXPR,
     TRANSFER_EXPR,
     CHANNEL_RECV_EXPR,
     CHANNEL_SEND_EXPR,
@@ -558,6 +579,36 @@ macro_rules! T {
     (data) => {
         $crate::SyntaxKind::DATA_KW
     };
+    (requires) => {
+        $crate::SyntaxKind::REQUIRES_KW
+    };
+    (ensures) => {
+        $crate::SyntaxKind::ENSURES_KW
+    };
+    (invariant) => {
+        $crate::SyntaxKind::INVARIANT_KW
+    };
+    (decreases) => {
+        $crate::SyntaxKind::DECREASES_KW
+    };
+    (ghost) => {
+        $crate::SyntaxKind::GHOST_KW
+    };
+    (secret) => {
+        $crate::SyntaxKind::SECRET_KW
+    };
+    (oblivious) => {
+        $crate::SyntaxKind::OBLIVIOUS_KW
+    };
+    (scope) => {
+        $crate::SyntaxKind::SCOPE_KW
+    };
+    (choose) => {
+        $crate::SyntaxKind::CHOOSE_KW
+    };
+    (continue) => {
+        $crate::SyntaxKind::CONTINUE_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -630,6 +681,16 @@ impl SyntaxKind {
         | MUT_KW
         | DEF_KW
         | DATA_KW
+        | REQUIRES_KW
+        | ENSURES_KW
+        | INVARIANT_KW
+        | DECREASES_KW
+        | GHOST_KW
+        | SECRET_KW
+        | OBLIVIOUS_KW
+        | SCOPE_KW
+        | CHOOSE_KW
+        | CONTINUE_KW
         )
     }
 
@@ -804,6 +865,16 @@ impl SyntaxKind {
             MUT_KW => &SyntaxInfo { name: "MUT_KW" },
             DEF_KW => &SyntaxInfo { name: "DEF_KW" },
             DATA_KW => &SyntaxInfo { name: "DATA_KW" },
+            REQUIRES_KW => &SyntaxInfo { name: "REQUIRES_KW" },
+            ENSURES_KW => &SyntaxInfo { name: "ENSURES_KW" },
+            INVARIANT_KW => &SyntaxInfo { name: "INVARIANT_KW" },
+            DECREASES_KW => &SyntaxInfo { name: "DECREASES_KW" },
+            GHOST_KW => &SyntaxInfo { name: "GHOST_KW" },
+            SECRET_KW => &SyntaxInfo { name: "SECRET_KW" },
+            OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
+            SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
+            CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
+            CONTINUE_KW => &SyntaxInfo { name: "CONTINUE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },
@@ -820,6 +891,10 @@ impl SyntaxKind {
             RET_TYPE => &SyntaxInfo { name: "RET_TYPE" },
             VISIBILITY => &SyntaxInfo { name: "VISIBILITY" },
             USES_CLAUSE => &SyntaxInfo { name: "USES_CLAUSE" },
+            REQUIRES_CLAUSE => &SyntaxInfo { name: "REQUIRES_CLAUSE" },
+            ENSURES_CLAUSE => &SyntaxInfo { name: "ENSURES_CLAUSE" },
+            INVARIANT_CLAUSE => &SyntaxInfo { name: "INVARIANT_CLAUSE" },
+            DECREASES_CLAUSE => &SyntaxInfo { name: "DECREASES_CLAUSE" },
             PARAM_LIST => &SyntaxInfo { name: "PARAM_LIST" },
             PARAM => &SyntaxInfo { name: "PARAM" },
             SELF_PARAM => &SyntaxInfo { name: "SELF_PARAM" },
@@ -854,6 +929,7 @@ impl SyntaxKind {
             NEVER_TYPE => &SyntaxInfo { name: "NEVER_TYPE" },
             OPTIONAL_TYPE => &SyntaxInfo { name: "OPTIONAL_TYPE" },
             REFINEMENT_TYPE => &SyntaxInfo { name: "REFINEMENT_TYPE" },
+            SECRET_TYPE => &SyntaxInfo { name: "SECRET_TYPE" },
             SUPERVISOR_DEF => &SyntaxInfo { name: "SUPERVISOR_DEF" },
             SUPERVISOR_ITEM_LIST => &SyntaxInfo { name: "SUPERVISOR_ITEM_LIST" },
             SUPERVISOR_ENTRY => &SyntaxInfo { name: "SUPERVISOR_ENTRY" },
@@ -876,6 +952,9 @@ impl SyntaxKind {
             WHILE_EXPR => &SyntaxInfo { name: "WHILE_EXPR" },
             LOOP_EXPR => &SyntaxInfo { name: "LOOP_EXPR" },
             BREAK_EXPR => &SyntaxInfo { name: "BREAK_EXPR" },
+            FOR_EXPR => &SyntaxInfo { name: "FOR_EXPR" },
+            CONTINUE_EXPR => &SyntaxInfo { name: "CONTINUE_EXPR" },
+            RANGE_EXPR => &SyntaxInfo { name: "RANGE_EXPR" },
             ARRAY_EXPR => &SyntaxInfo { name: "ARRAY_EXPR" },
             TUPLE_EXPR => &SyntaxInfo { name: "TUPLE_EXPR" },
             CLOSURE_EXPR => &SyntaxInfo { name: "CLOSURE_EXPR" },
@@ -886,10 +965,13 @@ impl SyntaxKind {
             MATCH_ARM => &SyntaxInfo { name: "MATCH_ARM" },
             PERFORM_EXPR => &SyntaxInfo { name: "PERFORM_EXPR" },
             SPAWN_EXPR => &SyntaxInfo { name: "SPAWN_EXPR" },
+            SCOPE_EXPR => &SyntaxInfo { name: "SCOPE_EXPR" },
             HANDLE_EXPR => &SyntaxInfo { name: "HANDLE_EXPR" },
             HANDLER_ARM_LIST => &SyntaxInfo { name: "HANDLER_ARM_LIST" },
             HANDLER_ARM => &SyntaxInfo { name: "HANDLER_ARM" },
             TRY_EXPR => &SyntaxInfo { name: "TRY_EXPR" },
+            HOLE_EXPR => &SyntaxInfo { name: "HOLE_EXPR" },
+            CHOOSE_EXPR => &SyntaxInfo { name: "CHOOSE_EXPR" },
             TRANSFER_EXPR => &SyntaxInfo { name: "TRANSFER_EXPR" },
             CHANNEL_RECV_EXPR => &SyntaxInfo { name: "CHANNEL_RECV_EXPR" },
             CHANNEL_SEND_EXPR => &SyntaxInfo { name: "CHANNEL_SEND_EXPR" },

@@ -59,10 +59,10 @@
 //! but expanding can expose a constant fold the factored form hides. This
 //! is exactly the phase-ordering freedom equality saturation buys.
 
-use codira_mir::{Attr, OpKind, TypeId};
+use codira_mir::{Attr, MemOp, OpKind, TypeId};
 use smallvec::SmallVec;
 
-use crate::egraph::{EClassId, EGraph, ENode, NodeKind};
+use crate::egraph::{EClassId, EGraph, ENode, NodeKind, Provenance};
 
 /// The right-hand side of a rule: a tree over existing classes, fresh
 /// constants, and operations, instantiated into the graph by
@@ -106,6 +106,22 @@ pub(crate) fn instantiate(graph: &mut EGraph, term: &Term, ty: TypeId) -> EClass
     }
 }
 
+/// The most e-nodes [`instantiate`] can add for `term`: one per literal
+/// or operation it builds, plus one per operation for the literal the
+/// constant analysis attaches when that operation turns out to be
+/// constant (see `EGraph::add`). Existing classes cost nothing.
+///
+/// An upper bound, not a prediction -- hashconsing usually finds some of
+/// the nodes already present. Saturation checks it against the node cap
+/// before applying a rewrite, which is what makes the cap hard.
+pub(crate) fn node_bound(term: &Term) -> usize {
+    match term {
+        Term::Class(_) => 0,
+        Term::Const(_) => 1,
+        Term::Node(_, args) => 2 + args.iter().map(node_bound).sum::<usize>(),
+    }
+}
+
 /// Scans every class for rule matches. Read-only: the caller instantiates
 /// and unions the results, so rule application never depends on the order
 /// classes happen to be visited in.
@@ -117,6 +133,9 @@ pub(crate) fn collect_matches(graph: &EGraph) -> Vec<Match> {
                 continue;
             };
             match_node(graph, class, kind, &node.children, &mut out);
+            if let OpKind::Mem(mem) = kind {
+                match_memory(graph, class, *mem, node.ty, &node.children, &mut out);
+            }
         }
     }
     // Several rules can produce the same conclusion; deduping keeps the
@@ -124,6 +143,89 @@ pub(crate) fn collect_matches(graph: &EGraph) -> Vec<Match> {
     out.sort_by_key(|a| a.0);
     out.dedup();
     out
+}
+
+/// The memory rules (see `codira_mir::mem`). Every one *shortens* a
+/// memory chain -- forwarding a stored value, bypassing a store or an
+/// allocation that cannot affect the address read, dropping a store that
+/// is overwritten -- and none reorders it, which is what keeps memory
+/// classes linear in the size of the program (RFC-001 §2.3).
+fn match_memory(
+    graph: &EGraph,
+    class: EClassId,
+    mem: MemOp,
+    ty: TypeId,
+    children: &[EClassId],
+    out: &mut Vec<Match>,
+) {
+    let same = |a: EClassId, b: EClassId| graph.find_const(a) == graph.find_const(b);
+    let provenance = |id: EClassId| graph.analysis(id).and_then(|a| a.provenance);
+    match (mem, children) {
+        (MemOp::Load, [state, address]) => {
+            for node in graph.nodes(*state) {
+                match (&node.kind, node.children.as_slice()) {
+                    (NodeKind::Pure(OpKind::Mem(MemOp::Store)), [before, stored_at, value]) => {
+                        if same(*stored_at, *address) {
+                            // Store-to-load forwarding: only for exactly the
+                            // type that was stored (an i64 store read as i32
+                            // is a different value -- RFC-001 §2.5 case 1).
+                            if !ty.is_untyped() && graph.class_ty(*value) == ty {
+                                out.push((class, Term::Class(*value)));
+                            }
+                        } else if Provenance::disjoint(provenance(*stored_at), provenance(*address))
+                        {
+                            out.push((
+                                class,
+                                Term::Node(
+                                    OpKind::Mem(MemOp::Load),
+                                    vec![Term::Class(*before), Term::Class(*address)],
+                                ),
+                            ));
+                        }
+                    }
+                    // A fresh allocation changes no memory that already
+                    // existed. Only an address known to come from elsewhere
+                    // qualifies: an address of unknown origin could have
+                    // been derived from this very allocation.
+                    (NodeKind::Pure(OpKind::Mem(MemOp::Alloc { site, .. })), [before])
+                        if provenance(*address).is_some_and(|p| p.site != *site) =>
+                    {
+                        out.push((
+                            class,
+                            Term::Node(
+                                OpKind::Mem(MemOp::Load),
+                                vec![Term::Class(*before), Term::Class(*address)],
+                            ),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        (MemOp::Store, [state, address, value]) => {
+            // Dead store: a store immediately overwritten at the same address.
+            for node in graph.nodes(*state) {
+                if let (NodeKind::Pure(OpKind::Mem(MemOp::Store)), [before, stored_at, _]) =
+                    (&node.kind, node.children.as_slice())
+                {
+                    if same(*stored_at, *address) {
+                        out.push((
+                            class,
+                            Term::Node(
+                                OpKind::Mem(MemOp::Store),
+                                vec![
+                                    Term::Class(*before),
+                                    Term::Class(*address),
+                                    Term::Class(*value),
+                                ],
+                            ),
+                        ));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 fn is_int(graph: &EGraph, id: EClassId) -> bool {
