@@ -662,6 +662,51 @@ addresses as `usize`:
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
 loads and stores). As with `load_*`/`store_*`, nothing checks the address.
 
+### GPU kernels: `@target(gpu)`
+
+A function marked `@target(gpu)` is also compiled for NVIDIA GPUs. `codira
+build` writes its PTX to `target/<module>.ptx`, next to the library, and the
+CUDA driver JIT-compiles that for whatever GPU it finds. A GPU function that
+returns nothing is a kernel, which the host launches. One that returns a value
+is a device function, which kernels can call. Buffers are `usize` device
+addresses, read and written with the `load_<t>`/`store_<t>` intrinsics. Each
+thread finds its work item with `gpu_thread_id_x/y/z`, `gpu_block_id_*`,
+`gpu_block_dim_*` and `gpu_grid_dim_*` (all `-> u32`), and
+`gpu_sync_threads()` is the block barrier:
+
+```codira
+extern "codira-intrinsic" {
+    func gpu_thread_id_x() -> u32;
+    func gpu_block_id_x() -> u32;
+    func gpu_block_dim_x() -> u32;
+    func load_f32(addr: usize) -> f32;
+    func store_f32(addr: usize, value: f32);
+}
+
+@target(gpu)
+public func vadd(a: usize, b: usize, c: usize, n: u32) {
+    let i = gpu_block_id_x() * gpu_block_dim_x() + gpu_thread_id_x()
+    if i < n {
+        let at = (i as usize) * 4
+        store_f32(c + at, load_f32(a + at) + load_f32(b + at))
+    }
+}
+```
+
+The GPU has no Codira runtime, so a GPU function may take and return only
+integers, floats and booleans, and may call only other `@target(gpu)`
+functions and intrinsics: no classes or other garbage-collected values, no
+host functions, no `extern` functions. Anything else fails the build with the
+reason. In the host library the same function is an ordinary function, and
+the geometry intrinsics describe a one-thread launch (ids 0, dimensions 1).
+
+Launching from Rust goes through the `codira_gpu` crate: `Gpu::open()`,
+`load_ptx`, `upload`, `launch`, `copy_to`. It opens the CUDA driver library at
+run time, so nothing links against CUDA, and a machine without a GPU gets an
+error instead of a crash. There is no launch syntax in Codira yet. A vector
+add over 100,000 elements is tested on an RTX 4080 against the host result;
+without a driver or device that test reports that it was skipped.
+
 ### Quantum kernels (`codira quantum`)
 
 A function marked `@target(qpu)` is a quantum kernel: the compiler runs its

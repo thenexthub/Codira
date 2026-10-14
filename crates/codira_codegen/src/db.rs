@@ -59,6 +59,14 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     #[salsa::invoke(crate::assembly::build_assembly_ir)]
     fn assembly_ir(&self, module_group: ModuleGroupId) -> Arc<AssemblyIr>;
 
+    /// PTX for the group's `@target(gpu)` functions, `None` when it has none,
+    /// or why they cannot run on a GPU (see `crate::gpu`).
+    #[salsa::invoke(crate::gpu::gpu_kernels_query)]
+    fn gpu_kernels(
+        &self,
+        module_group: ModuleGroupId,
+    ) -> Arc<Result<Option<crate::gpu::GpuKernels>, String>>;
+
     /// Returns a fully linked shared object for the specified module.
     #[salsa::invoke(crate::assembly::build_target_assembly)]
     fn target_assembly(&self, module_group: ModuleGroupId) -> Arc<TargetAssembly>;
@@ -137,5 +145,7 @@ pub(crate) fn initialize_target_backends_once() {
         Target::initialize_riscv(&InitializationConfig::default());
         #[cfg(feature = "target-webassembly")]
         Target::initialize_webassembly(&InitializationConfig::default());
+        #[cfg(feature = "target-nvptx")]
+        Target::initialize_nvptx(&InitializationConfig::default());
     });
 }

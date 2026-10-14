@@ -41,6 +41,7 @@ mod test_targets;
 pub mod value;
 
 mod apple;
+pub mod gpu;
 pub(crate) mod intrinsics;
 mod linker;
 pub mod mir_codegen;

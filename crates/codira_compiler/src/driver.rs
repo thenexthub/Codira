@@ -865,6 +865,15 @@ impl Driver {
             anyhow::bail!("{reason}");
         }
 
+        // `@target(gpu)` functions are also compiled for the GPU, to PTX
+        // written next to the library (`codira_codegen::gpu`). A kernel that
+        // cannot run on a GPU fails the build with the reason.
+        let gpu_kernels = self.db.gpu_kernels(module_group_id);
+        let gpu_kernels = match &*gpu_kernels {
+            Err(reason) => anyhow::bail!("{reason}"),
+            Ok(kernels) => kernels.clone(),
+        };
+
         // Determine the filename of the group (`.codiralib`, or `.wasm` for
         // a WebAssembly target)
         let assembly_path = self
@@ -885,6 +894,9 @@ impl Driver {
 
         // It did change or we are forced, so write it to disk
         assembly.copy_to(&assembly_path)?;
+        if let Some(kernels) = gpu_kernels {
+            std::fs::write(assembly_path.with_extension("ptx"), kernels.ptx)?;
+        }
 
         // Store the information so we maybe don't have to write it next time
         self.module_to_temp_assembly_path

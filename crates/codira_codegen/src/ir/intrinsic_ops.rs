@@ -12,6 +12,7 @@ use inkwell::{
     AddressSpace,
 };
 
+mod gpu;
 mod low_level;
 
 /// The width and interpretation of one memory access.
@@ -201,6 +202,12 @@ pub fn gen_intrinsic<'ink>(
     // public `sqrt_f32` wrapper, and without a way to spell the two apart
     // the declaration and its wrapper would collide.
     let name = name.strip_prefix("__intrinsic_").unwrap_or(name);
+
+    match gpu::gen_gpu_op(name, args, context, module, builder, target_data)? {
+        Some(low_level::Emitted::Value(value)) => return Ok(Some(value)),
+        Some(low_level::Emitted::Unit) => return Ok(None),
+        None => {}
+    }
 
     // Checked before `load_*`/`store_*` below, whose prefixes `load_nt_*`,
     // `store_nt_*` and the atomics would otherwise be mistaken for.
