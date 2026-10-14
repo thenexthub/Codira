@@ -200,15 +200,53 @@ func area(shape: Shape) -> f64 {
 
 ### Generics
 
+Generic functions, structs and classes build and run. Each use at concrete
+types is compiled separately (monomorphisation): `id(1)` and `id(2.5)` run
+two functions, `Box[i32]` and `Box[f64]` are two types with their own
+layouts.
+
 ```codira
-struct Box[T] {
-    value: T
+struct Pair[A, B] { a: A, b: B }
+class Box[T] { value: T }
+
+extend Box[T] {                          // methods of every Box[T]
+    func get(self) -> T { self.value }
+    func new(value: T) -> Box[T] { Box { value: value } }
 }
 
-func first[T](items: [T]) -> T? {
-    if items.is_empty() { nil } else { items[0] }
+func pick[T](a: T, b: T, first: bool) -> T {
+    if first { a } else { b }
+}
+
+func main() -> f64 {
+    let b: Box[i32] = Box { value: 41 }  // explicit arguments, in type position
+    let p = Pair { a: 3, b: 0.5 }        // inferred: Pair[i64, f64]
+    let n = Box.new(p)                   // Box[Pair[i64, f64]]
+    pick(1.5, 2.5, b.get() > 40)
 }
 ```
+
+- Type arguments are written only in type position (`Box[i32]`); at calls
+  they are always inferred from the arguments and the expected type. A
+  parameter nothing determines (`func size[T]() -> i64` called as `size()`)
+  is an error at the call.
+- A value of type `T` can be moved, copied, passed, returned and stored.
+  Anything more -- `a + b`, `a < b`, `-a`, `a.len()` -- needs a bound
+  (`where T: ...`), and bounds are not supported yet: it is a type error
+  saying so.
+- A generic type needs its arguments outside its own declaration: `b: Box`
+  is an error, write `b: Box[i32]`.
+- Generics cross modules as source: a module calling another module's
+  generic function compiles the instance itself (and a private helper the
+  function calls, which its module does not export). A generic function has
+  no code of its own, so it is never exported to the host, even when
+  `public`; `codira start`/`invoke` can only call non-generic functions.
+  `@export`, `@asm` and `@test` cannot be put on a generic function, and a
+  generic function cannot have a `uses` clause or be `spawn`ed yet.
+- A function calling itself at an ever larger type (`f(Box { v: x })`
+  inside `f[T]`) has no finite set of instances and is reported.
+- The Cranelift backend (`codira run --jit`) does not compile generic
+  functions; a program using them runs on LLVM.
 
 ### Optional types
 
@@ -970,6 +1008,9 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
+- generic functions, structs and classes, monomorphised per instantiation
+  (see "Generics" above for the limits: no bounds, so a `T` can only be
+  moved and stored; generic functions are not exported to the host)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
 
@@ -1024,9 +1065,8 @@ between tasks (scalars and channels only). No `select` yet.
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
 postfix `!`, postfix `^`. Not available at
-all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
-instantiation (generic code type-checks but does not build), `String`, and
-using the standard library from a program.
+all yet: `enum`, `trait` (and so generic bounds), `T?`/`nil` at runtime,
+`String`, and using the standard library from a program.
 
 ---
 

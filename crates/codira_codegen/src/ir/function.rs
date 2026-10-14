@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use codira_hir::HirDatabase;
+use codira_hir::{mono::Instance, HirDatabase};
 use inkwell::{
     module::{Linkage, Module},
     values::FunctionValue,
@@ -17,14 +17,25 @@ use crate::ir::ty::HirTypeCache;
 /// `gen_body` function. The reason this is split between two functions is that
 /// first all signatures are generated and then all bodies. This allows bodies
 /// to reference `FunctionValue` wherever they are declared in the file.
+///
+/// An instance of a generic function, and a function of another module this
+/// group emits a copy of (see `ir::file_group::code_units`), is private to
+/// the module and named by [`Instance::name`] -- `util::id[i64]` -- which is
+/// deterministic and distinct per instance. Everything else keeps its plain
+/// name, which the runtime and `@export` rely on.
 pub(crate) fn gen_prototype<'db, 'ink>(
     db: &'db dyn HirDatabase,
     types: &HirTypeCache<'db, 'ink>,
-    func: codira_hir::Function,
+    instance: &Instance,
     module: &Module<'ink>,
+    local_copy: bool,
 ) -> FunctionValue<'ink> {
+    let func = instance.function();
+    let ir_ty = types.get_function_type(instance);
+    if instance.is_generic() || local_copy {
+        return module.add_function(&instance.name(db), ir_ty, Some(Linkage::Private));
+    }
     let name = func.name(db).to_string();
-    let ir_ty = types.get_function_type(func);
 
     // `@export("C")` makes the function reachable from outside the assembly
     // under its own unmangled name (`spec/LANGUAGE_SPEC.md` section 10).
@@ -65,6 +76,6 @@ pub(crate) fn gen_public_prototype<'db, 'ink>(
     module: &Module<'ink>,
 ) -> FunctionValue<'ink> {
     let name = format!("{}_wrapper", func.name(db));
-    let ir_ty = types.get_public_function_type(func);
+    let ir_ty = types.get_public_function_type(&Instance::of(func));
     module.add_function(&name, ir_ty, None)
 }

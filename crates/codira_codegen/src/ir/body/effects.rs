@@ -349,13 +349,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
                 .expect("failed to mark handler record");
             self.build_dummy_return(&op_ret);
         } else {
-            let ret = self
-                .hir_function
-                .ty(self.db)
-                .callable_sig(self.db)
-                .expect("a function has a signature")
-                .ret()
-                .clone();
+            let ret = self.instance.sig(self.db).ret().clone();
             self.build_dummy_return(&ret);
         }
         if let Some(current) = current {
@@ -710,7 +704,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
             self.context,
             self.module,
             self.db,
-            (self.hir_function, arm_fn),
+            (self.instance.clone(), self.infer.clone(), arm_fn),
             self.function_map,
             self.dispatch_table,
             self.type_table,
