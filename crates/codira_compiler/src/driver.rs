@@ -444,6 +444,16 @@ impl Driver {
 }
 
 impl Driver {
+    /// Every HIR diagnostic of `module`, plus the ones that depend on how
+    /// this driver builds: a fuel-instrumented build cannot keep the promise
+    /// of a `@nopanic` or `@realtime` function.
+    fn module_diagnostics(&self, module: Module, sink: &mut DiagnosticSink<'_>) {
+        module.diagnostics(&self.db, sink);
+        if self.db.fuel_instrumentation() {
+            codira_hir::realtime::fuel_diagnostics(&self.db, module, sink);
+        }
+    }
+
     /// Emits all diagnostic messages currently in the database; returns true if
     /// errors were emitted.
     pub fn emit_diagnostics(
@@ -477,8 +487,8 @@ impl Driver {
 
                     // Emit all HIR diagnostics
                     let mut error = None;
-                    module.diagnostics(
-                        &self.db,
+                    self.module_diagnostics(
+                        module,
                         &mut DiagnosticSink::new(|d| {
                             has_error = true;
                             if let Err(e) =
@@ -549,8 +559,8 @@ impl Driver {
                 }
 
                 let mut error = None;
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         counts.semantic += 1;
                         file_has_diagnostic = true;
@@ -605,8 +615,8 @@ impl Driver {
                     })
                     .collect();
 
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         diagnostics.push(CheckDiagnostic {
                             kind: DiagnosticKind::Semantic,

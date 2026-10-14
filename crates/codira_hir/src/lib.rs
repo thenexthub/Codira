@@ -67,6 +67,7 @@ mod name;
 mod name_resolution;
 mod path;
 mod primitive_type;
+pub mod realtime;
 mod refinement_check;
 mod resolve;
 mod source_id;

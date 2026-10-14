@@ -486,6 +486,78 @@ func wrong(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
   code generation never sees them. There are no unit conversions (`km` and
   `m` are unrelated base units).
 
+### Allocation-, panic- and block-free code: `@noalloc`, `@nopanic`, `@noblock`, `@realtime`
+
+```codira
+class Particle {
+    x: i64
+}
+
+@realtime                                  // = @noalloc @nopanic @noblock + bounded
+func mean(total: i64, count: i64) -> i64
+    requires count > 0                     // proves the division safe
+{
+    total / count
+}
+
+@noalloc
+func tick(n: i64) -> i64 {
+    step(n)                                // error, see below
+}
+
+func step(n: i64) -> i64 {
+    let p = Particle { x: n }
+    p.x
+}
+```
+
+```
+error: `tick` is `@noalloc` but calls `step` (line 14), which allocates: class `Particle` constructed at line 18
+```
+
+The compiler computes, for every function, whether a call to it can
+allocate, block, panic or run unboundedly, through everything it calls
+(recursion included), and remembers one chain of calls that explains each.
+An attribute forbids effects: `@noalloc` allocation, `@nopanic` panics,
+`@noblock` blocking, `@realtime` all three and unbounded running time. Every
+place in an annotated function that has a forbidden effect, directly or
+through a call, is an error that prints the chain.
+
+What counts, exactly (today's code generator and runtime):
+
+- **Allocates** (and so may also block on the heap's lock and abort when the
+  heap limit or memory runs out): constructing a `class`, an array literal,
+  `print`/`println`, `channel(n)`, `scope`, `spawn`, a channel send, and a
+  call to a function of *another module* that takes or returns a value
+  struct (the cross-module calling convention boxes it). String literals,
+  value structs, tuples and effect handler records allocate nothing.
+- **Blocks**: channel send and receive, the end of a `scope`, and the
+  allocations above.
+- **Panics**: `a[i]` and `a[i] = v` (bounds check; `a.unchecked_get(i)` is
+  the unchecked escape hatch), integer `/` and `%` (and `/=`, `%=`), calling a
+  `@runtime_checked` function that has `requires`, and every allocation.
+  Integer division is not checked by the generated code at all -- a zero
+  divisor or `MIN / -1` is undefined behaviour -- so a division only counts
+  as safe when its divisor is a positive literal or the function has a
+  contract and Z3 proves the divisor non-zero (and, signed, not `MIN / -1`).
+- **May not terminate** (`@realtime` only): a `while` or `loop` without a
+  `decreases` measure, or whose measure the verifier does not prove, and
+  recursion, direct or mutual. `for` loops are bounded by construction.
+- **Everything at once**: a call to an `extern` function, a `perform` (its
+  handler is chosen at run time), and any call the analysis cannot resolve.
+  An `extern` declaration may carry the attributes as a *trusted
+  assertion* -- nothing checks it -- e.g. `@noalloc @nopanic extern func
+  c_mix(a: i64) -> i64;`, also inside `extern "C" { .. }` blocks.
+  `extern "codira-intrinsic"` operations have no effects.
+
+Limits: stack overflow is not ruled out (there is no stack bound). The
+verifier does not model `for` loops or `continue` yet, so in a function that
+has either, no division and no loop measure counts as proven. `@realtime`
+proves termination, not a time bound: `@deadline(..)` is rejected, because a
+worst-case execution time needs a cycle model of the target CPU that the
+compiler does not have. `codira build --fuel` lets any call stop when its fuel
+runs out, so such a build rejects `@nopanic` and `@realtime` functions.
+
 ### Modules & imports
 
 ```codira
@@ -929,6 +1001,10 @@ Runtime (hosts embedding `codira_runtime`):
   semantics, and a renamed field keeps its value when marked
   @renamed(from: "old"). Runtime::save_heap / restore_heap write the GC
   heap to a file and rebuild it in a runtime running the same program.
+
+`@noalloc`, `@nopanic`, `@noblock` and `@realtime` are checked statically in
+`codira check` and `codira build` (see their section above); `@deadline` is
+rejected.
 
 Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
 one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts
