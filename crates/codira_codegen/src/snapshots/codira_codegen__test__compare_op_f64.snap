@@ -16,7 +16,7 @@ body:
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)
 define i1 @not_equal(double %0, double %1) local_unnamed_addr #0 {
 body:
-  %neq = fcmp one double %0, %1
+  %neq = fcmp une double %0, %1
   ret i1 %neq
 }
 

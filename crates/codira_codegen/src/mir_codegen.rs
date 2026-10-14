@@ -519,12 +519,13 @@ impl<'a, 'ink> Lowerer<'a, 'ink> {
                     let lhs = operand(0)?;
                     let rhs = operand(1)?;
                     if lhs.is_float_value() || rhs.is_float_value() {
-                        // Ordered predicates: IEEE comparison semantics per
-                        // `fold.rs` (`NaN != NaN`, all orderings false on
-                        // NaN), same choice as `ir::body`'s float compares.
+                        // IEEE comparison semantics per `fold.rs`: `==` and
+                        // the orderings are ordered (false on NaN); `!=` is
+                        // `!(==)` and therefore unordered (true on NaN).
+                        // Same choice as `ir::body`'s float compares.
                         let predicate = match op.kind {
                             OpKind::Eq => FloatPredicate::OEQ,
-                            OpKind::Ne => FloatPredicate::ONE,
+                            OpKind::Ne => FloatPredicate::UNE,
                             OpKind::Lt => FloatPredicate::OLT,
                             OpKind::Le => FloatPredicate::OLE,
                             OpKind::Gt => FloatPredicate::OGT,

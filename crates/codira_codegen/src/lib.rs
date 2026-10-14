@@ -32,6 +32,8 @@ mod assembly;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
+mod run_test;
+#[cfg(test)]
 mod test;
 #[cfg(test)]
 mod test_targets;

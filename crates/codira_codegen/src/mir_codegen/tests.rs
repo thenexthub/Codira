@@ -489,6 +489,34 @@ fn jit_runs_float_comparison_with_ordered_predicate() {
     );
 }
 
+/// `!=` is the one comparison that must be *unordered*: it is the
+/// negation of `==`, so it holds whenever `==` does not -- including when
+/// either side is NaN. `fold.rs` folds it that way, and the generated code
+/// has to agree with the folder or a constant and a run-time value of the
+/// same expression would differ.
+#[test]
+fn jit_runs_float_not_equal_as_unordered() {
+    // `fn(x: f64) -> f64 { if x != 2.5 { 1.0 } else { -1.0 } }`
+    let mut body = Body::new();
+    let x = body.push(OpKind::Arg(0), []);
+    let limit = body.push(OpKind::Const(Attr::float(2.5)), []);
+    let cond = body.push(OpKind::Ne, [x, limit]);
+    let mut then_body = Body::new();
+    then_body.push(OpKind::Const(Attr::float(1.0)), []);
+    let mut else_body = Body::new();
+    else_body.push(OpKind::Const(Attr::float(-1.0)), []);
+    body.push_with_regions(
+        OpKind::If,
+        [cond],
+        [Region::new(then_body), Region::new(else_body)],
+    );
+
+    assert_eq!(
+        run_f64_unary(&body, &[2.5, 3.0, f64::NAN]),
+        vec![-1.0, 1.0, 1.0]
+    );
+}
+
 #[test]
 fn jit_runs_float_negation() {
     // `fn(x: f64) -> f64 { -(x * 1.5) }` -- Neg on a float value is fneg.

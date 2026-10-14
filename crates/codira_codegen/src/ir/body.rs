@@ -1539,9 +1539,14 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         match op {
             BinaryOp::ArithOp(op) => Some(self.gen_arith_bin_op_float(lhs, rhs, op).into()),
             BinaryOp::CmpOp(op) => {
+                // IEEE 754: `==` and every ordering are *ordered* (false
+                // when either side is NaN); `!=` is the negation of `==`, so
+                // it is *unordered* (true when either side is NaN). `ONE`
+                // here would make `NaN != x` false -- the answer C, SQL and
+                // the Eidos folder (`codira_mir::fold`) all disagree with.
                 let (name, predicate) = match op {
                     CmpOp::Eq { negated: false } => ("eq", FloatPredicate::OEQ),
-                    CmpOp::Eq { negated: true } => ("neq", FloatPredicate::ONE),
+                    CmpOp::Eq { negated: true } => ("neq", FloatPredicate::UNE),
                     CmpOp::Ord {
                         ordering: Ordering::Less,
                         strict: false,
