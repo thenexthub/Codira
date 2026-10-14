@@ -24,7 +24,7 @@ use crate::{
 /// Represents a Codira struct pointer.
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct RawStruct(GcPtr);
+pub struct RawStruct(pub(crate) GcPtr);
 
 impl RawStruct {
     /// Returns a pointer to the struct memory.
@@ -294,7 +294,7 @@ pub struct RootedStruct {
 
 impl RootedStruct {
     /// Creates a `RootedStruct` that wraps a raw Codira struct.
-    fn new(gc: &Arc<GarbageCollector>, raw: RawStruct) -> Self {
+    pub(crate) fn new(gc: &Arc<GarbageCollector>, raw: RawStruct) -> Self {
         assert!(gc.ptr_type(raw.0).is_struct());
         Self {
             handle: GcRootPtr::new(gc, raw.0),

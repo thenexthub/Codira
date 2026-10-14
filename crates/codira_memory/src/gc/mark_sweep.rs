@@ -34,7 +34,7 @@ use crate::{
 
 /// Returns the offset of the first element of an array whose elements are of
 /// type `element`, relative to the start of the array payload.
-fn array_data_offset(element: &TypeData) -> usize {
+pub(crate) fn array_data_offset(element: &TypeData) -> usize {
     Layout::new::<ArrayHeader>()
         .extend(element.reference_layout())
         .expect("error creating combined layout of header and element")
@@ -126,7 +126,7 @@ pub struct MarkSweep<O>
 where
     O: Observer<Event = Event>,
 {
-    heap: Arc<Heap>,
+    pub(crate) heap: Arc<Heap>,
     observer: O,
     /// Collections started because an allocation hit the heap limit.
     emergency_collections: AtomicUsize,

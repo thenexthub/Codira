@@ -205,11 +205,38 @@ fn gen_struct_info<'ink>(
             context,
         );
 
+    // Previous names from `@renamed(from: "old")`: a null array when no field
+    // was renamed, otherwise one entry per field (null where not renamed).
+    let previous_names: Vec<Option<String>> =
+        fields.iter().map(|field| field.renamed_from(db)).collect();
+    let field_previous_names = if previous_names.iter().all(Option::is_none) {
+        Value::<*const *const u8>::null(context)
+    } else {
+        previous_names
+            .iter()
+            .enumerate()
+            .map(|(idx, previous)| match previous {
+                Some(previous) => CString::new(previous.clone())
+                    .expect("previous field name is not a valid CString")
+                    .intern(
+                        format!("struct_info::<{name}>::field_previous_names.{idx}"),
+                        context,
+                    )
+                    .as_value(context),
+                None => Value::<*const u8>::null(context),
+            })
+            .into_const_private_pointer_or_null(
+                format!("struct_info::<{name}>::field_previous_names"),
+                context,
+            )
+    };
+
     ir::StructDefinition {
         guid: guid_from_struct(db, hir_struct),
         field_names,
         field_types,
         field_offsets,
+        field_previous_names,
         num_fields: fields
             .len()
             .try_into()

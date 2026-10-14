@@ -924,6 +924,11 @@ Runtime (hosts embedding `codira_runtime`):
   Running out prints a message and ends the call (a `FuelExhausted` fault a
   HERACLES guard catches, with `--heal`). Measured cost: about 2-12% in loops.
   Uninstrumented code is not metered.
+- Hot reload keeps object state across layout changes: fields are matched
+  by name, numeric fields that change type convert with saturating
+  semantics, and a renamed field keeps its value when marked
+  @renamed(from: "old"). Runtime::save_heap / restore_heap write the GC
+  heap to a file and rebuild it in a runtime running the same program.
 
 Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
 one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts

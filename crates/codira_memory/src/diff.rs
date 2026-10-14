@@ -254,7 +254,8 @@ fn append_struct_mapping(
             // ASSUMPTION: Don't use recursion, because all types are individually checked
             // for differences.
             // TODO: Support value struct vs heap struct?
-            let diff = field_diff(old_fields, new_fields);
+            let new_fields = alias_renamed_fields(old_fields, new_fields, &new_ty);
+            let diff = field_diff(old_fields, &new_fields);
 
             // Edit the struct, potentially moving it in the process.
             StructDiff::Edit {
@@ -292,6 +293,50 @@ fn append_struct_mapping(
                 });
             }
         });
+}
+
+/// Gives every new field declared `@renamed(from: "old")` the old name for
+/// the purpose of diffing, so that the old field's value carries over (with a
+/// conversion if its type changed too) instead of the change being a
+/// deletion plus an insertion. The alias only applies when the old struct had
+/// a field of that name and the new struct no longer does; otherwise the
+/// attribute is stale and ignored.
+fn alias_renamed_fields<'a: 'b, 'b>(
+    old: &[UniqueFieldInfo<'_>],
+    new: &[UniqueFieldInfo<'a>],
+    new_ty: &'b Type,
+) -> Vec<UniqueFieldInfo<'b>> {
+    let Some(new_struct) = new_ty.as_struct() else {
+        return new
+            .iter()
+            .map(|f| UniqueFieldInfo {
+                name: f.name,
+                ty: f.ty.clone(),
+            })
+            .collect();
+    };
+    let new_struct_fields = new_struct.fields();
+    new.iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let previous = new_struct_fields.get(index).and_then(|f| f.renamed_from());
+            match previous {
+                Some(previous)
+                    if old.iter().any(|f| f.name == previous)
+                        && !new.iter().any(|f| f.name == previous) =>
+                {
+                    UniqueFieldInfo {
+                        name: previous,
+                        ty: field.ty.clone(),
+                    }
+                }
+                _ => UniqueFieldInfo {
+                    name: field.name,
+                    ty: field.ty.clone(),
+                },
+            }
+        })
+        .collect()
 }
 
 /// Given an `old` and a `new` set of fields, calculates the difference.

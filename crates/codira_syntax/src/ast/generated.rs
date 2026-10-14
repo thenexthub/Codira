@@ -2959,6 +2959,7 @@ impl ast::NameOwner for RecordFieldDef {}
 impl ast::VisibilityOwner for RecordFieldDef {}
 impl ast::DocCommentsOwner for RecordFieldDef {}
 impl ast::TypeAscriptionOwner for RecordFieldDef {}
+impl ast::AttributeOwner for RecordFieldDef {}
 impl RecordFieldDef {}
 
 // RecordFieldDefList

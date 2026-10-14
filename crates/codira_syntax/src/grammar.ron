@@ -486,7 +486,8 @@ Grammar(
                 "NameOwner",
                 "VisibilityOwner",
                 "DocCommentsOwner",
-                "TypeAscriptionOwner"
+                "TypeAscriptionOwner",
+                "AttributeOwner"
             ]
         ),
         "TupleFieldDefList": (collections: [("fields", "TupleFieldDef")]),

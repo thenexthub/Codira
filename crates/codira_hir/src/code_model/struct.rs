@@ -61,6 +61,11 @@ impl Field {
         self.parent.data(db).fields[self.id].name.clone()
     }
 
+    /// Returns the name given by `@renamed(from: "old")`, if any.
+    pub fn renamed_from(self, db: &dyn HirDatabase) -> Option<String> {
+        self.parent.data(db).fields[self.id].renamed_from.clone()
+    }
+
     /// Returns the index of this field in the parent
     pub fn index(self, _db: &dyn HirDatabase) -> u32 {
         self.id.into_raw().into()
@@ -194,6 +199,10 @@ pub struct FieldData {
     pub name: Name,
     pub type_ref: LocalTypeRefId,
     pub visibility: RawVisibility,
+    /// The name this field had before, from `@renamed(from: "old")`. Hot
+    /// reload carries the old field's value over to this one instead of
+    /// treating the change as a deletion and an insertion.
+    pub renamed_from: Option<String>,
 }
 
 /// A struct's fields' data (record, tuple, or unit struct)
@@ -237,6 +246,23 @@ pub struct StructData {
     type_ref_source_map: TypeRefSourceMap,
 }
 
+/// Reads `@renamed(from: "old")` (or `@renamed("old")`) from a record field.
+fn renamed_from(field: &ast::RecordFieldDef) -> Option<String> {
+    use ast::{AstNode, AttributeOwner};
+    field.attribute_list()?.attributes().find_map(|attr| {
+        let is_renamed = attr.path().and_then(|p| p.segment()).is_some_and(
+            |s| matches!(s.kind(), Some(ast::PathSegmentKind::Name(n)) if n.text() == "renamed"),
+        );
+        if !is_renamed {
+            return None;
+        }
+        let arg = attr.arg_list()?.args().next()?;
+        let text = arg.syntax().text().to_string();
+        let name = text.trim().trim_matches('"');
+        (!name.is_empty()).then(|| name.to_owned())
+    })
+}
+
 impl StructData {
     pub(crate) fn struct_data_query(db: &dyn DefDatabase, id: StructId) -> Arc<StructData> {
         let loc = id.lookup(db);
@@ -255,6 +281,7 @@ impl StructData {
                         name: fd.name().map_or_else(Name::missing, |n| n.as_name()),
                         type_ref: type_ref_builder.alloc_from_node_opt(fd.ascribed_type().as_ref()),
                         visibility: RawVisibility::from_ast(fd.visibility()),
+                        renamed_from: renamed_from(&fd),
                     })
                     .collect();
                 (fields, StructKind::Record)
@@ -267,6 +294,7 @@ impl StructData {
                         name: Name::new_tuple_field(index),
                         type_ref: type_ref_builder.alloc_from_node_opt(fd.type_ref().as_ref()),
                         visibility: RawVisibility::from_ast(fd.visibility()),
+                        renamed_from: None,
                     })
                     .collect();
                 (fields, StructKind::Tuple)
