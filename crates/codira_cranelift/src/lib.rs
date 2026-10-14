@@ -667,6 +667,8 @@ impl<'a, 'db> Translator<'a, 'db> {
             Expr::RecordLit { .. } => self.unsupported("a struct literal"),
             Expr::Field { .. } => self.unsupported("a field access"),
             Expr::Array(_) => self.unsupported("an array"),
+            // Structured concurrency lowers through the LLVM backend only.
+            Expr::Select { .. } => self.unsupported("`select`"),
             _ => self.unsupported("this kind of expression"),
         }
     }

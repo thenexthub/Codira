@@ -136,6 +136,24 @@ fn scopes_spawns_and_channels() {
 }
 
 #[test]
+fn select_arms() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func run(a: Channel[i32], b: Channel[i32]) {
+            select {
+                v = <-a -> total += v,
+                <-a -> {}
+                b <- x + 1 -> sent += 1,
+                default -> idle += 1,
+            }
+            if select { 1 }
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn attributes_and_extern_blocks() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

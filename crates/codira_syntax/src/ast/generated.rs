@@ -889,6 +889,7 @@ impl AstNode for Expr {
                 | TRANSFER_EXPR
                 | CHANNEL_RECV_EXPR
                 | CHANNEL_SEND_EXPR
+                | SELECT_EXPR
                 | HOLE_EXPR
                 | CHOOSE_EXPR
         )
@@ -939,6 +940,7 @@ pub enum ExprKind {
     TransferExpr(TransferExpr),
     ChannelRecvExpr(ChannelRecvExpr),
     ChannelSendExpr(ChannelSendExpr),
+    SelectExpr(SelectExpr),
     HoleExpr(HoleExpr),
     ChooseExpr(ChooseExpr),
 }
@@ -1107,6 +1109,11 @@ impl From<ChannelSendExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<SelectExpr> for Expr {
+    fn from(n: SelectExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 impl From<HoleExpr> for Expr {
     fn from(n: HoleExpr) -> Expr {
         Expr { syntax: n.syntax }
@@ -1166,6 +1173,7 @@ impl Expr {
             CHANNEL_SEND_EXPR => {
                 ExprKind::ChannelSendExpr(ChannelSendExpr::cast(self.syntax.clone()).unwrap())
             }
+            SELECT_EXPR => ExprKind::SelectExpr(SelectExpr::cast(self.syntax.clone()).unwrap()),
             HOLE_EXPR => ExprKind::HoleExpr(HoleExpr::cast(self.syntax.clone()).unwrap()),
             CHOOSE_EXPR => ExprKind::ChooseExpr(ChooseExpr::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
@@ -3278,6 +3286,90 @@ impl AstNode for SecretType {
 }
 impl SecretType {
     pub fn type_ref(&self) -> Option<TypeRef> {
+        super::child_opt(self)
+    }
+}
+
+// SelectArm
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectArm {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectArm {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_ARM)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectArm { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectArm {
+    pub fn pat(&self) -> Option<Pat> {
+        super::child_opt(self)
+    }
+}
+
+// SelectArmList
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectArmList {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectArmList {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_ARM_LIST)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectArmList { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectArmList {
+    pub fn arms(&self) -> impl Iterator<Item = SelectArm> {
+        super::children(self)
+    }
+}
+
+// SelectExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectExpr {
+    pub fn select_arm_list(&self) -> Option<SelectArmList> {
         super::child_opt(self)
     }
 }

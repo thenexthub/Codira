@@ -24,14 +24,18 @@
 //!   lexical, so a channel cannot be named after its scope ends, and a function
 //!   it is passed to cannot keep it (no return, no field, no array can hold
 //!   one); a task it is passed to is joined no later than the scope that owns
-//!   the channel.
+//!   the channel. A `select` arm's channel is a use like `<-`.
+//! * A `select` has at least one arm -- with none it would wait forever -- and
+//!   at most one `default`. Every other arm is a channel operation (`name =
+//!   <-ch`, `<-ch` or `ch <- value`), and only a receive binds a name.
 use rustc_hash::FxHashSet;
 
 use super::ExprValidator;
 use crate::{
     diagnostics::{DiagnosticSink, EffectError},
     resolve::{resolver_for_expr, ValueNs},
-    BuiltinFn, Expr, ExprId, HasSource, HirDisplay, Pat, Statement, Ty, TyKind,
+    BuiltinFn, Expr, ExprId, HasSource, HirDisplay, Pat, SelectArm, SelectOp, Statement, Ty,
+    TyKind,
 };
 
 /// Whether values of `ty` may cross between tasks.
@@ -60,6 +64,7 @@ impl ExprValidator<'_> {
                     | Expr::Spawn { .. }
                     | Expr::ChannelSend { .. }
                     | Expr::ChannelReceive { .. }
+                    | Expr::Select { .. }
             ) || self.infer.builtin_call(id) == Some(BuiltinFn::Channel)
                 || matches!(self.infer[id].interned(), TyKind::Channel(_))
         });
@@ -138,6 +143,7 @@ impl ExprValidator<'_> {
                     allowed.insert(*channel);
                 }
             }
+            Expr::Select { arms } => self.validate_select(expr, arms, allowed, sink),
             Expr::Call { args, .. } | Expr::MethodCall { args, .. } => {
                 for &arg in args {
                     if matches!(self.body[arg], Expr::Path(_)) {
@@ -190,6 +196,59 @@ impl ExprValidator<'_> {
         }
         self.body[expr]
             .walk_child_exprs(|child| self.validate_task_exprs(child, in_scope, allowed, sink));
+    }
+
+    /// The `select`-specific rules; collects each arm's channel as a use.
+    fn validate_select(
+        &self,
+        select: ExprId,
+        arms: &[SelectArm],
+        allowed: &mut FxHashSet<ExprId>,
+        sink: &mut DiagnosticSink<'_>,
+    ) {
+        if arms.is_empty() {
+            self.push_task_error(
+                select,
+                "a `select` with no arms waits forever: give it a channel operation or a \
+                 `default` arm"
+                    .to_string(),
+                sink,
+            );
+        }
+        let mut seen_default = false;
+        for arm in arms {
+            match arm.op {
+                SelectOp::Receive { channel } | SelectOp::Send { channel, .. } => {
+                    if matches!(self.body[channel], Expr::Path(_)) {
+                        allowed.insert(channel);
+                    }
+                }
+                SelectOp::Default => {
+                    if seen_default {
+                        self.push_task_error(
+                            arm.body,
+                            "a `select` has at most one `default` arm".to_string(),
+                            sink,
+                        );
+                    }
+                    seen_default = true;
+                }
+                SelectOp::Invalid { expr } => self.push_task_error(
+                    expr,
+                    "a `select` arm waits on a channel operation: `name = <-ch -> ..`, \
+                     `<-ch -> ..`, `ch <- value -> ..`, or `default -> ..`"
+                        .to_string(),
+                    sink,
+                ),
+            }
+            if arm.binding.is_some() && !matches!(arm.op, SelectOp::Receive { .. }) {
+                self.push_task_error(
+                    arm.body,
+                    "only a receive arm binds a name: `name = <-ch -> ..`".to_string(),
+                    sink,
+                );
+            }
+        }
     }
 
     /// `spawn f(args)`: a direct call to a module-local, non-generic,
@@ -366,5 +425,86 @@ mod tests {
     #[test]
     fn send_to_a_non_channel() {
         assert_reports("func main() { let x = 1; x <- 2 }", "`<-` needs a channel");
+    }
+
+    #[test]
+    fn well_formed_selects_are_clean() {
+        assert_clean(
+            r"
+    func pump(a: Channel[i64], b: Channel[i64], flags: Channel[bool]) -> i64 {
+        let total = 0;
+        let x = 3;
+        select {
+            v = <-a -> total += v,
+            <-b -> {},
+            flags <- x > 2 -> total += 1,
+            default -> total -= 1,
+        };
+        let picked = select {
+            v = <-a -> v,
+            w = <-b -> w * 2,
+        };
+        total + picked
+    }
+    ",
+        );
+    }
+
+    #[test]
+    fn select_without_arms_waits_forever() {
+        assert_reports(
+            "func main() { select {} }",
+            "a `select` with no arms waits forever",
+        );
+    }
+
+    #[test]
+    fn select_with_two_defaults() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { <-a -> {}, default -> {}, default -> {} } }",
+            "at most one `default` arm",
+        );
+    }
+
+    #[test]
+    fn select_arm_must_be_a_channel_operation() {
+        assert_reports(
+            "func g() -> i32 { 1 }\nfunc f() { select { g() -> {} } }",
+            "a `select` arm waits on a channel operation",
+        );
+    }
+
+    #[test]
+    fn only_a_receive_arm_binds() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { v = a <- 1 -> {} } }",
+            "only a receive arm binds a name",
+        );
+    }
+
+    #[test]
+    fn select_arm_types_must_agree() {
+        assert_reports(
+            "func f(a: Channel[i32]) -> i32 { select { v = <-a -> v, default -> true } }",
+            "every `select` arm must have the same type",
+        );
+    }
+
+    #[test]
+    fn select_binding_is_scoped_to_its_arm() {
+        let diags = diagnostics(
+            "func f(a: Channel[i32]) -> i32 { select { v = <-a -> {}, default -> {} }; v }",
+        );
+        assert!(!diags.is_empty(), "`v` is not visible after the select");
+    }
+
+    #[test]
+    fn select_channel_operands_follow_the_channel_rules() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { <-a -> {}, default -> {} }; let b = a; }",
+            "a channel can only be used with `<-`",
+        );
+        let diags = diagnostics("func f(a: Channel[i32]) { select { a <- true -> {} } }");
+        assert!(!diags.is_empty(), "a `bool` sent on a `Channel[i32]`");
     }
 }

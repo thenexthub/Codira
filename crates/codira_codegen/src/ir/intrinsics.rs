@@ -53,6 +53,7 @@ fn collect_expr<'ink>(
             | Expr::Spawn { .. }
             | Expr::ChannelSend { .. }
             | Expr::ChannelReceive { .. }
+            | Expr::Select { .. }
     ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel);
     if uses_tasks {
         for intrinsic in intrinsics::task_functions() {

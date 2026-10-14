@@ -300,3 +300,27 @@ impl ast::RangeExpr {
             .any(|token| token.kind() == T![..=])
     }
 }
+
+impl ast::SelectArm {
+    /// Whether this is the `default -> body` arm.
+    pub fn is_default(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .any(|token| token.kind() == T![default])
+    }
+
+    /// The channel operation, `<-ch` or `ch <- value`; `None` for `default`.
+    pub fn operation(&self) -> Option<ast::Expr> {
+        if self.is_default() {
+            None
+        } else {
+            children(self).next()
+        }
+    }
+
+    /// The expression after `->`.
+    pub fn body(&self) -> Option<ast::Expr> {
+        children(self).nth(usize::from(!self.is_default()))
+    }
+}

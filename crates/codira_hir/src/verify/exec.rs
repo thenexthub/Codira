@@ -29,7 +29,7 @@ use super::{
 };
 use crate::{
     code_model::{Function, HasSource},
-    expr::{ArithOp, BinaryOp, BodySourceMap, CmpOp, LogicOp, Ordering, Statement},
+    expr::{ArithOp, BinaryOp, BodySourceMap, CmpOp, LogicOp, Ordering, SelectArm, Statement},
     ids::DefWithBodyId,
     in_file::InFile,
     resolve::{resolver_for_expr, ValueNs},
@@ -836,6 +836,14 @@ impl<'ctx> Exec<'_, 'ctx> {
                 let value = self.eval(state, *inner)?;
                 Some(cast(self.db, self.ctx, value, &self.frame.infer[expr]))
             }
+            Expr::Select { arms } => {
+                for arm in arms {
+                    for operand in arm.operands() {
+                        self.eval(state, operand)?;
+                    }
+                }
+                self.eval_select_arms(state, arms)
+            }
             other => {
                 // Fields, indexing, literals of composite types: evaluate
                 // the operands for the obligations they carry, then forget
@@ -1012,6 +1020,50 @@ impl<'ctx> Exec<'_, 'ctx> {
             (Some(a), Some(b)) => {
                 *state = merge_states(then_state, else_state, cb);
                 Some(merge_sym(cb, a, b))
+            }
+        }
+    }
+
+    /// The arms of a `select`, after its operands. Which arm runs depends
+    /// on other tasks, so each is a nondeterministic choice, and a received
+    /// value is unconstrained. No arms: the `select` waits forever.
+    fn eval_select_arms(
+        &mut self,
+        state: &mut State<'ctx>,
+        arms: &[SelectArm],
+    ) -> Option<Sym<'ctx>> {
+        let (arm, rest) = arms.split_first()?;
+        let run = |this: &mut Self, state: &mut State<'ctx>| {
+            if let Some(binding) = arm.binding {
+                let ty = this.frame.infer[binding].clone();
+                let value = this.fresh_for_ty(&ty, "received");
+                this.bind(state, binding, value);
+            }
+            this.eval(state, arm.body)
+        };
+        if rest.is_empty() {
+            return run(self, state);
+        }
+        let choice = self.fresh_bool("select");
+        let mut this_state = state.clone();
+        this_state.pc = state.pc.and(choice);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(choice.not());
+        let this_value = run(self, &mut this_state);
+        let rest_value = self.eval_select_arms(&mut rest_state, rest);
+        match (this_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = this_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(this_state, rest_state, choice);
+                Some(merge_sym(choice, a, b))
             }
         }
     }

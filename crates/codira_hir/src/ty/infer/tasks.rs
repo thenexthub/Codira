@@ -13,9 +13,12 @@
 //!   uses decide (a send, a receive, an annotation, a parameter).
 //! * `ch <- v` checks `v` against the channel's element type and is `()`;
 //!   `<-ch` has the element type.
+//! * `select { .. }`: each arm's operation is typed like the operator it is
+//!   written with, a receive arm's binding has the channel's element type, and
+//!   the arms' bodies share one type, which is the `select`'s.
 use super::{error_type, Expectation, InferenceDiagnostic, InferenceResultBuilder};
 use crate::{
-    expr::ExprId,
+    expr::{ExprId, SelectArm, SelectOp},
     ty::{IntTy, Ty, TyKind},
     HirDisplay,
 };
@@ -86,5 +89,59 @@ impl InferenceResultBuilder<'_> {
 
     pub(super) fn infer_channel_receive(&mut self, _tgt_expr: ExprId, channel: ExprId) -> Ty {
         self.channel_element(channel, "<-")
+    }
+
+    pub(super) fn infer_select(&mut self, arms: &[SelectArm], expected: &Expectation) -> Ty {
+        for arm in arms {
+            match arm.op {
+                SelectOp::Receive { channel } => {
+                    let element = self.channel_element(channel, "<-");
+                    if let Some(binding) = arm.binding {
+                        self.infer_pat(binding, element);
+                    }
+                }
+                SelectOp::Send { channel, value } => {
+                    let element = self.channel_element(channel, "<-");
+                    self.infer_expr_coerce(value, &Expectation::has_type(element));
+                }
+                SelectOp::Invalid { expr } => {
+                    self.infer_expr(expr, &Expectation::none());
+                }
+                SelectOp::Default => {}
+            }
+            // A binding on anything but a receive is reported by the task
+            // validator; it still needs a type.
+            if let (
+                Some(binding),
+                SelectOp::Send { .. } | SelectOp::Invalid { .. } | SelectOp::Default,
+            ) = (arm.binding, arm.op)
+            {
+                self.infer_pat(binding, error_type());
+            }
+        }
+        let mut result: Option<Ty> = None;
+        for arm in arms {
+            let ty = self.infer_expr_coerce(arm.body, expected);
+            result = Some(match result {
+                None => ty,
+                Some(previous) => {
+                    if let Some(merged) = self.coerce_merge_branch(&previous, &ty) {
+                        merged
+                    } else {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: arm.body.into(),
+                            message: format!(
+                                "every `select` arm must have the same type: this one is a `{}`, \
+                                 an earlier one a `{}`",
+                                ty.display(self.db),
+                                previous.display(self.db)
+                            ),
+                        });
+                        previous
+                    }
+                }
+            });
+        }
+        result.unwrap_or_else(Ty::unit)
     }
 }

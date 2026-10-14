@@ -273,6 +273,45 @@ impl ExprValidator<'_> {
                     );
                 }
             }
+            // Every operand is evaluated; then exactly one arm runs, so what
+            // is initialized after the `select` is what every arm that can
+            // finish initializes.
+            Expr::Select { arms } => {
+                for arm in arms {
+                    for operand in arm.operands() {
+                        self.validate_expr_access(
+                            sink,
+                            initialized_patterns,
+                            operand,
+                            ExprKind::Normal,
+                        );
+                    }
+                }
+                let mut after: Option<HashSet<PatId>> = None;
+                for arm in arms {
+                    let mut arm_initialized = initialized_patterns.clone();
+                    if let Some(binding) = arm.binding {
+                        self.mark_initialized(&mut arm_initialized, binding);
+                    }
+                    self.validate_expr_access(
+                        sink,
+                        &mut arm_initialized,
+                        arm.body,
+                        ExprKind::Normal,
+                    );
+                    if !self.infer[arm.body].is_never() {
+                        after = Some(match after {
+                            None => arm_initialized,
+                            Some(previous) => {
+                                previous.intersection(&arm_initialized).copied().collect()
+                            }
+                        });
+                    }
+                }
+                if let Some(after) = after {
+                    initialized_patterns.extend(after);
+                }
+            }
             Expr::Literal(_) | Expr::Missing | Expr::Continue => {}
         }
     }

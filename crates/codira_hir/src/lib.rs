@@ -30,7 +30,8 @@ pub use crate::{
     display::HirDisplay,
     expr::{
         ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
-        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
+        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, SelectArm, SelectOp,
+        Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,

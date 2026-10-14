@@ -791,6 +791,7 @@ impl InferenceResultBuilder<'_> {
                 self.infer_channel_send(tgt_expr, *channel, *value)
             }
             Expr::ChannelReceive { channel } => self.infer_channel_receive(tgt_expr, *channel),
+            Expr::Select { arms } => self.infer_select(arms, expected),
         };
 
         let ty = self.resolve_ty_as_far_as_possible(ty);

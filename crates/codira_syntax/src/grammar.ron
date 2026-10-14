@@ -176,6 +176,12 @@ Grammar(
         // stays an ordinary identifier everywhere else (`if scope { .. }`
         // still tests a variable named `scope`).
         "scope",
+        // `select { .. }`: waits on several channel operations and performs
+        // exactly one. Promoted only when directly followed by `{` where a
+        // block may start, like `scope`; `default` only at the start of a
+        // `select` arm, before `->`.
+        "select",
+        "default",
         // Synthesis: `choose x where pred` (see `codira_hir`'s
         // `verify::synth`). `??`, the other synthesis hole, is two `?`
         // tokens and needs no keyword.
@@ -294,6 +300,9 @@ Grammar(
         "PERFORM_EXPR",
         "SPAWN_EXPR",
         "SCOPE_EXPR",
+        "SELECT_EXPR",
+        "SELECT_ARM_LIST",
+        "SELECT_ARM",
         "HANDLE_EXPR",
         "HANDLER_ARM_LIST",
         "HANDLER_ARM",
@@ -612,6 +621,16 @@ Grammar(
             options: [ ["expr", "Expr"] ]
         ),
         "ChannelSendExpr": (),
+        // `select { v = <-ch -> body, ch <- x -> body, default -> body }`.
+        "SelectExpr": (
+            options: [ "SelectArmList" ]
+        ),
+        "SelectArmList": (collections: [("arms", "SelectArm")]),
+        // The binding is the `Pat`; the operation and the body are the
+        // arm's expression children, read in `expr_extensions`.
+        "SelectArm": (
+            options: [ "Pat" ]
+        ),
         "HandleExpr": (
             options: [ ["expr", "Expr"], "HandlerArmList" ]
         ),
@@ -665,6 +684,7 @@ Grammar(
                 "TransferExpr",
                 "ChannelRecvExpr",
                 "ChannelSendExpr",
+                "SelectExpr",
                 "HoleExpr",
                 "ChooseExpr",
             ]

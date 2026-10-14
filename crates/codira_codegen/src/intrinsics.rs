@@ -89,11 +89,17 @@ runtime_functions! {
 
     /// Receives the next element into address `out`, waiting while there is none.
     pub fn channel_receive(channel: usize, out: usize) -> () = "codira.channel_receive";
+
+    /// Performs one of `count` channel operations laid out at `cases` (three
+    /// `usize`s each: channel, 0 = receive / 1 = send, data address) and
+    /// returns its index; returns `count` at once if `has_default` is set and
+    /// none can proceed.
+    pub fn channel_select(cases: usize, count: usize, has_default: usize) -> usize = "codira.channel_select";
 }
 
 /// Every runtime function `scope`, `spawn` and channels lower to, collected
 /// together like [`print_functions`].
-pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
+pub fn task_functions() -> [&'static dyn Intrinsic; 7] {
     [
         &scope_begin,
         &scope_spawn,
@@ -101,6 +107,7 @@ pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
         &channel_new,
         &channel_send,
         &channel_receive,
+        &channel_select,
     ]
 }
 

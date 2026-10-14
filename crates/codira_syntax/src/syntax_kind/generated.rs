@@ -135,6 +135,8 @@ pub enum SyntaxKind {
     SECRET_KW,
     OBLIVIOUS_KW,
     SCOPE_KW,
+    SELECT_KW,
+    DEFAULT_KW,
     CHOOSE_KW,
     CONTINUE_KW,
     INT_NUMBER,
@@ -228,6 +230,9 @@ pub enum SyntaxKind {
     PERFORM_EXPR,
     SPAWN_EXPR,
     SCOPE_EXPR,
+    SELECT_EXPR,
+    SELECT_ARM_LIST,
+    SELECT_ARM,
     HANDLE_EXPR,
     HANDLER_ARM_LIST,
     HANDLER_ARM,
@@ -603,6 +608,12 @@ macro_rules! T {
     (scope) => {
         $crate::SyntaxKind::SCOPE_KW
     };
+    (select) => {
+        $crate::SyntaxKind::SELECT_KW
+    };
+    (default) => {
+        $crate::SyntaxKind::DEFAULT_KW
+    };
     (choose) => {
         $crate::SyntaxKind::CHOOSE_KW
     };
@@ -689,6 +700,8 @@ impl SyntaxKind {
         | SECRET_KW
         | OBLIVIOUS_KW
         | SCOPE_KW
+        | SELECT_KW
+        | DEFAULT_KW
         | CHOOSE_KW
         | CONTINUE_KW
         )
@@ -873,6 +886,8 @@ impl SyntaxKind {
             SECRET_KW => &SyntaxInfo { name: "SECRET_KW" },
             OBLIVIOUS_KW => &SyntaxInfo { name: "OBLIVIOUS_KW" },
             SCOPE_KW => &SyntaxInfo { name: "SCOPE_KW" },
+            SELECT_KW => &SyntaxInfo { name: "SELECT_KW" },
+            DEFAULT_KW => &SyntaxInfo { name: "DEFAULT_KW" },
             CHOOSE_KW => &SyntaxInfo { name: "CHOOSE_KW" },
             CONTINUE_KW => &SyntaxInfo { name: "CONTINUE_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
@@ -966,6 +981,9 @@ impl SyntaxKind {
             PERFORM_EXPR => &SyntaxInfo { name: "PERFORM_EXPR" },
             SPAWN_EXPR => &SyntaxInfo { name: "SPAWN_EXPR" },
             SCOPE_EXPR => &SyntaxInfo { name: "SCOPE_EXPR" },
+            SELECT_EXPR => &SyntaxInfo { name: "SELECT_EXPR" },
+            SELECT_ARM_LIST => &SyntaxInfo { name: "SELECT_ARM_LIST" },
+            SELECT_ARM => &SyntaxInfo { name: "SELECT_ARM" },
             HANDLE_EXPR => &SyntaxInfo { name: "HANDLE_EXPR" },
             HANDLER_ARM_LIST => &SyntaxInfo { name: "HANDLER_ARM_LIST" },
             HANDLER_ARM => &SyntaxInfo { name: "HANDLER_ARM" },

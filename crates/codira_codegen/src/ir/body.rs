@@ -474,6 +474,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Spawn { call } => self.gen_spawn(*call),
             Expr::ChannelSend { channel, value } => self.gen_channel_send(*channel, *value),
             Expr::ChannelReceive { channel } => self.gen_channel_receive(*channel),
+            Expr::Select { arms } => self.gen_select(expr, arms),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
             // syntax error comes with a parse error; either way the build

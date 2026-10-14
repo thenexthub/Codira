@@ -31,10 +31,32 @@
 //! tasks share nothing else. A channel whose senders and receivers do not
 //! match up blocks forever, as in any language with blocking channels: a
 //! `scope` waiting for such a task never ends.
+//!
+//! # `select`
+//!
+//! `codira.channel_select` waits on several channel operations at once and
+//! performs exactly one. It locks every channel involved, in address order
+//! (so two selects over the same channels cannot deadlock each other), and
+//! collects the operations that can proceed. If there are any it performs
+//! one chosen uniformly at random -- so a select that keeps finding several
+//! ready arms serves each of them, and none starves. If there are none it
+//! returns "default" when the select has a `default` arm; otherwise it
+//! registers one waiter on every channel and sleeps. Every change to a
+//! channel's queue (a send or receive, plain or by a select) wakes the
+//! select waiters registered on it, so the select sleeps until something it
+//! waits on changes -- it never polls. Woken, it relocks the channels,
+//! removes its registration from all of them (the ones that did not wake it
+//! included) and tries again; another task may have taken the value first,
+//! in which case it registers and sleeps again. A sleeping select counts as
+//! blocked for the pool, exactly like a blocked send or receive.
 use std::{
+    cell::Cell,
     collections::VecDeque,
     num::NonZeroUsize,
-    sync::{Arc, OnceLock},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, OnceLock,
+    },
 };
 
 use parking_lot::{Condvar, Mutex};
@@ -199,11 +221,77 @@ struct ScopeState {
 }
 
 struct Channel {
-    queue: Mutex<VecDeque<u128>>,
+    state: Mutex<ChannelState>,
     not_empty: Condvar,
     not_full: Condvar,
     capacity: usize,
     element_size: usize,
+}
+
+struct ChannelState {
+    queue: VecDeque<u128>,
+    /// The `select`s sleeping until this channel changes.
+    selects: Vec<Arc<SelectWaiter>>,
+}
+
+impl ChannelState {
+    /// Wakes every `select` waiting on the channel; called on each change
+    /// to the queue, with the channel locked.
+    fn wake_selects(&self) {
+        for waiter in &self.selects {
+            *waiter.woken.lock() = true;
+            waiter.wake.notify_one();
+        }
+    }
+}
+
+/// One sleeping `select`, registered on every channel it waits on.
+struct SelectWaiter {
+    woken: Mutex<bool>,
+    wake: Condvar,
+}
+
+impl Channel {
+    /// Copies the element at `value` into the queue, which has room.
+    ///
+    /// # Safety
+    /// `value` points to `element_size` readable bytes.
+    unsafe fn push(&self, state: &mut ChannelState, value: usize) {
+        let mut element = 0u128;
+        // SAFETY: guaranteed by the caller; `element` is 16 bytes and
+        // `element_size` at most that.
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                value as *const u8,
+                std::ptr::from_mut(&mut element).cast::<u8>(),
+                self.element_size,
+            );
+        }
+        state.queue.push_back(element);
+        self.not_empty.notify_one();
+        state.wake_selects();
+    }
+
+    /// Moves the first element of the queue, which is not empty, to `out`.
+    ///
+    /// # Safety
+    /// `out` points to `element_size` writable bytes.
+    unsafe fn pop(&self, state: &mut ChannelState, out: usize) {
+        let element = state
+            .queue
+            .pop_front()
+            .expect("the caller checked that the queue is not empty");
+        self.not_full.notify_one();
+        state.wake_selects();
+        // SAFETY: guaranteed by the caller.
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                std::ptr::from_ref(&element).cast::<u8>(),
+                out as *mut u8,
+                self.element_size,
+            );
+        }
+    }
 }
 
 /// # Safety
@@ -267,7 +355,10 @@ extern "C" fn channel_new(scope: usize, capacity: usize, element_size: usize) ->
         fatal("a channel element is larger than 16 bytes");
     }
     let channel = Box::new(Channel {
-        queue: Mutex::new(VecDeque::with_capacity(capacity.min(1024))),
+        state: Mutex::new(ChannelState {
+            queue: VecDeque::with_capacity(capacity.min(1024)),
+            selects: Vec::new(),
+        }),
         not_empty: Condvar::new(),
         not_full: Condvar::new(),
         capacity,
@@ -289,41 +380,148 @@ unsafe fn channel_ref<'a>(channel: usize) -> &'a Channel {
 extern "C" fn channel_send(channel: usize, value: usize) {
     // SAFETY: the compiler only names a channel inside the scope that owns it.
     let channel = unsafe { channel_ref(channel) };
-    let mut element = 0u128;
-    // SAFETY: `value` is the address of a stack slot of the element type,
-    // `element_size` bytes long, and `element` is 16 bytes.
-    unsafe {
-        std::ptr::copy_nonoverlapping(
-            value as *const u8,
-            std::ptr::from_mut(&mut element).cast::<u8>(),
-            channel.element_size,
-        );
-    }
-    let mut queue = channel.queue.lock();
-    wait_while(&channel.not_full, &mut queue, |queue| {
-        queue.len() >= channel.capacity
+    let mut state = channel.state.lock();
+    wait_while(&channel.not_full, &mut state, |state| {
+        state.queue.len() >= channel.capacity
     });
-    queue.push_back(element);
-    channel.not_empty.notify_one();
+    // SAFETY: `value` is the address of a stack slot of the element type.
+    unsafe { channel.push(&mut state, value) };
 }
 
 extern "C" fn channel_receive(channel: usize, out: usize) {
     // SAFETY: the compiler only names a channel inside the scope that owns it.
     let channel = unsafe { channel_ref(channel) };
-    let mut queue = channel.queue.lock();
-    wait_while(&channel.not_empty, &mut queue, VecDeque::is_empty);
-    let element = queue
-        .pop_front()
-        .expect("the queue is not empty after the wait");
-    channel.not_full.notify_one();
-    drop(queue);
+    let mut state = channel.state.lock();
+    wait_while(&channel.not_empty, &mut state, |state| {
+        state.queue.is_empty()
+    });
     // SAFETY: `out` is the address of a stack slot of the element type.
-    unsafe {
-        std::ptr::copy_nonoverlapping(
-            std::ptr::from_ref(&element).cast::<u8>(),
-            out as *mut u8,
-            channel.element_size,
-        );
+    unsafe { channel.pop(&mut state, out) };
+}
+
+/// One operation of a `select`, as compiled code lays it out: three
+/// `usize`s.
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct SelectCase {
+    channel: usize,
+    /// [`SELECT_RECEIVE`] or [`SELECT_SEND`].
+    kind: usize,
+    /// For a send, the address of the value; for a receive, of the slot
+    /// the value is received into.
+    data: usize,
+}
+
+const SELECT_RECEIVE: usize = 0;
+const SELECT_SEND: usize = 1;
+
+/// A uniformly distributed number below `n` (which is not zero), from a
+/// per-thread splitmix64 stream. Fairness needs no more than that.
+fn random_below(n: usize) -> usize {
+    static SEEDS: AtomicU64 = AtomicU64::new(0);
+    thread_local! {
+        static STATE: Cell<u64> = Cell::new({
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.subsec_nanos());
+            SEEDS.fetch_add(0x9E37_79B9_7F4A_7C15, Ordering::Relaxed) ^ u64::from(time)
+        });
+    }
+    let x = STATE.with(|state| {
+        let next = state.get().wrapping_add(0x9E37_79B9_7F4A_7C15);
+        state.set(next);
+        let mut z = next;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    });
+    // Multiply-shift maps 64 random bits onto `0..n`, with a bias below
+    // `n / 2^64`.
+    let scaled = (u128::from(x) * n as u128) >> 64;
+    usize::try_from(scaled).expect("below n, so it fits")
+}
+
+/// `select`: performs one of the `count` operations described at `cases`,
+/// waiting until one can proceed, and returns its index -- or, when
+/// `has_default` is set and none can proceed right now, returns `count`
+/// without waiting.
+extern "C" fn channel_select(cases: usize, count: usize, has_default: usize) -> usize {
+    let cases: &[SelectCase] = if count == 0 {
+        &[]
+    } else {
+        // SAFETY: the compiler passes the address of an array of `count`
+        // cases that lives for the duration of the call.
+        unsafe { std::slice::from_raw_parts(cases as *const SelectCase, count) }
+    };
+    // SAFETY: the compiler only names a channel inside the scope that owns
+    // it, and the select runs inside that scope.
+    let channel_of = |case: &SelectCase| unsafe { channel_ref(case.channel) };
+    // The distinct channels, in the order they are locked.
+    let mut channels: Vec<&Channel> = cases.iter().map(channel_of).collect();
+    channels.sort_by_key(|channel| std::ptr::from_ref::<Channel>(channel) as usize);
+    channels.dedup_by_key(|channel| std::ptr::from_ref::<Channel>(channel) as usize);
+    let lock_index = |channel: &Channel| {
+        channels
+            .iter()
+            .position(|c| std::ptr::eq(*c, channel))
+            .expect("every case's channel is in the list")
+    };
+
+    if channels.is_empty() && has_default == 0 {
+        fatal("a `select` with no arms waits forever");
+    }
+    let waiter = Arc::new(SelectWaiter {
+        woken: Mutex::new(false),
+        wake: Condvar::new(),
+    });
+    loop {
+        let mut states: Vec<_> = channels.iter().map(|c| c.state.lock()).collect();
+        // After a sleep, cancel the registration on every channel, including
+        // the ones that did not wake this select. (Nothing to remove the
+        // first time round.)
+        for state in &mut states {
+            state.selects.retain(|w| !Arc::ptr_eq(w, &waiter));
+        }
+        let ready: Vec<usize> = (0..count)
+            .filter(|&i| {
+                let channel = channel_of(&cases[i]);
+                let state = &states[lock_index(channel)];
+                if cases[i].kind == SELECT_SEND {
+                    state.queue.len() < channel.capacity
+                } else {
+                    !state.queue.is_empty()
+                }
+            })
+            .collect();
+        if !ready.is_empty() {
+            let chosen = ready[random_below(ready.len())];
+            let case = cases[chosen];
+            let channel = channel_of(&case);
+            let state = &mut states[lock_index(channel)];
+            // SAFETY: `data` is the address of a stack slot of the element
+            // type, as the compiler lays a case out.
+            unsafe {
+                match case.kind {
+                    SELECT_SEND => channel.push(state, case.data),
+                    SELECT_RECEIVE => channel.pop(state, case.data),
+                    _ => fatal("a `select` case of an unknown kind"),
+                }
+            }
+            return chosen;
+        }
+        if has_default != 0 {
+            return count;
+        }
+        // Nothing is ready: sleep until one of the channels changes. The
+        // flag is cleared and the waiter registered under every lock, so no
+        // change after this point can be missed.
+        *waiter.woken.lock() = false;
+        for state in &mut states {
+            state.selects.push(Arc::clone(&waiter));
+        }
+        drop(states);
+        let mut woken = waiter.woken.lock();
+        wait_while(&waiter.wake, &mut woken, |woken| !*woken);
     }
 }
 
@@ -350,6 +548,10 @@ pub(crate) fn functions() -> Vec<FunctionDefinition> {
         IntoFunctionDefinition::into(
             channel_receive as extern "C" fn(usize, usize),
             "codira.channel_receive",
+        ),
+        IntoFunctionDefinition::into(
+            channel_select as extern "C" fn(usize, usize, usize) -> usize,
+            "codira.channel_select",
         ),
     ]
 }
@@ -451,5 +653,186 @@ mod tests {
         scope_end(scope);
         let n = i32::try_from(tasks).unwrap();
         assert_eq!(sum, n * (n - 1));
+    }
+
+    /// Runs `test` on its own thread and fails if it takes longer than ten
+    /// seconds: a `select` that never wakes must fail the test, not hang
+    /// the suite.
+    fn with_timeout(test: impl FnOnce() + Send + 'static) {
+        let (done, finished) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            test();
+            let _ = done.send(());
+        });
+        finished
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("the test did not finish within ten seconds");
+    }
+
+    fn receive_case(channel: usize, out: &mut i64) -> SelectCase {
+        SelectCase {
+            channel,
+            kind: SELECT_RECEIVE,
+            data: std::ptr::from_mut(out) as usize,
+        }
+    }
+
+    fn send_case(channel: usize, value: &i64) -> SelectCase {
+        SelectCase {
+            channel,
+            kind: SELECT_SEND,
+            data: std::ptr::from_ref(value) as usize,
+        }
+    }
+
+    fn select(cases: &[SelectCase], has_default: bool) -> usize {
+        channel_select(
+            cases.as_ptr() as usize,
+            cases.len(),
+            usize::from(has_default),
+        )
+    }
+
+    fn send(channel: usize, value: i64) {
+        channel_send(channel, std::ptr::from_ref(&value) as usize);
+    }
+
+    fn receive(channel: usize) -> i64 {
+        let mut value = 0i64;
+        channel_receive(channel, std::ptr::from_mut(&mut value) as usize);
+        value
+    }
+
+    extern "C" fn send_seven(args: *mut u8) {
+        // SAFETY: the test passes a channel handle.
+        let channel = unsafe { *args.cast::<usize>() };
+        send(channel, 7);
+    }
+
+    /// A select with nothing ready sleeps, is woken by a send from another
+    /// task on one of its channels, receives that value, and leaves no
+    /// registration behind on the channel that stayed quiet.
+    #[test]
+    fn select_sleeps_until_a_channel_is_ready() {
+        with_timeout(|| {
+            let scope = scope_begin();
+            let quiet = channel_new(scope, 1, 8);
+            let busy = channel_new(scope, 1, 8);
+            scope_spawn(
+                scope,
+                send_seven as TaskEntry as usize,
+                std::ptr::from_ref(&busy) as usize,
+                std::mem::size_of::<usize>(),
+            );
+            let (mut a, mut b) = (0i64, 0i64);
+            let chosen = select(
+                &[receive_case(quiet, &mut a), receive_case(busy, &mut b)],
+                false,
+            );
+            assert_eq!((chosen, b), (1, 7));
+            // SAFETY: the scope, and with it the channel, is still open.
+            let leftover = unsafe { channel_ref(quiet) }.state.lock().selects.len();
+            assert_eq!(leftover, 0, "the cancelled registration was removed");
+            scope_end(scope);
+        });
+    }
+
+    /// `default` is taken exactly when no operation can proceed.
+    #[test]
+    fn select_default_only_when_nothing_is_ready() {
+        with_timeout(|| {
+            let scope = scope_begin();
+            let channel = channel_new(scope, 1, 8);
+            let mut out = 0i64;
+            assert_eq!(select(&[receive_case(channel, &mut out)], true), 1);
+            send(channel, 5);
+            assert_eq!(select(&[receive_case(channel, &mut out)], true), 0);
+            assert_eq!(out, 5);
+            // A send arm is ready while there is room, then not.
+            let value = 9i64;
+            assert_eq!(select(&[send_case(channel, &value)], true), 0);
+            assert_eq!(select(&[send_case(channel, &value)], true), 1);
+            assert_eq!(receive(channel), 9);
+            scope_end(scope);
+        });
+    }
+
+    /// Two operations that are always ready are chosen about equally often:
+    /// the choice is random, not first-listed-wins.
+    #[test]
+    fn select_chooses_fairly_among_ready_operations() {
+        with_timeout(|| {
+            let scope = scope_begin();
+            let first = channel_new(scope, 1, 8);
+            let second = channel_new(scope, 1, 8);
+            send(first, 1);
+            send(second, 2);
+            let mut counts = [0usize; 2];
+            for _ in 0..10_000 {
+                let (mut a, mut b) = (0i64, 0i64);
+                let chosen = select(
+                    &[receive_case(first, &mut a), receive_case(second, &mut b)],
+                    false,
+                );
+                counts[chosen] += 1;
+                // Refill whichever one was taken, so both stay ready.
+                if chosen == 0 {
+                    send(first, a);
+                } else {
+                    send(second, b);
+                }
+            }
+            assert!(
+                counts.iter().all(|&n| n > 4_000),
+                "unfair choice: {counts:?}"
+            );
+            scope_end(scope);
+        });
+    }
+
+    extern "C" fn select_then_forward(args: *mut u8) {
+        // SAFETY: the test passes three channel handles.
+        let (left, right, results) = unsafe { *args.cast::<(usize, usize, usize)>() };
+        let (mut a, mut b) = (0i64, 0i64);
+        let value = match select(
+            &[receive_case(left, &mut a), receive_case(right, &mut b)],
+            false,
+        ) {
+            0 => a,
+            _ => b,
+        };
+        send(results, value);
+    }
+
+    /// More sleeping selects than workers: the pool compensates for them as
+    /// for any blocked task, so all of them are eventually served.
+    #[test]
+    fn sleeping_selects_are_compensated() {
+        with_timeout(|| {
+            let workers = pool().target;
+            let scope = scope_begin();
+            let left = channel_new(scope, 1, 8);
+            let right = channel_new(scope, 1, 8);
+            let results = channel_new(scope, 1024, 8);
+            let tasks = workers * 2 + 1;
+            for _ in 0..tasks {
+                let channels = (left, right, results);
+                scope_spawn(
+                    scope,
+                    select_then_forward as TaskEntry as usize,
+                    std::ptr::from_ref(&channels) as usize,
+                    std::mem::size_of::<(usize, usize, usize)>(),
+                );
+            }
+            let mut expected = 0;
+            for i in 0..tasks {
+                let value = i64::try_from(i).unwrap();
+                send(if i % 2 == 0 { left } else { right }, value);
+                expected += value;
+            }
+            let total: i64 = (0..tasks).map(|_| receive(results)).sum();
+            assert_eq!(total, expected);
+            scope_end(scope);
+        });
     }
 }

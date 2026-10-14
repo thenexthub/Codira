@@ -334,6 +334,51 @@ public func sum_of_squares(n: i32) -> i32 {
   receives still block forever, as with any blocking channel.
 - Output printed by a task is not captured by `capture_output` (it is
   per-thread); a task's `print` goes to standard output.
+- A secret (`secret T`) cannot be sent on a channel: what a channel delivers
+  is public.
+
+#### `select`: wait on several channel operations
+
+```codira
+func collect(jobs: Channel[i64], results: Channel[i64], quit: Channel[bool]) -> i64 {
+    let total = 0
+    let sent = 0
+    let idle = 0
+    let x = 7
+    select {
+        v = <-jobs -> total += v,       // receive, bind the value in this arm
+        <-quit -> {},                   // receive, discard the value
+        results <- x -> sent += 1,      // send
+        default -> idle += 1,           // optional: makes the select non-blocking
+    }
+    let first = select {                // a select is an expression
+        a = <-jobs -> a,
+        b = <-results -> b * 2,
+    }
+    total + first
+}
+```
+
+- `select` is a contextual keyword (only before `{`; `if select { .. }`
+  tests a variable). Arms are separated by commas (optional after a block)
+  and use `->` like `match`. An arm's operation is `name = <-ch`, `<-ch`,
+  `ch <- value` or `default`; `name` is a new binding visible only in that
+  arm's body.
+- Semantics (Go's): every arm's channel and sent value is evaluated first,
+  top to bottom. Then the select waits until at least one operation can
+  proceed (a receive: the channel has a value; a send: it has room),
+  performs exactly one and runs that arm. When several are ready, one is
+  chosen uniformly at random, so a ready arm is never starved by the
+  others. `default` runs when none is ready, and then the select never
+  waits.
+- The arms' bodies have one type, which is the select's value.
+- Rejected at compile time: a select with no arms (it would wait forever),
+  more than one `default`, an arm that is not a channel operation, a binding
+  on anything but a receive, arms of different types.
+- A waiting select sleeps (no polling) and counts as blocked for the worker
+  pool, like a blocked send or receive. The verifier treats the chosen arm
+  as unknown and a received value as unconstrained. Cranelift (`--jit`)
+  declines `select`, as it declines channels.
 
 ### Contracts and verification
 
@@ -836,7 +881,8 @@ their module).
 
 Structured concurrency (`scope`, `spawn`, `channel(n)`, `ch <- v`, `<-ch`)
 on a worker pool; see "Structured concurrency" above for what may cross
-between tasks (scalars and channels only). No `select` yet.
+between tasks (scalars and channels only), and `select` over channel
+operations (fair, with an optional `default`).
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,

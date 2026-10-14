@@ -211,6 +211,26 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
                 compute_expr_scopes(arm.body, body, scopes, arm_scope);
             }
         }
+        // A `select` arm's binding is visible only in that arm's body; the
+        // operands are evaluated before any arm runs.
+        Expr::Select { arms } => {
+            for arm in arms {
+                for operand in arm.operands() {
+                    compute_expr_scopes(operand, body, scopes, scope);
+                }
+            }
+            for arm in arms {
+                let arm_scope = match arm.binding {
+                    Some(binding) => {
+                        let arm_scope = scopes.new_scope(scope);
+                        scopes.add_bindings(body, arm_scope, binding);
+                        arm_scope
+                    }
+                    None => scope,
+                };
+                compute_expr_scopes(arm.body, body, scopes, arm_scope);
+            }
+        }
         // The iterable is evaluated outside the loop, so it cannot see the
         // loop variable; the body can.
         Expr::For {

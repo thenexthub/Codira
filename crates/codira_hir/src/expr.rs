@@ -511,6 +511,52 @@ pub enum Expr {
     ChannelReceive {
         channel: ExprId,
     },
+    /// `select { arm, .. }`: evaluates every arm's channel and value
+    /// operands in order, then waits until at least one arm's operation can
+    /// proceed, performs exactly one (chosen uniformly at random among the
+    /// ready ones) and runs that arm's body. With a `default` arm it never
+    /// waits: `default` runs when no operation is ready. (See `expr::tasks`.)
+    Select {
+        arms: Vec<SelectArm>,
+    },
+}
+
+/// One arm of a `select`: `op -> body`.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct SelectArm {
+    /// `name` in `name = <-ch -> body`: bound to the received value, visible
+    /// only in `body`.
+    pub binding: Option<PatId>,
+    pub op: SelectOp,
+    pub body: ExprId,
+}
+
+/// The operation a `select` arm waits on.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum SelectOp {
+    /// `<-channel`.
+    Receive { channel: ExprId },
+    /// `channel <- value`.
+    Send { channel: ExprId, value: ExprId },
+    /// `default`: runs when no other arm's operation can proceed.
+    Default,
+    /// Something other than a channel operation, kept so it is still
+    /// type-checked; the task validator reports it.
+    Invalid { expr: ExprId },
+}
+
+impl SelectArm {
+    /// The expressions this arm evaluates before the `select` waits: the
+    /// channel, and the value of a send.
+    pub fn operands(&self) -> impl Iterator<Item = ExprId> {
+        let (first, second) = match self.op {
+            SelectOp::Receive { channel } => (Some(channel), None),
+            SelectOp::Send { channel, value } => (Some(channel), Some(value)),
+            SelectOp::Invalid { expr } => (Some(expr), None),
+            SelectOp::Default => (None, None),
+        };
+        first.into_iter().chain(second)
+    }
 }
 
 /// One arm of a `handle` expression: `Effect.op(a, b) -> body`.
@@ -667,6 +713,14 @@ impl Expr {
             Expr::ChannelSend { channel, value } => {
                 f(*channel);
                 f(*value);
+            }
+            Expr::Select { arms } => {
+                for arm in arms {
+                    arm.operands().for_each(&mut f);
+                }
+                for arm in arms {
+                    f(arm.body);
+                }
             }
         }
     }
@@ -1244,6 +1298,7 @@ impl<'a> ExprCollector<'a> {
                 self.alloc_expr(Expr::ChannelReceive { channel }, syntax_ptr)
             }
             ast::ExprKind::ChannelSendExpr(e) => self.collect_channel_send(&e, syntax_ptr),
+            ast::ExprKind::SelectExpr(e) => self.collect_select(&e, syntax_ptr),
             ast::ExprKind::CallExpr(e) => {
                 let callee = self.collect_expr_opt(e.expr());
                 let args = if let Some(arg_list) = e.arg_list() {

@@ -30,11 +30,21 @@
 //! bytes before `scope_spawn` returns, so the struct can live in the
 //! spawning frame. The HIR validator guarantees that `f` takes only scalars
 //! and channel handles, so the copy shares nothing with the spawner.
-use codira_hir::{Expr, ExprId, TyKind};
+//!
+//! # `select`
+//!
+//! A `select` evaluates every arm's channel and sent value in source order,
+//! storing each sent value in a stack slot and allocating a slot for each
+//! received one, and lays the operations out as an array of
+//! `(channel, kind, slot address)` triples for `codira.channel_select`. The
+//! index it returns -- or the operation count, for `default` -- switches to
+//! the chosen arm, which loads its received value (if it binds one) and runs
+//! its body; the arms meet in one block with a phi of their values.
+use codira_hir::{Expr, ExprId, SelectArm, SelectOp, TyKind};
 use inkwell::{
     module::Linkage,
     types::BasicTypeEnum,
-    values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, IntValue},
+    values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
 
@@ -291,6 +301,161 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
         let address = self.address_of(slot);
         self.call_runtime(&intrinsics::channel_send, &[handle.into(), address.into()]);
         Some(self.gen_empty())
+    }
+
+    /// `select { arm, .. }`.
+    pub(super) fn gen_select(
+        &mut self,
+        _expr: ExprId,
+        arms: &[SelectArm],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let usize_ty = self.hir_types.get_usize_type();
+
+        // The operands, in source order: (arm, channel, kind, slot).
+        let mut cases: Vec<(usize, IntValue<'ink>, u64, PointerValue<'ink>)> = Vec::new();
+        let mut slots: Vec<Option<(BasicTypeEnum<'ink>, PointerValue<'ink>)>> =
+            vec![None; arms.len()];
+        let mut default_arm = None;
+        for (idx, arm) in arms.iter().enumerate() {
+            match arm.op {
+                SelectOp::Receive { channel } => {
+                    let handle = self.gen_expr(channel)?.into_int_value();
+                    let element_ty = self.channel_element_type(channel);
+                    let slot = self
+                        .new_alloca_builder()
+                        .build_alloca(element_ty, "selected")
+                        .expect("failed to allocate a channel element");
+                    cases.push((idx, handle, 0, slot));
+                    slots[idx] = Some((element_ty, slot));
+                }
+                SelectOp::Send { channel, value } => {
+                    let handle = self.gen_expr(channel)?.into_int_value();
+                    let value = self.gen_expr(value)?;
+                    let element_ty = self.channel_element_type(channel);
+                    let slot = self
+                        .new_alloca_builder()
+                        .build_alloca(element_ty, "offered")
+                        .expect("failed to allocate a channel element");
+                    self.builder
+                        .build_store(slot, value)
+                        .expect("failed to store a channel element");
+                    cases.push((idx, handle, 1, slot));
+                }
+                SelectOp::Default => default_arm = Some(idx),
+                SelectOp::Invalid { .. } => {
+                    unreachable!(
+                        "the task validator rejects a `select` arm that is not a channel operation"
+                    )
+                }
+            }
+        }
+
+        // The case array: three `usize`s per operation.
+        let words = u32::try_from(cases.len() * 3)
+            .expect("a `select` has fewer than 2^32 arms")
+            .max(1);
+        let array = self
+            .new_alloca_builder()
+            .build_alloca(usize_ty.array_type(words), "select_cases")
+            .expect("failed to allocate the select cases");
+        let mut word = 0u64;
+        for &(_, handle, kind, slot) in &cases {
+            let address = self.address_of(slot);
+            for value in [handle, usize_ty.const_int(kind, false), address] {
+                // SAFETY: `word` is below the array's length.
+                let field = unsafe {
+                    self.builder
+                        .build_gep(usize_ty, array, &[usize_ty.const_int(word, false)], "case")
+                        .expect("failed to address a select case")
+                };
+                self.builder
+                    .build_store(field, value)
+                    .expect("failed to store a select case");
+                word += 1;
+            }
+        }
+        let array_address = self.address_of(array);
+        let count = usize_ty.const_int(cases.len() as u64, false);
+        let has_default = usize_ty.const_int(u64::from(default_arm.is_some()), false);
+        let chosen = self
+            .call_runtime(
+                &intrinsics::channel_select,
+                &[array_address.into(), count.into(), has_default.into()],
+            )
+            .expect("`codira.channel_select` returns the chosen case")
+            .into_int_value();
+
+        // Switch to the chosen arm.
+        let arm_blocks: Vec<_> = (0..arms.len())
+            .map(|_| self.context.append_basic_block(self.fn_value, "select_arm"))
+            .collect();
+        let otherwise = if let Some(idx) = default_arm {
+            arm_blocks[idx]
+        } else {
+            // The runtime returns `count` only for a `default` arm.
+            let block = self
+                .context
+                .append_basic_block(self.fn_value, "select_none");
+            let current = self.builder.get_insert_block();
+            self.builder.position_at_end(block);
+            self.builder
+                .build_unreachable()
+                .expect("failed to build unreachable");
+            if let Some(current) = current {
+                self.builder.position_at_end(current);
+            }
+            block
+        };
+        let switch_cases: Vec<_> = cases
+            .iter()
+            .enumerate()
+            .map(|(case, &(arm, ..))| (usize_ty.const_int(case as u64, false), arm_blocks[arm]))
+            .collect();
+        self.builder
+            .build_switch(chosen, otherwise, &switch_cases)
+            .expect("failed to build the select switch");
+
+        let merge = self
+            .context
+            .append_basic_block(self.fn_value, "select_merge");
+        let mut incoming = Vec::new();
+        for (idx, arm) in arms.iter().enumerate() {
+            self.builder.position_at_end(arm_blocks[idx]);
+            if let (Some(binding), Some((element_ty, slot))) = (arm.binding, slots[idx]) {
+                let value = self
+                    .builder
+                    .build_load(element_ty, slot, "received")
+                    .expect("failed to load a channel element");
+                self.bind_pattern_to_value(binding, value);
+            }
+            if let Some(value) = self.gen_expr(arm.body) {
+                let block = self
+                    .builder
+                    .get_insert_block()
+                    .expect("an arm ends in a block");
+                self.builder
+                    .build_unconditional_branch(merge)
+                    .expect("failed to branch out of a select arm");
+                incoming.push((value, block));
+            }
+        }
+
+        let Some(&(first, _)) = incoming.first() else {
+            // Every arm diverges, so the `select` does too.
+            merge
+                .remove_from_function()
+                .expect("the merge block is in the function");
+            return None;
+        };
+        self.builder.position_at_end(merge);
+        let phi = self
+            .builder
+            .build_phi(first.get_type(), "select_value")
+            .expect("failed to build phi");
+        for (value, block) in &incoming {
+            phi.add_incoming(&[(value, *block)]);
+        }
+        Some(phi.as_basic_value())
     }
 
     /// `<-channel`.
