@@ -127,6 +127,23 @@ fn unsupported_constructs_are_named_not_miscompiled() {
     assert_eq!(error.function, "main");
 }
 
+/// A builtin other than `print`/`println` is refused, never compiled as a
+/// print. `ct_select` used to be, which produced a program that printed its
+/// operands instead of choosing between them.
+#[test]
+fn builtins_other_than_print_are_refused() {
+    let source = r"
+        public func main() -> i64 {
+            ct_select(true, 1, 2)
+        }
+    ";
+    let driver = driver(source);
+    let error = compile(driver.db(), "main")
+        .err()
+        .expect("ct_select is not compiled by this backend");
+    assert!(error.what.contains("ct_select"), "{error}");
+}
+
 /// Not an assertion: how long compiling a small program takes on this
 /// backend, minimum and median of 25 runs, for comparison with the LLVM
 /// path. The machine is shared and loaded, so only the minimum means much.
