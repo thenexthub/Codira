@@ -61,6 +61,7 @@
 //!   divisor is a positive integer literal, or when the function has a contract
 //!   and the verifier *proves* both obligations it already emits for that
 //!   division (non-zero divisor, no overflow);
+//! * postfix `!` on an optional, which panics on `nil`;
 //! * calling a `@runtime_checked` function with a `requires` clause: the check
 //!   traps on entry when it fails;
 //! * every allocation (see above).
@@ -461,6 +462,12 @@ impl Collector<'_> {
             | Expr::Cast { .. }
             | Expr::Handle { .. }
             | Expr::Resume { .. }
+            // Inference proved it exhaustive, so its arms decide everything.
+            // (The code generator still ends the arms with a panic for a value
+            // no arm matches, which only a hot reload that removed an enum
+            // variant can produce.) A string-literal arm compares bytes in
+            // the runtime without allocating or blocking.
+            | Expr::Match { .. }
             // Bounded by construction: the iteration count is fixed before
             // the first iteration, and the counter is not the program's.
             | Expr::For { .. } => {}
@@ -489,6 +496,8 @@ impl Collector<'_> {
             Expr::MethodCall { .. } => {
                 if let Some(builtin) = self.frame.infer.builtin_call(expr) {
                     self.builtin(expr, builtin);
+                } else if self.frame.infer.variant_of_expr(expr).is_some() {
+                    // `Shape.Circle(..)` builds a value: no call, no allocation.
                 } else {
                     match self.frame.infer.method_resolution(expr) {
                         Some(f) => self.call(expr, Function::from(f)),
@@ -511,6 +520,11 @@ impl Collector<'_> {
                     self.division(expr, *lhs, *rhs, *op);
                 }
             }
+            Expr::Unwrap { .. } => self.source(
+                expr,
+                EffectSet::of(&[Effect::Panic]),
+                "postfix `!` panics when the optional is `nil`",
+            ),
             Expr::Index { .. } => self.source(
                 expr,
                 EffectSet::of(&[Effect::Panic]),

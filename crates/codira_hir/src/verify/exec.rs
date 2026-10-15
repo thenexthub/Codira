@@ -34,7 +34,7 @@ use crate::{
     in_file::InFile,
     resolve::{resolver_for_expr, ValueNs},
     ty::lower::CallableDef,
-    Body, Expr, ExprId, HirDatabase, InferenceResult, IntTy, Literal, Pat, PatId, Path,
+    Body, Expr, ExprId, HirDatabase, InferenceResult, IntTy, Literal, MatchArm, Pat, PatId, Path,
     ResolveBitness, Ty, TyKind, UnaryOp,
 };
 
@@ -243,6 +243,19 @@ struct Exec<'a, 'ctx> {
 
 /// Verifies one function. See the module docs of `crate::verify`.
 pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport {
+    verify_recording(db, func, false).0
+}
+
+/// [`verify`], also returning, for each obligation (in the report's order),
+/// the SMT-LIB2 text of every query Z3 was asked for it when `record` is
+/// set: one per place the obligation arises (a postcondition is checked at
+/// every return point), in the order they were checked. An obligation that
+/// could not be encoded has none.
+pub(crate) fn verify_recording(
+    db: &dyn HirDatabase,
+    func: Function,
+    record: bool,
+) -> (VerificationReport, Vec<Vec<String>>) {
     let frame = Frame::new(db, func);
     let params: Vec<ParamInfo> = frame
         .body
@@ -254,9 +267,14 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
             ty: scalar_of(db, &frame.infer[*pat]),
         })
         .collect();
-    let empty = || VerificationReport {
-        params: params.clone(),
-        obligations: Vec::new(),
+    let empty = || {
+        (
+            VerificationReport {
+                params: params.clone(),
+                obligations: Vec::new(),
+            },
+            Vec::new(),
+        )
     };
 
     if func.is_extern(db) || matches!(frame.body[frame.body.body_expr()], Expr::Missing) {
@@ -289,10 +307,14 @@ pub(crate) fn verify(db: &dyn HirDatabase, func: Function) -> VerificationReport
     if let Some(value) = exec.eval(&mut state, body_expr) {
         exec.check_return(&state, value);
     }
-    VerificationReport {
-        params,
-        obligations: exec.solve(),
-    }
+    let (obligations, queries) = exec.solve(record);
+    (
+        VerificationReport {
+            params,
+            obligations,
+        },
+        queries,
+    )
 }
 
 /// The proof obligations of `func` with its synthesis holes given values:
@@ -345,6 +367,113 @@ pub(crate) fn synthesis_obligations<'ctx>(
         }
     }
     Ok((exec.inputs, obligations))
+}
+
+/// A contract clause encoded over a function's *interface* rather than its
+/// body: parameter `i` is the constant `p<i>` and the return value is
+/// `result`, each a bit-vector of its type's width (or a boolean). Two
+/// versions of a function with the same signature are encoded over the same
+/// constants, so their clauses can be compared by implication in one
+/// context.
+pub(crate) struct ContractTerms<'ctx> {
+    /// `requires` clauses, then the parameters' refinements (`x: T { v |
+    /// .. }`), each with its source text. `Err` says why one cannot be
+    /// encoded.
+    pub requires: Vec<(String, Result<BoolExpr<'ctx>, String>)>,
+    /// `ensures` clauses, then the return type's refinement.
+    pub ensures: Vec<(String, Result<BoolExpr<'ctx>, String>)>,
+}
+
+/// The constant named `name` standing for a value of type `ty`: a
+/// bit-vector of its width, a boolean, or `Opaque` for a type the verifier
+/// does not model. The same name and type give the same constant in `ctx`.
+pub(crate) fn interface_value<'ctx>(
+    db: &dyn HirDatabase,
+    ctx: &'ctx Context,
+    ty: &Ty,
+    name: &str,
+) -> Sym<'ctx> {
+    match kind_of(db, ty) {
+        Kind::Int(int) => Sym::Int(ctx.bv_var(name, int_width(int)), int),
+        Kind::Bool => Sym::Bool(ctx.bool_var(name)),
+        Kind::Unit => Sym::Unit,
+        Kind::Other => Sym::Opaque,
+    }
+}
+
+/// Encodes `func`'s contract over its interface; see [`ContractTerms`].
+pub(crate) fn contract_terms<'ctx>(
+    db: &dyn HirDatabase,
+    func: Function,
+    ctx: &'ctx Context,
+) -> ContractTerms<'ctx> {
+    let frame = Frame::new(db, func);
+    let body = Arc::clone(&frame.body);
+    let exec = Exec {
+        db,
+        ctx,
+        ret_refinement: None,
+        frame,
+        check_own: false,
+        entry_vars: FxHashMap::default(),
+        inputs: Vec::new(),
+        pending: Vec::new(),
+        loops: Vec::new(),
+        fresh: 0,
+        own_requires_checked: false,
+        returns: Vec::new(),
+        hole_values: FxHashMap::default(),
+        fixed_inputs: None,
+    };
+    let interface = |ty: &Ty, name: &str| interface_value(db, ctx, ty, name);
+    let encode = |vars: &FxHashMap<PatId, Sym<'ctx>>, clause: ExprId| match exec.pure(
+        &exec.frame,
+        vars,
+        clause,
+    ) {
+        Ok(Sym::Bool(b)) => Ok(b),
+        Ok(_) => Err("the clause is not a boolean the verifier can model".to_string()),
+        Err(reason) => Err(reason),
+    };
+
+    let mut vars = FxHashMap::default();
+    let mut params = Vec::new();
+    for (idx, (pat, _)) in body.params().iter().enumerate() {
+        let value = interface(&exec.frame.infer[*pat], &format!("p{idx}"));
+        vars.insert(*pat, value);
+        params.push(value);
+    }
+    let mut requires: Vec<_> = body
+        .contracts()
+        .requires
+        .iter()
+        .map(|&clause| (exec.frame.text(db, clause), encode(&vars, clause)))
+        .collect();
+    for (refinement, value) in refinement::param_refinements(db, func)
+        .into_iter()
+        .zip(&params)
+    {
+        if let Some(refinement) = refinement {
+            let encoded = refinement::encode(ctx, &refinement, *value);
+            requires.push((refinement.text, encoded));
+        }
+    }
+
+    let result = interface(&func.ret_type(db), "result");
+    if let Some(result_pat) = body.contracts().result_pat {
+        vars.insert(result_pat, result);
+    }
+    let mut ensures: Vec<_> = body
+        .contracts()
+        .ensures
+        .iter()
+        .map(|&clause| (exec.frame.text(db, clause), encode(&vars, clause)))
+        .collect();
+    if let Some(refinement) = refinement::return_refinement(db, func) {
+        let encoded = refinement::encode(ctx, &refinement, result);
+        ensures.push((refinement.text, encoded));
+    }
+    ContractTerms { requires, ensures }
 }
 
 /// What a function can return, as symbolic values over its parameters.
@@ -815,6 +944,16 @@ impl<'ctx> Exec<'_, 'ctx> {
                 body: loop_body,
             } => self.eval_for(state, expr, *pat, *iterable, *loop_body),
             Expr::Loop { body: loop_body } => self.eval_loop(state, expr, None, *loop_body),
+            Expr::Match {
+                expr: scrutinee,
+                arms,
+                ..
+            } => {
+                let value = self.eval(state, *scrutinee)?;
+                let optional =
+                    matches!(self.frame.infer[*scrutinee].interned(), TyKind::Optional(_));
+                self.eval_arms(state, value, optional, arms)
+            }
             Expr::While {
                 condition,
                 body: loop_body,
@@ -1036,6 +1175,55 @@ impl<'ctx> Exec<'_, 'ctx> {
             }
             (Some(a), Some(b)) => {
                 *state = merge_states(then_state, else_state, cb);
+                Some(merge_sym(cb, a, b))
+            }
+        }
+    }
+
+    /// The arms of a `match`, from the first. Patterns are not modelled:
+    /// each arm but the last is entered under a fresh condition, so what is
+    /// proven inside it holds whichever values reach it, and the last arm
+    /// takes the remaining paths (inference has checked the match covers
+    /// every value). A name a pattern binds is the scrutinee itself when the
+    /// whole pattern is that name, and a fresh value otherwise.
+    fn eval_arms(
+        &mut self,
+        state: &mut State<'ctx>,
+        value: Sym<'ctx>,
+        optional: bool,
+        arms: &[MatchArm],
+    ) -> Option<Sym<'ctx>> {
+        let (first, rest) = arms.split_first()?;
+        let mut arm_state = state.clone();
+        let bound = if optional {
+            self.fresh_for_ty(&self.frame.infer[first.pat].clone(), "bound")
+        } else {
+            value
+        };
+        self.bind(&mut arm_state, first.pat, bound);
+        if rest.is_empty() {
+            let arm_value = self.eval(&mut arm_state, first.expr);
+            *state = arm_state;
+            return arm_value;
+        }
+        let cb = self.fresh_bool("arm");
+        arm_state.pc = state.pc.and(cb);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(cb.not());
+        let arm_value = self.eval(&mut arm_state, first.expr);
+        let rest_value = self.eval_arms(&mut rest_state, value, optional, rest);
+        match (arm_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = arm_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(arm_state, rest_state, cb);
                 Some(merge_sym(cb, a, b))
             }
         }
@@ -1509,9 +1697,14 @@ impl<'ctx> Exec<'_, 'ctx> {
     /// single solver. Obligations that share a kind, a site and a clause
     /// (one postcondition checked at several returns) are reported once,
     /// with the first failure found.
-    fn solve(self) -> Vec<Obligation> {
+    ///
+    /// With `record`, also returns the SMT-LIB2 text of each query, grouped
+    /// per reported obligation (see [`verify_recording`]); otherwise the
+    /// second vector is empty.
+    fn solve(self, record: bool) -> (Vec<Obligation>, Vec<Vec<String>>) {
         let solver = self.ctx.solver();
         let mut results: Vec<Obligation> = Vec::new();
+        let mut queries: Vec<Vec<String>> = Vec::new();
         let mut index: FxHashMap<(ObligationKind, InFile<SyntaxNodePtr>, String), usize> =
             FxHashMap::default();
 
@@ -1526,9 +1719,15 @@ impl<'ctx> Exec<'_, 'ctx> {
                     continue;
                 }
             }
+            let mut query = None;
             let verdict = match pending.goal {
                 Err(reason) => Verdict::Unknown(UnknownCause::Unsupported(reason)),
                 Ok(goal) => {
+                    if record {
+                        // Exactly what is asserted below: the premise, then
+                        // the negated goal. `unsat` is the proof.
+                        query = Some(self.ctx.to_smtlib2(&[pending.premise], goal.not()));
+                    }
                     solver.push();
                     solver.assert(pending.premise);
                     solver.assert(goal.not());
@@ -1575,6 +1774,9 @@ impl<'ctx> Exec<'_, 'ctx> {
             };
             if let Some(&existing) = index.get(&key) {
                 results[existing].verdict = verdict;
+                if record {
+                    queries[existing].extend(query);
+                }
             } else {
                 index.insert(key, results.len());
                 results.push(Obligation {
@@ -1584,9 +1786,12 @@ impl<'ctx> Exec<'_, 'ctx> {
                     verdict,
                     runtime_checked: pending.runtime_checked,
                 });
+                if record {
+                    queries.push(query.into_iter().collect());
+                }
             }
         }
-        results
+        (results, queries)
     }
 }
 

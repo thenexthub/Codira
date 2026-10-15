@@ -21,6 +21,10 @@
 //! point: `main` returning nothing exits with 0, returning an integer or
 //! `bool` exits with that value.
 //!
+//! Proof certificates (`codira build --certify`, `<library>.cert.json`) travel
+//! in the payload next to their libraries, so `codira certify app.exe` can
+//! check the libraries the executable will actually load.
+//!
 //! The libraries are unpacked rather than loaded from memory because every
 //! platform's loader takes a file; that is the one cost of a single-file
 //! executable, paid on the first run only.
@@ -68,7 +72,8 @@ fn put_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
 }
 
 /// Writes `output`: `launcher` followed by every `*.codiralib` in
-/// `library_dir`, with `entry` as the function to run.
+/// `library_dir` (and its proof certificate, if it has one), with `entry`
+/// as the function to run.
 pub fn bundle(
     launcher: &Path,
     library_dir: &Path,
@@ -79,7 +84,13 @@ pub fn bundle(
         .with_context(|| format!("could not read '{}'", library_dir.display()))?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| path.extension().is_some_and(|e| e == "codiralib"))
+        .filter(|path| {
+            path.extension().is_some_and(|e| e == "codiralib")
+                || path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.ends_with(".codiralib.cert.json"))
+        })
         .collect();
     libraries.sort();
     if !libraries
@@ -116,9 +127,10 @@ pub fn bundle(
 }
 
 /// A payload read back from an executable.
-struct Payload {
-    entry: String,
-    libraries: Vec<(String, Vec<u8>)>,
+pub(crate) struct Payload {
+    pub(crate) entry: String,
+    /// Every file carried, by name: the libraries and their certificates.
+    pub(crate) libraries: Vec<(String, Vec<u8>)>,
     hash: u64,
 }
 
@@ -135,7 +147,8 @@ fn take_bytes(input: &mut &[u8]) -> anyhow::Result<Vec<u8>> {
     Ok(data)
 }
 
-fn read_payload(exe: &Path) -> anyhow::Result<Option<Payload>> {
+/// The payload appended to `exe`, or `None` if it carries none.
+pub(crate) fn read_payload(exe: &Path) -> anyhow::Result<Option<Payload>> {
     let bytes = std::fs::read(exe)?;
     if bytes.len() < 16 || &bytes[bytes.len() - 8..] != MAGIC {
         return Ok(None);

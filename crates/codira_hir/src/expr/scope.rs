@@ -211,6 +211,14 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
                 compute_expr_scopes(arm.body, body, scopes, arm_scope);
             }
         }
+        Expr::Match { expr, arms, .. } => {
+            compute_expr_scopes(*expr, body, scopes, scope);
+            for arm in arms {
+                let arm_scope = scopes.new_scope(scope);
+                scopes.add_bindings(body, arm_scope, arm.pat);
+                compute_expr_scopes(arm.expr, body, scopes, arm_scope);
+            }
+        }
         // The iterable is evaluated outside the loop, so it cannot see the
         // loop variable; the body can.
         Expr::For {

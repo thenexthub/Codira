@@ -279,6 +279,9 @@ pub(crate) fn gen_file_group_ir<'ink>(
             ModuleDef::Struct(s) => {
                 type_table_builder.collect_struct(&s.ty(code_gen.db));
             }
+            ModuleDef::Enum(e) => {
+                type_table_builder.collect_enum(e);
+            }
             ModuleDef::Function(_)
             | ModuleDef::PrimitiveType(_)
             | ModuleDef::TypeAlias(_)

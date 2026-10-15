@@ -142,6 +142,22 @@ fn test_effects() {
 }
 
 #[test]
+fn test_enums() {
+    insta::assert_snapshot!(print_item_tree(
+        r#"
+    public enum Shape {
+        Circle(radius: f64)
+        Rectangle(width: f64, height: f64)
+        Point
+    }
+    enum Option[T] { Some(T), None }
+    func area(shape: Shape) -> f64 { 0.0 }
+    "#
+    )
+    .unwrap());
+}
+
+#[test]
 fn test_duplicate_import() {
     insta::assert_snapshot!(print_item_tree(
         r#"

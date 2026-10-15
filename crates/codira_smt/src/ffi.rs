@@ -32,6 +32,8 @@ opaque_handle!(Z3_ast);
 opaque_handle!(Z3_solver);
 opaque_handle!(Z3_model);
 opaque_handle!(Z3_params);
+opaque_handle!(Z3_ast_vector);
+opaque_handle!(Z3_func_decl);
 
 pub type Z3_string = *const c_char;
 
@@ -41,6 +43,14 @@ pub type Z3_lbool = c_int;
 pub const Z3_L_FALSE: Z3_lbool = -1;
 pub const Z3_L_UNDEF: Z3_lbool = 0;
 pub const Z3_L_TRUE: Z3_lbool = 1;
+
+/// Mirrors the C `Z3_error_code` enum; `Z3_OK` is `0`.
+pub type Z3_error_code = c_int;
+pub const Z3_OK: Z3_error_code = 0;
+
+/// `Z3_error_handler`: called on an API error. `None` (a null handler)
+/// makes Z3 record the error for `Z3_get_error_code` and return instead.
+pub type Z3_error_handler = Option<unsafe extern "C" fn(c: Z3_context, e: Z3_error_code)>;
 
 extern "C" {
     pub fn Z3_mk_config() -> Z3_config;
@@ -187,4 +197,43 @@ extern "C" {
     // The only way to tell "the deterministic resource budget ran out" from
     // "the formula is outside what Z3 decides".
     pub fn Z3_solver_get_reason_unknown(c: Z3_context, s: Z3_solver) -> Z3_string;
+
+    // ---- SMT-LIB2 text, both ways -------------------------------------------
+    // What proof certificates are made of: a query is written out as a
+    // self-contained benchmark and read back by a checker that shares
+    // nothing with the code that built it but Z3.
+    pub fn Z3_benchmark_to_smtlib_string(
+        c: Z3_context,
+        name: Z3_string,
+        logic: Z3_string,
+        status: Z3_string,
+        attributes: Z3_string,
+        num_assumptions: std::ffi::c_uint,
+        assumptions: *const Z3_ast,
+        formula: Z3_ast,
+    ) -> Z3_string;
+    pub fn Z3_parse_smtlib2_string(
+        c: Z3_context,
+        str: Z3_string,
+        num_sorts: std::ffi::c_uint,
+        sort_names: *const Z3_symbol,
+        sorts: *const Z3_sort,
+        num_decls: std::ffi::c_uint,
+        decl_names: *const Z3_symbol,
+        decls: *const Z3_func_decl,
+    ) -> Z3_ast_vector;
+    pub fn Z3_ast_vector_inc_ref(c: Z3_context, v: Z3_ast_vector);
+    pub fn Z3_ast_vector_dec_ref(c: Z3_context, v: Z3_ast_vector);
+    pub fn Z3_ast_vector_size(c: Z3_context, v: Z3_ast_vector) -> std::ffi::c_uint;
+    pub fn Z3_ast_vector_get(c: Z3_context, v: Z3_ast_vector, i: std::ffi::c_uint) -> Z3_ast;
+    pub fn Z3_get_sort_kind(c: Z3_context, t: Z3_sort) -> c_int;
+
+    // ---- errors and versions ------------------------------------------------
+    pub fn Z3_set_error_handler(c: Z3_context, h: Z3_error_handler);
+    pub fn Z3_get_error_code(c: Z3_context) -> Z3_error_code;
+    pub fn Z3_get_error_msg(c: Z3_context, err: Z3_error_code) -> Z3_string;
+    pub fn Z3_get_full_version() -> Z3_string;
 }
+
+/// `Z3_BOOL_SORT` of the C `Z3_sort_kind` enum.
+pub const Z3_BOOL_SORT: c_int = 1;

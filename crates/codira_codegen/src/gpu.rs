@@ -196,6 +196,8 @@ pub fn compile_gpu_kernels(
         // Fuel counts against a counter the host runtime owns; a kernel has
         // no such counter, so it is never instrumented.
         fuel: false,
+        // PTX is not a library a certificate describes.
+        keep_function_symbols: false,
         target_machine: Rc::new(machine),
     };
 

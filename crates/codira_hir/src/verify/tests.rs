@@ -874,6 +874,103 @@ fn constant_time_functions_may_not_branch_index_or_divide_on_secrets() {
     assert_eq!(diags.lines().count(), 6, "{diags}");
 }
 
+/// A `match`, `if let` or `while let` on a secret branches on it, and the
+/// names its patterns bind are secret.
+#[test]
+fn matching_on_a_secret_is_a_branch_and_binds_secrets() {
+    let diags = diagnostics(
+        r#"
+    oblivious func matches(k: u64) -> u64 {
+        match k { 0 -> 1, _ -> 2 }
+    }
+    @constant_time
+    func if_lets(k: secret u64, o: i64?) -> secret u64 {
+        if let v = o { 1 } else { k }
+    }
+    func takes_public(x: u64) -> u64 { x }
+    func binds(k: secret u64) -> secret u64 {
+        match k { v -> takes_public(v) }
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("`match` (or `if let`/`while let`) on a secret in a constant-time function"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("secret value passed to a non-`secret` parameter of `takes_public`"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(diags.lines().count(), 2, "{diags}");
+}
+
+/// A `match` on a secret enum is a branch on it: rejected in an
+/// `oblivious` function.
+#[test]
+fn matching_on_a_secret_enum_is_rejected_in_oblivious_code() {
+    let diags = diagnostics(
+        r#"
+    enum Bit { Zero, One }
+    oblivious func pick(b: Bit, x: u64) -> u64 {
+        match b { Bit.Zero -> x, Bit.One -> 0 }
+    }
+    "#,
+    );
+    assert!(
+        diags.contains("`match` (or `if let`/`while let`) on a secret in a constant-time function"),
+        "{diags}"
+    );
+}
+
+/// Each `match` arm is checked on every path that may reach it: what holds
+/// for all arms is proven, and an arm that breaks the contract is refuted.
+#[test]
+fn match_arms_are_each_checked_against_the_postcondition() {
+    let r = report(
+        r#"
+    func pick(n: i64) -> i64
+        ensures result >= 0
+    {
+        match n { 0 -> 1, 1 -> 2, m -> if m < 0 { 0 } else { m } }
+    }
+    "#,
+        "pick",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+
+    let r = report(
+        r#"
+    func pick(n: i64) -> i64
+        ensures result >= 0
+    {
+        match n { 0 -> 1, _ -> -1 }
+    }
+    "#,
+        "pick",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::Postcondition).is_some(),
+        "{r:#?}"
+    );
+
+    // An enum's payload is not modelled: a bound payload is a fresh value.
+    let r = report(
+        r#"
+    enum Size { Small, Big(i64) }
+    func measure(s: Size) -> i64
+        ensures result >= 0
+    {
+        match s { Size.Small -> 1, Size.Big(n) -> if n < 0 { 0 } else { n } }
+    }
+    "#,
+        "measure",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+}
+
 #[test]
 fn ct_select_is_an_ite_to_the_verifier() {
     let r = report(
@@ -1008,6 +1105,61 @@ fn an_impossible_contract_is_not_synthesized() {
     )
     .unwrap_err();
     assert!(err.contains("no candidate"), "{err}");
+}
+
+/// The queries a certificate records decide every obligation the same way
+/// when read back into a context that shares nothing with the verifier: a
+/// postcondition checked at two returns has two queries, all `unsat`; a
+/// refuted one has a `sat` query.
+#[test]
+fn recorded_queries_re_decide_each_obligation_on_their_own() {
+    use codira_smt::{CheckOutcome, Context};
+
+    let source = r#"
+    func clamp(x: i64) -> i64
+        ensures result >= 0 && result <= 100
+    {
+        if x < 0 { return 0 }
+        if x > 100 { 100 } else { x }
+    }
+    func abs(x: i64) -> i64
+        ensures result >= 0
+    {
+        if x < 0 { -x } else { x }
+    }
+    "#;
+    let (db, _) = MockDatabase::with_single_file(source);
+    let function = |name: &str| {
+        Package::all(&db)
+            .iter()
+            .flat_map(|pkg| pkg.modules(&db))
+            .flat_map(|module| module.declarations(&db))
+            .find_map(|def| match def {
+                ModuleDef::Function(f) if f.name(&db).to_string() == name => Some(f),
+                _ => None,
+            })
+            .unwrap()
+    };
+    let decide = |text: &str| {
+        let ctx = Context::new();
+        let solver = ctx.solver();
+        for assertion in ctx.parse_smtlib2(text).unwrap() {
+            solver.assert(assertion);
+        }
+        solver.check_detailed()
+    };
+
+    let clamp = super::certify_function(&db, function("clamp"));
+    assert_eq!(clamp.len(), 1);
+    assert_eq!(clamp[0].obligation.verdict, Verdict::Proven);
+    assert_eq!(clamp[0].queries.len(), 2, "one per return point");
+    for query in &clamp[0].queries {
+        assert_eq!(decide(query), CheckOutcome::Unsat);
+    }
+
+    let abs = super::certify_function(&db, function("abs"));
+    assert!(matches!(abs[0].obligation.verdict, Verdict::Refuted(_)));
+    assert_eq!(decide(abs[0].queries.last().unwrap()), CheckOutcome::Sat);
 }
 
 // ---- units of measure (`verify::units`)

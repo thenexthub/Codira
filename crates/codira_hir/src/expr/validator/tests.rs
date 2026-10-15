@@ -214,9 +214,8 @@ fn test_unlowered_constructs_are_reported_not_crashed() {
     }
     "#,
     ), @"
-    37..65: `match` is not supported by the code generator yet: pattern matching has no lowering yet; use `if`/`else` chains for now
     103..128: a closure is not supported by the code generator yet: there is no function-value representation or capture analysis yet
-    177..179: postfix `!` (force-unwrap) is not supported by the code generator yet: `Type?` optionals have no runtime representation yet
+    177..179: postfix `!` unwraps an optional (`T?`), but this is `i32`
     ");
 }
 
@@ -241,5 +240,162 @@ fn test_for_range_and_continue_errors() {
     76..77: a range's bounds must be integers, found `bool`
     93..94: a `for` loop's pattern must always match: use a name, `_` or a tuple of those
     113..121: `continue` outside of a loop
+    ");
+}
+
+/// A `match` must cover every value: a missing `bool` literal, a missing
+/// `nil`, or no catch-all for an integer are each reported, naming what is
+/// not covered. Patterns are checked against the scrutinee's type.
+#[test]
+fn test_match_exhaustiveness_and_pattern_errors() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func f(n: i32, b: bool, o: i32?) {
+        let a = match n { 0 -> 1, 1 -> 2 };
+        let c = match b { true -> 1 };
+        let d = match o { 5 -> 1, v -> v };
+        let e = match o { nil -> 0, 5 -> 1 };
+        let g = match n { "x" -> 1, _ -> 2 };
+        let h = match n { nil -> 1, _ -> 2 };
+        let i = n!;
+        let ok1 = match b { true -> 1, false -> 2 };
+        let ok2 = match o { nil -> 0, v -> v };
+        let ok3 = match (n, b) { (0, true) -> 1, (_, _) -> 2 };
+    }
+    "#,
+    ), @"
+    47..73: `match` is not exhaustive: any `i32` no literal arm matches is not covered; add an arm for it, or a `_ ->` arm
+    87..108: `match` is not exhaustive: `false` is not covered; add an arm for it, or a `_ ->` arm
+    122..148: `match` is not exhaustive: `nil` is not covered; add an arm for it, or a `_ ->` arm
+    162..190: `match` is not exhaustive: a present `i32` no literal arm matches is not covered; add an arm for it, or a `_ ->` arm
+    214..217: this pattern is a `str`, but the value it matches is a `i32`
+    256..259: `nil` only matches an optional (`T?`), not `i32`
+    288..290: postfix `!` unwraps an optional (`T?`), but this is `i32`
+    ");
+}
+
+/// Enum construction and variant patterns are checked against the
+/// variants' payloads, and a `match` over an enum must cover every variant
+/// -- through nested payload patterns too. The error names a value that is
+/// not covered.
+#[test]
+fn test_enum_typing_and_exhaustiveness() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    enum Shape {
+        Circle(radius: f64)
+        Rectangle(width: f64, height: f64)
+        Point
+    }
+    enum Wrap {
+        One(Shape?)
+        Two(bool, Shape)
+    }
+    func f(s: Shape, w: Wrap) {
+        let a = match s { Shape.Circle(r) -> r, Shape.Point -> 0.0 };
+        let b = match w {
+            Wrap.One(nil) -> 0,
+            Wrap.One(_) -> 1,
+            Wrap.Two(true, _) -> 2,
+            Wrap.Two(false, Shape.Circle(_)) -> 3,
+            Wrap.Two(false, Shape.Point) -> 4,
+        };
+        let c = match w { Wrap.One(Shape.Point) -> 0, Wrap.Two(_, _) -> 1 };
+        let d = match w { Wrap.One(Shape.Point) -> 0, Wrap.One(nil) -> 1, Wrap.Two(_, _) -> 2 };
+        let ok = match w {
+            Wrap.One(nil) -> 0,
+            Wrap.One(Shape.Circle(_)) -> 1,
+            Wrap.One(_) -> 2,
+            Wrap.Two(true, _) -> 3,
+            Wrap.Two(false, x) -> 4,
+        };
+        let e = Shape.Circle;
+        let g = Shape.Point(1.0);
+        let h = Shape.Circle(1.0, 2.0);
+        let i = Shape.Square;
+        let j = Shape.Circle(true);
+        let k = match s {
+            Shape.Circle -> 1,
+            Shape.Point(1) -> 2,
+            Shape.Rectangle(x) -> 3,
+            Shape.Nope -> 4,
+            Wrap.One(_) -> 5,
+            _ -> 6,
+        };
+        let l = s == s;
+        let m = w == w;
+        let n = s < s;
+        let Shape.Circle(z) = s;
+    }
+    "#,
+    ), @"
+    179..231: `match` is not exhaustive: `Shape.Rectangle(_, _)` is not covered; add an arm for it, or a `_ ->` arm
+    245..436: `match` is not exhaustive: `Wrap.Two(false, Shape.Rectangle(_, _))` is not covered; add an arm for it, or a `_ ->` arm
+    450..509: `match` is not exhaustive: `Wrap.One(nil)` is not covered; add an arm for it, or a `_ ->` arm
+    523..602: `match` is not exhaustive: `Wrap.One(Shape.Circle(_))` is not covered; add an arm for it, or a `_ ->` arm
+    805..817: `Shape.Circle` carries a payload: construct it with `Shape.Circle(_)` (variants are not function values)
+    831..847: `Shape.Point` has no payload: write it without parentheses
+    861..883: `Shape.Circle` takes 1 payload value, but 2 were given
+    897..909: enum `Shape` has no variant `Square`
+    936..940: mismatched type
+    973..985: `Shape.Circle` carries a payload: match it with `Shape.Circle(_)`
+    1000..1014: `Shape.Point` has no payload: match it without parentheses
+    1029..1047: `Shape.Rectangle` has 2 payload fields, but this pattern has 1
+    1062..1072: enum `Shape` has no variant `Nope`
+    1087..1098: this pattern is a `Wrap` variant, but the value it matches is a `Shape`
+    1160..1166: `==` compares only enums whose payloads are all numbers or `bool`s, and `Wrap` has others; `match` on it instead
+    1180..1185: enums (`Shape`) are not ordered; compare them with `==`/`!=` or `match` on them
+    1195..1210: a `let` pattern must always match: use a name, `_` or a tuple of those, and `if let` or `match` for a pattern that may not
+    ");
+}
+
+/// Declarations an enum cannot have yet, or ever: type parameters, braced
+/// variants, a variant name used twice, and containing itself by value.
+#[test]
+fn test_enum_declaration_errors() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    enum Option[T] { Some(T), Nothing }
+    enum Dup { A, B, A }
+    enum Braced { A { x: i32 } }
+    enum List { Empty, More(i32, List) }
+    enum Fine { Empty, More(i32, Holder) }
+    class Holder { list: Fine }
+    "#,
+    ), @"
+    0..35: generic enums are not supported yet: `Option` cannot take type parameters (generic functions, structs and classes can)
+    53..54: `Dup` already has a variant called `A`
+    71..83: a variant with braced fields is not supported yet; write `A(label: Type, ..)` instead
+    86..122: `List` contains itself by value, so it would have no finite size; hold the recursive part through a `class`
+    ");
+}
+
+/// `T` converts to `T?` where an optional is expected; `nil` takes the
+/// optional type it is used as; optionals compare with `==`/`!=` but are
+/// not ordered.
+#[test]
+fn test_optional_typing() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    struct P { x: i32 }
+
+    func f() -> i32? {
+        let a: i32? = 5;
+        let b: i32? = nil;
+        let c = a == b;
+        let d = a < b;
+        let p: P? = nil;
+        let q = p == p;
+        let r = p == nil;
+        let unknown = nil;
+        if let x = a { return x }
+        nil
+    }
+    "#,
+    ), @"
+    116..121: optionals (`i32?`) are not ordered; compare them with `==`/`!=` or unwrap them first
+    156..162: `P` values cannot be compared with `==`; compare the optional with `nil` instead
+    204..207: type annotations needed: the type of this expression is ambiguous
+    194..201: type annotations needed: the type of this expression is ambiguous
     ");
 }

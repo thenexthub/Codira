@@ -11,7 +11,7 @@ use la_arena::ArenaMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    code_model::{Struct, StructKind},
+    code_model::{Enum, EnumVariant, Struct, StructKind, VariantKind},
     diagnostics::DiagnosticSink,
     expr::{Body, Expr, ExprId, Literal, Pat, PatId, RecordLitField, Statement, UnaryOp},
     name_resolution::Namespace,
@@ -27,6 +27,7 @@ use crate::{
 };
 
 mod effects;
+mod exhaustive;
 mod place_expr;
 mod tasks;
 mod type_variable;
@@ -77,6 +78,18 @@ pub struct InferenceResult {
     /// [`effects::EffectResolutions`].
     pub(crate) effects: effects::EffectResolutions,
 
+    /// Expressions whose value is implicitly wrapped into an optional: a
+    /// `T` used where a `T?` is expected. Maps each such expression to the
+    /// optional type it becomes; the expression's own type stays `T`.
+    pub(crate) optional_wraps: FxHashMap<ExprId, Ty>,
+
+    /// The enum variant each `Shape.Circle(..)`/`Shape.Point` expression
+    /// constructs.
+    pub(crate) variant_exprs: FxHashMap<ExprId, EnumVariant>,
+
+    /// The enum variant each `Shape.Circle(..)`/`Shape.Point` pattern
+    /// matches.
+    pub(crate) variant_pats: FxHashMap<PatId, EnumVariant>,
     /// For each call of a generic function -- a free function, a method or
     /// an associated function -- the types its generic parameters stand for
     /// at that call, in the order of the callee's
@@ -133,6 +146,36 @@ impl InferenceResult {
         self.builtin_calls.get(&expr).copied()
     }
 
+    /// Every type this inference assigned to an expression or a pattern.
+    ///
+    /// For consumers that need every type a body mentions -- code
+    /// generation exports the layout of each tuple and optional the runtime
+    /// may meet.
+    pub fn all_types(&self) -> impl Iterator<Item = &Ty> {
+        self.type_of_expr
+            .iter()
+            .map(|(_, ty)| ty)
+            .chain(self.type_of_pat.iter().map(|(_, ty)| ty))
+            .chain(self.optional_wraps.values())
+    }
+
+    /// The enum variant `expr` constructs, if it is `Shape.Circle(..)` or
+    /// `Shape.Point`.
+    pub fn variant_of_expr(&self, expr: ExprId) -> Option<EnumVariant> {
+        self.variant_exprs.get(&expr).copied()
+    }
+
+    /// The enum variant `pat` matches, if it is a variant pattern.
+    pub fn variant_of_pat(&self, pat: PatId) -> Option<EnumVariant> {
+        self.variant_pats.get(&pat).copied()
+    }
+
+    /// The optional type `expr`'s value is wrapped into, if it is used
+    /// where a `T?` is expected (see `optional_wraps`).
+    pub fn optional_wrap(&self, expr: ExprId) -> Option<&Ty> {
+        self.optional_wraps.get(&expr)
+    }
+
     /// The types a call of a generic function instantiated the callee's
     /// generic parameters with, in the order of the callee's
     /// [`Function::generic_environment`]. `None` when `call` does not call
@@ -172,6 +215,13 @@ impl InferenceResult {
             builtin_calls: self.builtin_calls.clone(),
             effects: self.effects.clone(),
             instantiations,
+            optional_wraps: self
+                .optional_wraps
+                .iter()
+                .map(|(expr, ty)| (*expr, f(ty)))
+                .collect(),
+            variant_exprs: self.variant_exprs.clone(),
+            variant_pats: self.variant_pats.clone(),
             standard_types: InternedStandardTypes::default(),
         }
     }
@@ -284,6 +334,12 @@ struct InferenceResultBuilder<'a> {
     /// inferred: what `resume` takes. `None` outside every arm.
     active_arm_ret: Option<Ty>,
 
+    /// Expressions implicitly wrapped into an optional
+    optional_wraps: FxHashMap<ExprId, Ty>,
+
+    /// Variant constructions and variant patterns (see `InferenceResult`).
+    variant_exprs: FxHashMap<ExprId, EnumVariant>,
+    pat_variants: FxHashMap<PatId, EnumVariant>,
     /// See [`InferenceResult::instantiations`]; the callee is kept until
     /// `resolve_all` so that a parameter no argument determined can be
     /// reported by name.
@@ -308,6 +364,10 @@ impl<'a> InferenceResultBuilder<'a> {
             builtin_calls: FxHashMap::default(),
             effects: effects::EffectResolutions::default(),
             active_arm_ret: None,
+
+            optional_wraps: FxHashMap::default(),
+            variant_exprs: FxHashMap::default(),
+            pat_variants: FxHashMap::default(),
             instantiations: FxHashMap::default(),
         }
     }
@@ -379,6 +439,7 @@ impl InferenceResultBuilder<'_> {
         for (pat, type_ref) in self.body.params().iter() {
             let ty = self.resolve_type(*type_ref);
             let ty = strip_alias(self.db, ty);
+            self.check_irrefutable(*pat, "a parameter's pattern");
             self.infer_pat(*pat, ty);
         }
 
@@ -502,6 +563,9 @@ impl InferenceResultBuilder<'_> {
     /// Returns the type after possible coercion. Adds a diagnostic message
     /// if coercion failed.
     fn coerce_expr_ty(&mut self, expr: ExprId, ty: Ty, expected: &Expectation) -> Ty {
+        if let Some(wrapped) = self.try_wrap_optional(expr, &ty, &expected.ty) {
+            return wrapped;
+        }
         let ty = if !self.coerce(&ty, &expected.ty) {
             self.diagnostics.push(InferenceDiagnostic::MismatchedTypes {
                 expected: expected.ty.clone(),
@@ -516,6 +580,31 @@ impl InferenceResultBuilder<'_> {
         };
 
         self.resolve_ty_as_far_as_possible(ty)
+    }
+
+    /// The implicit `T` to `T?` conversion: a value used where an optional
+    /// is expected becomes a present optional. Records `expr` for code
+    /// generation and returns the optional type, or `None` when no wrapping
+    /// applies (the value is already optional, still unknown, or diverges).
+    fn try_wrap_optional(&mut self, expr: ExprId, ty: &Ty, expected: &Ty) -> Option<Ty> {
+        let expected = self.normalize(expected);
+        let TyKind::Optional(inner) = expected.interned() else {
+            return None;
+        };
+        let actual = self.normalize(ty);
+        match actual.interned() {
+            TyKind::Optional(_)
+            | TyKind::InferenceVar(InferTy::Type(_))
+            | TyKind::Never
+            | TyKind::Unknown => return None,
+            _ => {}
+        }
+        if !self.unify(&actual, inner) {
+            return None;
+        }
+        let expected = self.resolve_ty_as_far_as_possible(expected.clone());
+        self.optional_wraps.insert(expr, expected.clone());
+        Some(expected)
     }
 
     /// Infer the type of the given expression. Returns the type of the
@@ -591,11 +680,23 @@ impl InferenceResultBuilder<'_> {
                         self.diagnostics
                             .push(InferenceDiagnostic::CannotApplyBinaryOp {
                                 id: tgt_expr,
-                                lhs: lhs_ty,
+                                lhs: lhs_ty.clone(),
                                 rhs: rhs_expected.clone(),
                             });
                     }
-                    let rhs_ty = self.infer_expr(*rhs, &Expectation::has_type(rhs_expected));
+                    let lhs_is_optional =
+                        matches!(self.normalize(&lhs_ty).interned(), TyKind::Optional(_));
+                    let rhs_ty = if lhs_is_optional {
+                        self.infer_expr_coerce(*rhs, &Expectation::has_type(rhs_expected))
+                    } else {
+                        self.infer_expr(*rhs, &Expectation::has_type(rhs_expected))
+                    };
+                    if lhs_is_optional {
+                        self.check_optional_comparison(tgt_expr, *op, &lhs_ty, *rhs);
+                    }
+                    if let TyKind::Enum(e, _) = self.normalize(&lhs_ty).interned() {
+                        self.check_enum_comparison(tgt_expr, *op, *e);
+                    }
                     op::binary_op_return_ty(*op, rhs_ty)
                 }
                 _ => error_type(),
@@ -639,11 +740,21 @@ impl InferenceResultBuilder<'_> {
                 // is no dedicated `TyKind::Optional` yet (see `TypeRef::Optional` in
                 // `type_ref.rs`), so for now it is left as `Unknown` rather than
                 // pretending to enforce a nil-safety guarantee that isn't wired up.
-                Literal::Nil => TyKind::Unknown.intern(),
+                // `nil` is the absent value of whatever optional it is used
+                // as; with no optional expected, its payload type is left
+                // for later uses to determine.
+                Literal::Nil => {
+                    let expected_ty = self.normalize(&expected.ty);
+                    if let TyKind::Optional(_) = expected_ty.interned() {
+                        expected_ty
+                    } else {
+                        TyKind::Optional(self.type_variables.new_type_var()).intern()
+                    }
+                }
             },
             Expr::Return { expr } => {
                 if let Some(expr) = expr {
-                    self.infer_expr(*expr, &Expectation::has_type(self.return_ty.clone()));
+                    self.infer_expr_coerce(*expr, &Expectation::has_type(self.return_ty.clone()));
                 } else if !self.return_ty.is_empty() {
                     self.diagnostics
                         .push(InferenceDiagnostic::ReturnMissingExpression { id: tgt_expr });
@@ -661,6 +772,26 @@ impl InferenceResultBuilder<'_> {
                 iterable,
                 body,
             } => self.infer_for_expr(*pat, *iterable, *body),
+            Expr::Match { expr, arms, source } => {
+                self.infer_match(tgt_expr, *expr, arms, *source, expected)
+            }
+            Expr::Unwrap { expr } => {
+                let inner_ty = self.infer_expr(*expr, &Expectation::none());
+                match self.normalize(&inner_ty).interned() {
+                    TyKind::Optional(payload) => payload.clone(),
+                    TyKind::Unknown => error_type(),
+                    _ => {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: tgt_expr.into(),
+                            message: format!(
+                                "postfix `!` unwraps an optional (`T?`), but this is `{}`",
+                                inner_ty.display(self.db)
+                            ),
+                        });
+                        error_type()
+                    }
+                }
+            }
             Expr::Continue => {
                 if self.active_loop.is_none() {
                     self.diagnostics.push(InferenceDiagnostic::ExprError {
@@ -738,25 +869,31 @@ impl InferenceResultBuilder<'_> {
                 ty
             }
             Expr::Field { expr, name } => {
-                let receiver_ty = self.infer_expr(*expr, &Expectation::none());
-                if let Some((field_ty, is_visible)) = self.lookup_field(receiver_ty.clone(), name) {
-                    if !is_visible {
+                if let Some(e) = self.enum_named_by(tgt_expr, *expr) {
+                    self.infer_variant_construction(tgt_expr, *expr, e, name, None)
+                } else {
+                    let receiver_ty = self.infer_expr(*expr, &Expectation::none());
+                    if let Some((field_ty, is_visible)) =
+                        self.lookup_field(receiver_ty.clone(), name)
+                    {
+                        if !is_visible {
+                            self.diagnostics
+                                .push(InferenceDiagnostic::AccessPrivateField {
+                                    id: tgt_expr,
+                                    receiver_ty,
+                                    name: name.clone(),
+                                });
+                        }
+                        field_ty
+                    } else {
                         self.diagnostics
-                            .push(InferenceDiagnostic::AccessPrivateField {
+                            .push(InferenceDiagnostic::AccessUnknownField {
                                 id: tgt_expr,
                                 receiver_ty,
                                 name: name.clone(),
                             });
+                        error_type()
                     }
-                    field_ty
-                } else {
-                    self.diagnostics
-                        .push(InferenceDiagnostic::AccessUnknownField {
-                            id: tgt_expr,
-                            receiver_ty,
-                            name: name.clone(),
-                        });
-                    error_type()
                 }
             }
             Expr::UnaryOp { expr, op } => {
@@ -1166,12 +1303,37 @@ impl InferenceResultBuilder<'_> {
         // that is not visible at all fails to resolve in the first place.
         let (type_ns, _visibility) = resolver.resolve_path_as_type_fully(self.db, &path)?;
 
+        // `Shape.Circle(..)` is a variant; any other name an associated
+        // function from an `extend Shape` block, if there is one.
+        if let TypeNs::EnumId(id) = type_ns {
+            let e = Enum::from(id);
+            let is_assoc_fn = e.variant(self.db, method_name).is_none()
+                && lookup_method(
+                    self.db,
+                    &e.ty(),
+                    self.module(),
+                    method_name,
+                    Some(AssociationMode::WithoutSelf),
+                )
+                .is_ok();
+            if !is_assoc_fn {
+                return Some(self.infer_variant_construction(
+                    tgt_expr,
+                    receiver,
+                    e,
+                    method_name,
+                    Some(args),
+                ));
+            }
+        }
+
         let type_for_def = |def| self.db.type_for_def(def, Namespace::Types);
         let self_ty = match type_ns {
             TypeNs::StructId(id) => type_for_def(TypableDef::Struct(id.into())),
             TypeNs::TypeAliasId(id) => type_for_def(TypableDef::TypeAlias(id.into())),
             TypeNs::PrimitiveType(id) => type_for_def(TypableDef::PrimitiveType(id.into())),
             TypeNs::SelfType(id) => self.db.type_for_impl_self(id),
+            TypeNs::EnumId(id) => Enum::from(id).ty(),
             // As above: `T.assoc(..)` needs `where T: Trait` bounds to
             // resolve against, which are parsed but not yet resolved.
             TypeNs::GenericParam(..) => return None,
@@ -1703,6 +1865,10 @@ impl InferenceResultBuilder<'_> {
             TypeNs::StructId(id) => type_for_def_fn(TypableDef::Struct(id.into())),
             TypeNs::TypeAliasId(id) => type_for_def_fn(TypableDef::TypeAlias(id.into())),
             TypeNs::PrimitiveType(id) => type_for_def_fn(TypableDef::PrimitiveType(id.into())),
+            // An enum's associated functions come from `extend` blocks; its
+            // variants are reached through `Expr::Field`/`Expr::MethodCall`
+            // (see `infer_variant_construction`), never through here.
+            TypeNs::EnumId(id) => Enum::from(id).ty(),
             // `T.method(..)` on an unconstrained type parameter needs bound
             // resolution (`where T: Trait`) to know what methods exist.
             // Bounds parse but are not yet resolved, so there is nothing to
@@ -1831,18 +1997,22 @@ impl InferenceResultBuilder<'_> {
         //let mut tv_stack = Vec::new();
         let mut expr_types = std::mem::take(&mut self.type_of_expr);
         for (expr, ty) in expr_types.iter_mut() {
-            let was_unknown = ty.is_unknown();
+            let was_unknown = ty.is_unknown() || contains_unknown(ty);
             let resolved = self.type_variables.resolve_ty_completely(ty.clone());
-            if !was_unknown && resolved.is_unknown() {
+            if !was_unknown && is_ambiguous(&resolved) {
                 self.report_expr_inference_failure(expr);
             }
             *ty = resolved;
         }
+        let mut optional_wraps = std::mem::take(&mut self.optional_wraps);
+        for ty in optional_wraps.values_mut() {
+            *ty = self.type_variables.resolve_ty_completely(ty.clone());
+        }
         let mut pat_types = std::mem::take(&mut self.type_of_pat);
         for (pat, ty) in pat_types.iter_mut() {
-            let was_unknown = ty.is_unknown();
+            let was_unknown = ty.is_unknown() || contains_unknown(ty);
             let resolved = self.type_variables.resolve_ty_completely(ty.clone());
-            if !was_unknown && resolved.is_unknown() {
+            if !was_unknown && is_ambiguous(&resolved) {
                 self.report_pat_inference_failure(pat);
             }
             *ty = resolved;
@@ -1859,6 +2029,10 @@ impl InferenceResultBuilder<'_> {
             method_resolutions: self.method_resolution,
             builtin_calls: self.builtin_calls,
             effects: self.effects,
+
+            optional_wraps,
+            variant_exprs: self.variant_exprs,
+            variant_pats: self.pat_variants,
             instantiations,
         }
     }
@@ -1955,6 +2129,7 @@ impl InferenceResultBuilder<'_> {
                     };
 
                     let ty = self.resolve_ty_as_far_as_possible(ty);
+                    self.check_irrefutable(*pat, "a `let` pattern");
                     self.infer_pat(*pat, ty);
                 }
                 Statement::Expr(expr) => {
@@ -2061,6 +2236,461 @@ impl InferenceResultBuilder<'_> {
         self.infer_loop_contract(tgt_expr);
         self.infer_loop_block(body, ActiveLoop::While);
         Ty::unit()
+    }
+
+    /// `==` and `!=` on optionals: equal when both are `nil`, or both are
+    /// present with equal payloads. Ordering optionals means nothing, and
+    /// comparing payloads is only possible for scalar payloads; comparing
+    /// with `nil` works for any payload.
+    fn check_optional_comparison(
+        &mut self,
+        tgt_expr: ExprId,
+        op: BinaryOp,
+        lhs_ty: &Ty,
+        rhs: ExprId,
+    ) {
+        let BinaryOp::CmpOp(cmp) = op else {
+            return;
+        };
+        let lhs_ty = self.normalize(lhs_ty);
+        if let crate::CmpOp::Ord { .. } = cmp {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "optionals (`{}`) are not ordered; compare them with `==`/`!=` or unwrap them first",
+                    lhs_ty.display(self.db)
+                ),
+            });
+            return;
+        }
+        let rhs_is_nil = matches!(self.body[rhs], Expr::Literal(Literal::Nil));
+        let TyKind::Optional(payload) = lhs_ty.interned() else {
+            return;
+        };
+        let payload = self.normalize(payload);
+        let scalar = matches!(
+            payload.interned(),
+            TyKind::Int(_)
+                | TyKind::Float(_)
+                | TyKind::Bool
+                | TyKind::Unknown
+                | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
+        );
+        if !rhs_is_nil && !scalar {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "`{}` values cannot be compared with `==`; compare the optional with `nil` instead",
+                    payload.display(self.db)
+                ),
+            });
+        }
+    }
+
+    /// Infers a `match` (or an `if let`/`while let`, which lower to one).
+    ///
+    /// Every arm's pattern is checked against the scrutinee's type and binds
+    /// its names; the arms' values merge like `if` branches. A `match`
+    /// written as such must also be exhaustive.
+    fn infer_match(
+        &mut self,
+        tgt_expr: ExprId,
+        scrutinee: ExprId,
+        arms: &[crate::expr::MatchArm],
+        source: crate::expr::MatchSource,
+        expected: &Expectation,
+    ) -> Ty {
+        let scrutinee_ty = self.infer_expr(scrutinee, &Expectation::none());
+        let scrutinee_ty = self.normalize(&scrutinee_ty);
+        for arm in arms {
+            self.infer_match_pat(arm.pat, &scrutinee_ty);
+        }
+
+        let mut result: Option<Ty> = None;
+        for arm in arms {
+            let arm_ty = self.infer_expr_coerce(arm.expr, expected);
+            if self.is_never(&arm_ty) {
+                continue;
+            }
+            result = Some(match result {
+                None => arm_ty,
+                Some(previous) => {
+                    if let Some(merged) = self.coerce_merge_branch(&previous, &arm_ty) {
+                        merged
+                    } else {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: arm.expr.into(),
+                            message: format!(
+                                "`match` arms have incompatible types: `{}` and `{}`",
+                                previous.display(self.db),
+                                arm_ty.display(self.db)
+                            ),
+                        });
+                        previous
+                    }
+                }
+            });
+        }
+
+        if source == crate::expr::MatchSource::Match {
+            let pats: Vec<PatId> = arms.iter().map(|arm| arm.pat).collect();
+            if let Some(missing) = self.missing_pattern(&pats, &scrutinee_ty) {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: format!(
+                        "`match` is not exhaustive: {missing} is not covered; add an arm for it, or a `_ ->` arm"
+                    ),
+                });
+            }
+        }
+
+        // No arm completes (or there are none): the match diverges.
+        result.unwrap_or_else(|| TyKind::Never.intern())
+    }
+
+    /// Checks `pat` against a value of type `ty`, recording the type of the
+    /// pattern and of every name it binds.
+    ///
+    /// Against an optional, `nil` and `_` match the optional itself, and
+    /// every other pattern matches the *payload* of a present value -- so
+    /// `if let x = maybe` binds the unwrapped value, and `match maybe { nil
+    /// -> .., x -> .. }` covers both cases.
+    fn infer_match_pat(&mut self, pat: PatId, ty: &Ty) {
+        let ty = self.normalize(ty);
+        let pattern = self.body[pat].clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            match pattern {
+                Pat::Wild | Pat::Missing | Pat::Literal(Literal::Nil) => {
+                    self.set_pat_type(pat, ty.clone());
+                }
+                _ => self.infer_match_pat(pat, &payload.clone()),
+            }
+            return;
+        }
+
+        match pattern {
+            Pat::Bind { .. } | Pat::Wild | Pat::Missing => self.set_pat_type(pat, ty),
+            Pat::Literal(literal) => {
+                let literal_ty = match &literal {
+                    Literal::Bool(_) => TyKind::Bool.intern(),
+                    Literal::String(_) => TyKind::Str.intern(),
+                    Literal::Int(LiteralInt {
+                        kind: LiteralIntKind::Suffixed(suffix),
+                        ..
+                    }) => TyKind::Int(IntTy {
+                        bitness: suffix.bitness,
+                        signedness: suffix.signedness,
+                    })
+                    .intern(),
+                    Literal::Int(_) => self.type_variables.new_integer_var(),
+                    Literal::Float(LiteralFloat {
+                        kind: LiteralFloatKind::Suffixed(suffix),
+                        ..
+                    }) => TyKind::Float(FloatTy {
+                        bitness: suffix.bitness,
+                    })
+                    .intern(),
+                    Literal::Float(_) => self.type_variables.new_float_var(),
+                    Literal::Nil => {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: pat.into(),
+                            message: format!(
+                                "`nil` only matches an optional (`T?`), not `{}`",
+                                ty.display(self.db)
+                            ),
+                        });
+                        self.set_pat_type(pat, ty);
+                        return;
+                    }
+                };
+                if !self.unify(&literal_ty, &ty) {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: pat.into(),
+                        message: format!(
+                            "this pattern is a `{}`, but the value it matches is a `{}`",
+                            literal_ty.display(self.db),
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                self.set_pat_type(pat, ty);
+            }
+            Pat::Tuple(args) => {
+                match ty.interned() {
+                    TyKind::Tuple(arity, substs) if *arity == args.len() => {
+                        let substs = substs.clone();
+                        for (&arg, elem_ty) in args.iter().zip(substs.iter()) {
+                            self.infer_match_pat(arg, elem_ty);
+                        }
+                    }
+                    TyKind::Unknown => {
+                        for &arg in &args {
+                            self.infer_match_pat(arg, &ty);
+                        }
+                    }
+                    _ => self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: pat.into(),
+                        message: format!(
+                            "a tuple pattern of {} elements cannot match a value of type `{}`",
+                            args.len(),
+                            ty.display(self.db)
+                        ),
+                    }),
+                }
+                self.set_pat_type(pat, ty);
+            }
+            Pat::Path(path) => self.infer_variant_pat(pat, Some(&path), &[], false, &ty),
+            Pat::TupleStruct { path, args } => {
+                self.infer_variant_pat(pat, path.as_ref(), &args, true, &ty);
+            }
+        }
+    }
+
+    /// The enum `receiver` names, when it is a bare path that resolves to
+    /// an enum *type* -- the `Shape` of `Shape.Circle(..)`/`Shape.Point`.
+    /// A local variable never resolves as a type, so `value.field` is never
+    /// taken for a variant.
+    fn enum_named_by(&self, tgt_expr: ExprId, receiver: ExprId) -> Option<Enum> {
+        let Expr::Path(path) = &self.body[receiver] else {
+            return None;
+        };
+        let resolver = resolver_for_expr(self.db, self.body.owner(), tgt_expr);
+        if resolver
+            .resolve_path_as_value_fully(self.db, path)
+            .is_some()
+        {
+            return None;
+        }
+        match resolver.resolve_path_as_type_fully(self.db, path)? {
+            (TypeNs::EnumId(id), _) => Some(id.into()),
+            _ => None,
+        }
+    }
+
+    /// Infers `Shape.Circle(args)` (`args` is `Some`) or `Shape.Point`
+    /// (`None`): the value of the variant called `name` of `e`. The payload
+    /// is checked against the variant's field types, and the expression is
+    /// recorded for code generation.
+    fn infer_variant_construction(
+        &mut self,
+        tgt_expr: ExprId,
+        receiver: ExprId,
+        e: Enum,
+        name: &Name,
+        args: Option<&[ExprId]>,
+    ) -> Ty {
+        let enum_ty = e.ty();
+        // The receiver names the type; give it that type so no later stage
+        // sees `Unknown` there.
+        self.set_expr_type(receiver, enum_ty.clone());
+
+        let Some(variant) = e.variant(self.db, name) else {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!("enum `{}` has no variant `{name}`", e.name(self.db)),
+            });
+            for &arg in args.unwrap_or_default() {
+                self.infer_expr(arg, &Expectation::none());
+            }
+            return error_type();
+        };
+        let field_tys = variant.field_types(self.db);
+        let shown = variant.display(self.db).to_string();
+        match (args, variant.kind(self.db)) {
+            (None, VariantKind::Unit) | (Some(_), VariantKind::Tuple | VariantKind::Record)
+                if args.map_or(0, <[ExprId]>::len) == field_tys.len() => {}
+            (None, _) => {
+                let blanks = vec!["_"; field_tys.len()].join(", ");
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: format!(
+                        "`{shown}` carries a payload: construct it with `{shown}({blanks})` \
+                         (variants are not function values)"
+                    ),
+                });
+            }
+            (Some(_), VariantKind::Unit) => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: format!("`{shown}` has no payload: write it without parentheses"),
+                });
+            }
+            (Some(args), _) => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: tgt_expr.into(),
+                    message: format!(
+                        "`{shown}` takes {} payload value{}, but {} {} given",
+                        field_tys.len(),
+                        if field_tys.len() == 1 { "" } else { "s" },
+                        args.len(),
+                        if args.len() == 1 { "was" } else { "were" },
+                    ),
+                });
+            }
+        }
+        for (idx, &arg) in args.unwrap_or_default().iter().enumerate() {
+            match field_tys.get(idx) {
+                Some(field_ty) => {
+                    self.infer_expr_coerce(arg, &Expectation::has_type(field_ty.clone()));
+                }
+                None => {
+                    self.infer_expr(arg, &Expectation::none());
+                }
+            }
+        }
+        self.variant_exprs.insert(tgt_expr, variant);
+        enum_ty
+    }
+
+    /// Resolves `Shape.Circle` in a pattern to the variant it names: every
+    /// segment but the last must name an enum type, and the last one of its
+    /// variants.
+    fn resolve_variant_path(&self, path: &Path) -> Result<EnumVariant, String> {
+        let not_a_variant = || {
+            let written: Vec<String> = path.segments.iter().map(ToString::to_string).collect();
+            format!(
+                "`{}` is not an enum variant: a variant pattern is written `Enum.Variant`",
+                written.join(".")
+            )
+        };
+        let Some((last, prefix)) = path.segments.split_last() else {
+            return Err(not_a_variant());
+        };
+        if prefix.is_empty() {
+            return Err(not_a_variant());
+        }
+        let enum_path = Path {
+            kind: path.kind.clone(),
+            segments: prefix.to_vec(),
+        };
+        let e: Enum = match self
+            .resolver
+            .resolve_path_as_type_fully(self.db, &enum_path)
+        {
+            Some((TypeNs::EnumId(id), _)) => id.into(),
+            _ => return Err(not_a_variant()),
+        };
+        e.variant(self.db, last)
+            .ok_or_else(|| format!("enum `{}` has no variant `{last}`", e.name(self.db)))
+    }
+
+    /// Checks the variant pattern `pat` -- `Shape.Point` (`has_parens`
+    /// false) or `Shape.Circle(args)` -- against a value of type `ty`.
+    fn infer_variant_pat(
+        &mut self,
+        pat: PatId,
+        path: Option<&Path>,
+        args: &[PatId],
+        has_parens: bool,
+        ty: &Ty,
+    ) {
+        self.set_pat_type(pat, ty.clone());
+        let resolved = match path {
+            Some(path) => self.resolve_variant_path(path),
+            // A pattern with no path is a syntax error, already reported.
+            None => Err(String::new()),
+        };
+        let variant = match resolved {
+            Ok(variant) => variant,
+            Err(message) => {
+                if !message.is_empty() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: pat.into(),
+                        message,
+                    });
+                }
+                for &arg in args {
+                    self.infer_match_pat(arg, &error_type());
+                }
+                return;
+            }
+        };
+        match ty.interned() {
+            TyKind::Enum(e, _) if *e == variant.parent() => {}
+            TyKind::Unknown => {}
+            _ => {
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: pat.into(),
+                    message: format!(
+                        "this pattern is a `{}` variant, but the value it matches is a `{}`",
+                        variant.parent().name(self.db),
+                        ty.display(self.db)
+                    ),
+                });
+                for &arg in args {
+                    self.infer_match_pat(arg, &error_type());
+                }
+                return;
+            }
+        }
+        let shown = variant.display(self.db).to_string();
+        let field_tys = variant.field_types(self.db);
+        let unit = variant.kind(self.db) == VariantKind::Unit;
+        if has_parens && unit {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message: format!("`{shown}` has no payload: match it without parentheses"),
+            });
+        } else if !has_parens && !unit {
+            let blanks = vec!["_"; field_tys.len()].join(", ");
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message: format!("`{shown}` carries a payload: match it with `{shown}({blanks})`"),
+            });
+        } else if has_parens && args.len() != field_tys.len() {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message: format!(
+                    "`{shown}` has {} payload field{}, but this pattern has {}",
+                    field_tys.len(),
+                    if field_tys.len() == 1 { "" } else { "s" },
+                    args.len()
+                ),
+            });
+        }
+        for (idx, &arg) in args.iter().enumerate() {
+            let field_ty = field_tys.get(idx).cloned().unwrap_or_else(error_type);
+            self.infer_match_pat(arg, &field_ty);
+        }
+        self.pat_variants.insert(pat, variant);
+    }
+
+    /// `==` and `!=` on enums: equal when the variants are and their
+    /// payloads are. Only enums whose payloads are all numbers or `bool`s
+    /// compare (see `Enum::is_comparable`); enums are not ordered.
+    fn check_enum_comparison(&mut self, tgt_expr: ExprId, op: BinaryOp, e: Enum) {
+        let BinaryOp::CmpOp(cmp) = op else {
+            return;
+        };
+        let name = e.name(self.db);
+        if let crate::CmpOp::Ord { .. } = cmp {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "enums (`{name}`) are not ordered; compare them with `==`/`!=` or `match` on them"
+                ),
+            });
+        } else if !e.is_comparable(self.db) {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: tgt_expr.into(),
+                message: format!(
+                    "`==` compares only enums whose payloads are all numbers or `bool`s, and `{name}` has others; `match` on it instead"
+                ),
+            });
+        }
+    }
+
+    /// Reports a refutable pattern where one must always match: a `let` or
+    /// a parameter.
+    fn check_irrefutable(&mut self, pat: PatId, place: &str) {
+        if !self.is_irrefutable(pat) {
+            self.diagnostics.push(InferenceDiagnostic::ExprError {
+                id: pat.into(),
+                message: format!(
+                    "{place} must always match: use a name, `_` or a tuple of those, and `if let` or `match` for a pattern that may not"
+                ),
+            });
+        }
     }
 
     /// Infers the two bounds of a range, which must be the same integer
@@ -2178,6 +2808,24 @@ fn is_printable(ty: &Ty) -> bool {
             | TyKind::Unknown
             | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
     )
+}
+
+/// Whether a type that resolved to `ty` was left undetermined: the unknown
+/// type itself, or an optional of it -- `let x = nil` with nothing to say
+/// what `x` holds. Deliberately not "contains unknown anywhere": a generic
+/// instantiation nothing pinned down already reports where it matters.
+fn is_ambiguous(ty: &Ty) -> bool {
+    match ty.interned() {
+        TyKind::Optional(inner) => inner.is_unknown(),
+        _ => ty.is_unknown(),
+    }
+}
+
+/// Whether `ty` is, or contains, the unknown type.
+fn contains_unknown(ty: &Ty) -> bool {
+    let mut found = false;
+    ty.walk(&mut |inner| found |= inner.is_unknown());
+    found
 }
 
 /// Returns a type used for errors

@@ -681,6 +681,8 @@ impl Elaborator<'_> {
                     .into(),
             )),
             Expr::MethodCall { .. }
+            | Expr::Match { .. }
+            | Expr::Unwrap { .. }
             | Expr::Index { .. }
             | Expr::Array(_)
             | Expr::Tuple(_)
