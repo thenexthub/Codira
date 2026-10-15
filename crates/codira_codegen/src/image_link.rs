@@ -210,6 +210,20 @@ pub(crate) fn link_directly(
     }
 }
 
+/// Counts a link that the image writer is not asked to do because of what the
+/// caller needs (`reason` names it), when the image writer is in use for this
+/// target at all. LLD links it.
+pub(crate) fn decline_without_trying(target: &spec::Target, reason: &'static str, detail: &str) {
+    if !direct_image_requested() || image_format(target).is_none() {
+        return;
+    }
+    log_outcome(&format!("declined	{reason}: {detail}"));
+    with_stats(|stats| {
+        *stats.declined.entry(reason).or_default() += 1;
+        stats.last_decline = Some(format!("{reason}: {detail}"));
+    });
+}
+
 /// Requires `ours` to be the image LLD wrote (`lld`): byte for byte for a
 /// PE image; for an ELF shared object, which LLD lays out differently, the
 /// same exports and the same symbolic relocations, and a library the loader

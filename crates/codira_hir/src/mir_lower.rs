@@ -188,6 +188,12 @@ impl Lowerer<'_> {
     fn lower_expr(&mut self, id: ExprId, body: &mut codira_mir::Body) -> Option<codira_mir::OpId> {
         use codira_mir::{Attr, OpKind, Region};
 
+        // A value implicitly wrapped into an optional changes representation
+        // here, which this untyped IR cannot express.
+        if self.infer.optional_wrap(id).is_some() {
+            return None;
+        }
+
         match &self.hir_body[id] {
             Expr::Literal(Literal::Bool(b)) => {
                 Some(body.push_typed(OpKind::Const(Attr::Bool(*b)), [], self.ty_of(id)))
@@ -456,7 +462,10 @@ fn ty_to_mir_type(ty: &Ty, layout: &TargetDataLayout) -> Option<TypeId> {
         | TyKind::Struct(..)
         | TyKind::Array(_)
         | TyKind::Channel(_)
+        | TyKind::Optional(_)
+        | TyKind::Enum(..)
         | TyKind::FnDef(..)
+        | TyKind::Function(_)
         | TyKind::Never
         | TyKind::TypeAlias(_)
         | TyKind::InferenceVar(_)

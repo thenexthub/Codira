@@ -126,6 +126,7 @@ struct ItemTreeData {
     consts: Arena<Const>,
     impls: Arena<Impl>,
     effects: Arena<Effect>,
+    enums: Arena<Enum>,
 
     visibilities: ItemVisibilities,
 }
@@ -240,6 +241,7 @@ mod_items! {
     Import in imports -> ast::Use,
     Impl in impls -> ast::Extend,
     Effect in effects -> ast::EffectDef,
+    Enum in enums -> ast::EnumDef,
 }
 
 macro_rules! impl_index {
@@ -481,6 +483,25 @@ pub struct Effect {
     pub ast_id: FileAstId<ast::EffectDef>,
 }
 
+/// An `enum` declaration (see `spec/LANGUAGE_SPEC.md`, "Enums & pattern
+/// matching").
+///
+/// Like [`Effect`], only names are recorded here; the variants' payload
+/// types are read on demand by `code_model::Enum` from the source, so that
+/// their type references come with a source map for diagnostics.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Enum {
+    pub name: Name,
+    pub visibility: RawVisibilityId,
+    /// The names of the generic parameters. Generic enums are reported as
+    /// unsupported; the names are kept so the report can be made.
+    pub generic_params: Box<[Name]>,
+    /// The names of the variants, in declaration order (which is tag
+    /// order).
+    pub variants: Box<[Name]>,
+    pub ast_id: FileAstId<ast::EnumDef>,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum AssociatedItem {
     Function(LocalItemTreeId<Function>),
@@ -652,6 +673,10 @@ mod diagnostics {
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),
                     ModItem::Effect(item) => InFile::new(
+                        item_tree.file_id,
+                        SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
+                    ),
+                    ModItem::Enum(item) => InFile::new(
                         item_tree.file_id,
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),

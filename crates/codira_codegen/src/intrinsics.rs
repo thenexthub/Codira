@@ -105,6 +105,13 @@ pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
 }
 
 runtime_functions! {
+    /// Reports a panic -- `message` at `file:line:column` -- and terminates
+    /// the program. Never returns.
+    pub fn panic(message: *const u8, message_len: usize, file: *const u8, file_len: usize, line: u32, column: u32) -> () = "codira.panic";
+
+    /// Compares two strings' bytes: 1 if equal, 0 if not.
+    pub fn str_eq(a: *const u8, a_len: usize, b: *const u8, b_len: usize) -> u8 = "codira.str_eq";
+
     /// Reports an out-of-range index into an array of length `len`, at
     /// `file:line:column`, and terminates the program. Never returns. The
     /// index travels as 64 bits plus its signedness, so `-1` reads as `-1`.

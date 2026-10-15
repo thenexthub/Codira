@@ -157,11 +157,12 @@ impl TypeVariableTable {
                 // struct itself, which would let `Box[i32]` and `Box[f64]`
                 // unify.
                 (TyKind::Tuple(_, a), TyKind::Tuple(_, b))
-                | (TyKind::Struct(_, a), TyKind::Struct(_, b)) => {
-                    self.unify_substitutions(db, a, b)
-                }
+                | (TyKind::Struct(_, a), TyKind::Struct(_, b))
+                | (TyKind::Function(a), TyKind::Function(b))
+                | (TyKind::Enum(_, a), TyKind::Enum(_, b)) => self.unify_substitutions(db, a, b),
                 (TyKind::Array(t1), TyKind::Array(t2))
-                | (TyKind::Channel(t1), TyKind::Channel(t2)) => self.unify_inner(db, t1, t2),
+                | (TyKind::Channel(t1), TyKind::Channel(t2))
+                | (TyKind::Optional(t1), TyKind::Optional(t2)) => self.unify_inner(db, t1, t2),
                 _ => true,
             }
         } else {

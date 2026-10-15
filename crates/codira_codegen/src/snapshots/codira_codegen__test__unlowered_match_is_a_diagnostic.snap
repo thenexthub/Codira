@@ -1,5 +1,0 @@
----
-source: crates/codira_codegen/src/test.rs
-expression: "\n    public func main(x: i32) -> i32 {\n        match x { 1 -> 10, _ -> 20 }\n    }"
----
-mod.code (2:5): error: `match` is not supported by the code generator yet: pattern matching has no lowering yet; use `if`/`else` chains for now

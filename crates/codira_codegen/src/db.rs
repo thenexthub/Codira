@@ -46,6 +46,14 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// a call may run.
     #[salsa::input]
     fn fuel_instrumentation(&self) -> bool;
+
+    /// Whether every function keeps a symbol in the assembly's symbol table
+    /// (`codira build --certify`): functions get internal instead of private
+    /// linkage, which changes nothing about the code LLVM generates, and the
+    /// COFF linker writes a symbol table it otherwise leaves out. A proof
+    /// certificate names each function's machine code by these symbols.
+    #[salsa::input]
+    fn keep_function_symbols(&self) -> bool;
     /// The package's native code (C, C++, assembly), linked into every module
     /// group that calls it. See `crate::native`.
     #[salsa::input]

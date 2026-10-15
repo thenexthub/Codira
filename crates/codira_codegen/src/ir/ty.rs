@@ -38,6 +38,7 @@ pub struct HirTypeCache<'db, 'ink> {
     /// Keyed by the whole struct type, arguments included: `Box[i32]` and
     /// `Box[f64]` are different types with different ids.
     struct_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
+    enum_to_type_id: RefCell<HashMap<codira_hir::Enum, Arc<TypeId>>>,
 
     /// There is exactly one `str` type, so its id is a single cell rather
     /// than a map keyed by something that never varies.
@@ -53,10 +54,16 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             target_data,
             types: RefCell::new(HashMap::default()),
             struct_to_type_id: RefCell::default(),
+            enum_to_type_id: RefCell::default(),
             array_ty_to_type_id: RefCell::default(),
             tuple_ty_to_type_id: RefCell::default(),
             str_type_id: std::cell::OnceCell::new(),
         }
+    }
+
+    /// The LLVM context the types live in.
+    pub fn context(&self) -> &'ink Context {
+        self.context
     }
 
     /// Returns the type of the specified floating-point type
@@ -134,6 +141,33 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             .collect();
         ir_ty.set_body(&field_types, false);
 
+        ir_ty
+    }
+
+    /// Returns the IR type of an enum: a named value struct of a `u32` tag
+    /// and the payload slots of its layout (see `codira_hir::EnumLayout`),
+    /// `{ i32, slot0, slot1, .. }`.
+    pub fn get_enum_type(&self, hir_enum: codira_hir::Enum) -> StructType<'ink> {
+        let ty = TyKind::Enum(hir_enum, codira_hir::Substitution::empty());
+        if let Some(ir_ty) = self.types.borrow().get(&ty) {
+            return *ir_ty;
+        }
+
+        // Opaque first, like a struct, so a slot type that mentions this
+        // enum (through a class, say) finds it in the cache.
+        let ir_ty = self
+            .context
+            .opaque_struct_type(&hir_enum.full_name(self.db));
+        self.types.borrow_mut().insert(ty, ir_ty);
+
+        let layout = hir_enum.layout(self.db);
+        let field_types: Vec<BasicTypeEnum<'ink>> = std::iter::once(self.context.i32_type().into())
+            .chain(layout.slots.iter().map(|slot| {
+                self.get_basic_type(&slot.ty)
+                    .expect("an enum payload should be a basic type")
+            }))
+            .collect();
+        ir_ty.set_body(&field_types, false);
         ir_ty
     }
 
@@ -321,21 +355,69 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         )
     }
 
+    /// Returns the IR type of `T?`: `{ i1 present, T payload }`.
+    ///
+    /// No allocation and no pointer: an optional is a value exactly as large
+    /// as its payload plus a flag, and a `nil` is the all-zero value -- so a
+    /// payload is never undefined, and comparing two `nil`s' payloads is
+    /// well defined.
+    pub fn get_optional_type(&self, payload: &Ty) -> StructType<'ink> {
+        self.context.struct_type(
+            &[
+                self.get_bool_type().into(),
+                self.get_basic_type(payload)
+                    .expect("an optional's payload should be a basic type"),
+            ],
+            false,
+        )
+    }
+
     /// Returns the inkwell type of the specified HIR type as a basic value. If
     /// the type cannot be represented as a basic type enum, `None` is
     /// returned.
     pub fn get_basic_type(&self, ty: &codira_hir::Ty) -> Option<BasicTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(..) => Some(self.get_struct_reference_type(ty)),
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            // A reference to the function value's GC object (see
+            // `ir::body::closures`).
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
+        }
+    }
+
+    /// The LLVM type of the code a function value of type `fn_ty` calls:
+    /// the function value itself (its GC handle) first, then the parameters,
+    /// all in the internal representation (value structs by value).
+    pub fn get_fn_value_code_type(&self, fn_ty: &Ty) -> FunctionType<'ink> {
+        let (params, ret) = fn_ty
+            .as_function()
+            .expect("a function value has a function type");
+        let param_tys: Vec<_> =
+            std::iter::once(self.context.ptr_type(AddressSpace::default()).into())
+                .chain(params.iter().map(|p| {
+                    self.get_basic_type(p)
+                        .expect("could not convert a function value's parameter to a basic type")
+                        .into()
+                }))
+                .collect();
+        match ret.interned() {
+            TyKind::Tuple(0, _) | TyKind::Never => {
+                self.context.void_type().fn_type(&param_tys, false)
+            }
+            _ => self
+                .get_basic_type(ret)
+                .expect("could not convert a function value's return type")
+                .fn_type(&param_tys, false),
         }
     }
 
@@ -345,15 +427,20 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// basic type enum, `None` is returned.
     pub fn get_public_basic_type(&self, ty: &codira_hir::Ty) -> Option<BasicTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(..) => Some(self.get_public_struct_reference_type(ty)),
+            // Passed by value even across the host boundary, like a tuple or
+            // an optional.
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
         }
     }
@@ -362,10 +449,12 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// be represented as an inkwell type, `None` is returned.
     pub fn get_any_type(&self, ty: &codira_hir::Ty) -> Option<AnyTypeEnum<'ink>> {
         match ty.interned() {
+            TyKind::Optional(payload) => Some(self.get_optional_type(payload).into()),
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
             TyKind::Struct(..) => Some(self.get_struct_type(ty).into()),
+            TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::FnDef(codira_hir::CallableDef::Function(fn_ty), type_params) => {
                 if !type_params.is_empty() {
                     unimplemented!("cannot yet deal with type parameters in functions");
@@ -377,6 +466,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Array(element_ty) => Some(self.get_array_reference_type(element_ty).into()),
             // A runtime handle (see `ir::body::tasks`).
             TyKind::Channel(_) => Some(self.get_usize_type().into()),
+            TyKind::Function(_) => Some(self.context.ptr_type(AddressSpace::default()).into()),
             _ => None,
         }
     }
@@ -468,6 +558,23 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                     .insert(ty.interned().clone(), id.clone());
                 id
             }
+            // Named like a struct (hot reloading matches types by name), and
+            // identified by the GUID of its layout, so a re-laid-out enum is
+            // a changed type.
+            &TyKind::Enum(e, _) => self
+                .enum_to_type_id
+                .borrow_mut()
+                .entry(e)
+                .or_insert_with(|| {
+                    Arc::new(TypeId {
+                        name: e.full_name(self.db),
+                        data: TypeIdData::Concrete(Guid::from_str(
+                            &ty.guid_string(self.db)
+                                .expect("an enum of representable payloads has a guid string"),
+                        )),
+                    })
+                })
+                .clone(),
             TyKind::Array(a) => {
                 {
                     let read_only = self.array_ty_to_type_id.borrow();
@@ -490,13 +597,38 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
 
                 array_type_id
             }
+            // Structural like a tuple: one id per signature, hashed from the
+            // `core::fn(..) -> R` guid string. To the runtime it is a garbage
+            // collected struct whose one field locates the code; every
+            // function value object starts with that field (see
+            // `ir::closures`).
+            TyKind::Function(_) => {
+                {
+                    let read_only = self.tuple_ty_to_type_id.borrow();
+                    if let Some(id) = read_only.get(ty.interned()) {
+                        return id.clone();
+                    }
+                }
+                let name = ty
+                    .guid_string(self.db)
+                    .expect("a function type of representable types has a guid string");
+                let fn_type_id = Arc::new(TypeId {
+                    data: TypeIdData::Concrete(Guid::from_str(&name)),
+                    name,
+                });
+                self.tuple_ty_to_type_id
+                    .borrow_mut()
+                    .insert(ty.interned().clone(), fn_type_id.clone());
+                fn_type_id
+            }
             // A tuple's identity is structural, so -- unlike an array, which
             // gets a dedicated `TypeIdData::Array` wrapper around its element
             // -- it is `Concrete`, hashed from the same `(A, B)` name
             // `guid_string` produces. That keeps the ABI stable without
             // adding a tuple case to every consumer of `TypeIdData`: a tuple
             // is, to the runtime, just an anonymous value struct.
-            TyKind::Tuple(..) => {
+            // An optional is structural too, and identified the same way.
+            TyKind::Tuple(..) | TyKind::Optional(_) => {
                 {
                     let read_only = self.tuple_ty_to_type_id.borrow();
                     if let Some(id) = read_only.get(ty.interned()) {
@@ -506,7 +638,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
 
                 let name = ty
                     .guid_string(self.db)
-                    .expect("a tuple of representable types has a guid string");
+                    .expect("a tuple or optional of representable types has a guid string");
                 let tuple_type_id = Arc::new(TypeId {
                     data: TypeIdData::Concrete(Guid::from_str(&name)),
                     name,

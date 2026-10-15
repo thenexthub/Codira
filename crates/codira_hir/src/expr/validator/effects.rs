@@ -136,7 +136,8 @@ impl ExprValidator<'_> {
                 return;
             }
             Expr::Resume { .. } => self.validate_resume(expr, arm, sink),
-            Expr::Return { .. } if arm.is_some() => {
+            // A `return` inside a closure leaves the closure, not the arm.
+            Expr::Return { .. } if arm.is_some() && !self.is_inside_closure(expr) => {
                 if let Some(node) = self.expr_node(expr) {
                     self.push_effect_error(
                         node,
@@ -175,6 +176,25 @@ impl ExprValidator<'_> {
             _ => {}
         }
         self.body[expr].walk_child_exprs(|child| self.validate_effect_exprs(child, arm, sink));
+    }
+
+    /// Whether `expr` is part of some closure's body.
+    fn is_inside_closure(&self, expr: ExprId) -> bool {
+        fn contains(body: &crate::Body, root: ExprId, target: ExprId) -> bool {
+            if root == target {
+                return true;
+            }
+            let mut found = false;
+            body[root].walk_child_exprs(|child| found |= contains(body, child, target));
+            found
+        }
+        self.infer
+            .closures()
+            .into_iter()
+            .any(|(closure, _)| match &self.body[closure] {
+                Expr::Closure { body, .. } => contains(&self.body, *body, expr),
+                _ => false,
+            })
     }
 
     /// A call to a function with a `uses` clause must stay within the
@@ -492,6 +512,16 @@ impl ArmContext {
                     for &param in &arm.params {
                         self.bind(validator, param);
                     }
+                }
+            }
+            Expr::Closure { params, .. } => {
+                for &(param, _) in params {
+                    self.bind(validator, param);
+                }
+            }
+            Expr::Match { arms, .. } => {
+                for arm in arms {
+                    self.bind(validator, arm.pat);
                 }
             }
             _ => {}

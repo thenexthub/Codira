@@ -25,6 +25,11 @@
 //!   it is passed to cannot keep it (no return, no field, no array can hold
 //!   one); a task it is passed to is joined no later than the scope that owns
 //!   the channel.
+//! * A closure is a function of its own: a `scope` around the literal does not
+//!   cover a `spawn` in its body. `spawn` never runs a function *value* (a
+//!   closure, or a named function passed around as a value): a closure carries
+//!   captured references, and nothing proves those safe to share with another
+//!   task.
 use rustc_hash::FxHashSet;
 
 use super::ExprValidator;
@@ -121,6 +126,10 @@ impl ExprValidator<'_> {
                 }
                 return;
             }
+            Expr::Closure { body, .. } => {
+                self.validate_task_exprs(*body, false, allowed, sink);
+                return;
+            }
             Expr::Spawn { call } => {
                 if !in_scope {
                     self.push_task_error(
@@ -208,6 +217,19 @@ impl ExprValidator<'_> {
             _ => None,
         };
         let Some(function) = function else {
+            if let Expr::Call { callee, .. } = &self.body[call] {
+                if matches!(self.infer[*callee].interned(), TyKind::Function(_)) {
+                    self.push_task_error(
+                        call,
+                        "`spawn` cannot run a function value: a closure may carry references \
+                         to shared objects, and nothing proves them safe to use from another \
+                         task; spawn a named function of this module instead"
+                            .to_string(),
+                        sink,
+                    );
+                    return;
+                }
+            }
             self.push_task_error(
                 call,
                 "`spawn` takes a call to a function, `spawn f(args)`".to_string(),

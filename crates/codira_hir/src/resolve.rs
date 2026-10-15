@@ -12,7 +12,7 @@ use crate::{
     expr::{scope::LocalScopeId, PatId},
     has_module::HasModule,
     ids::{
-        DefWithBodyId, EffectId, FunctionId, GenericDefId, ImplId, ItemContainerId,
+        DefWithBodyId, EffectId, EnumId, FunctionId, GenericDefId, ImplId, ItemContainerId,
         ItemDefinitionId, Lookup, StructId, TypeAliasId, TypeParamId,
     },
     item_scope::BUILTIN_SCOPE,
@@ -78,6 +78,7 @@ pub enum TypeNs {
     StructId(StructId),
     TypeAliasId(TypeAliasId),
     PrimitiveType(PrimitiveType),
+    EnumId(EnumId),
     /// A generic parameter of the enclosing declaration. The `Name` is
     /// carried for display; identity is the `TypeParamId`.
     GenericParam(TypeParamId, Name),
@@ -203,7 +204,8 @@ impl Resolver {
                     ItemDefinitionId::ModuleId(_)
                     | ItemDefinitionId::TypeAliasId(_)
                     | ItemDefinitionId::PrimitiveType(_)
-                    | ItemDefinitionId::EffectId(_),
+                    | ItemDefinitionId::EffectId(_)
+                    | ItemDefinitionId::EnumId(_),
                     _,
                 ) => return None,
             };
@@ -266,6 +268,7 @@ impl Resolver {
                                 (ItemDefinitionId::PrimitiveType(id), _) => {
                                     TypeNs::PrimitiveType(id)
                                 }
+                                (ItemDefinitionId::EnumId(id), _) => TypeNs::EnumId(id),
                                 (
                                     ItemDefinitionId::ModuleId(_)
                                     | ItemDefinitionId::FunctionId(_)
@@ -310,6 +313,7 @@ impl Resolver {
                 (ItemDefinitionId::StructId(id), vis) => (TypeNs::StructId(id), vis),
                 (ItemDefinitionId::TypeAliasId(id), vis) => (TypeNs::TypeAliasId(id), vis),
                 (ItemDefinitionId::PrimitiveType(id), vis) => (TypeNs::PrimitiveType(id), vis),
+                (ItemDefinitionId::EnumId(id), vis) => (TypeNs::EnumId(id), vis),
                 (
                     ItemDefinitionId::ModuleId(_)
                     | ItemDefinitionId::FunctionId(_)
@@ -506,6 +510,12 @@ impl HasResolver for StructId {
         self.module(db)
             .resolver(db)
             .push_generic_param_scope(self.into())
+    }
+}
+
+impl HasResolver for EnumId {
+    fn resolver(self, db: &dyn DefDatabase) -> Resolver {
+        self.module(db).resolver(db)
     }
 }
 

@@ -59,6 +59,17 @@ pub const SET_FUEL_COUNTER_FN_NAME: &str = "set_fuel_counter";
 /// The name under which the runtime provides the function instrumented code
 /// calls when the fuel counter drops below zero.
 pub const FUEL_EXHAUSTED_FN_NAME: &str = "codira.fuel_exhausted";
+/// Prefix of the dispatch-table entries through which a module receives the
+/// runtime-owned *code cell* of a function value. The rest of the name is the
+/// target's key (`<target>:<signature>`); the runtime writes the address of
+/// the cell for that key into the slot, and keeps the cell pointing at the
+/// target's current code across hot reloads.
+pub const FN_VALUE_CELL_PREFIX: &str = "codira.fn_cell:";
+/// Prefix of the dispatch-table entries through which a module *offers* the
+/// code of a function-value target (a closure body, or a thunk for a named
+/// function used as a value). The compiler pre-fills the slot with the code's
+/// address; the runtime only reads it, to point the matching cells at it.
+pub const FN_VALUE_CODE_PREFIX: &str = "codira.fn_code:";
 
 /// Represents a globally unique identifier (GUID).
 #[repr(C)]

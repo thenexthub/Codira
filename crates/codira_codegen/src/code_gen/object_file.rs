@@ -18,6 +18,9 @@ pub struct ObjectFile {
     /// from here; only a link with LLD needs it on disk.
     obj: Vec<u8>,
     obj_file: OnceCell<NamedTempFile>,
+    /// Whether the linked shared object keeps a symbol table with every
+    /// function in it; see [`ObjectFile::with_symbol_table`].
+    symbol_table: bool,
 }
 
 impl ObjectFile {
@@ -35,7 +38,18 @@ impl ObjectFile {
             target: target.clone(),
             obj: obj.as_slice().to_vec(),
             obj_file: OnceCell::new(),
+            symbol_table: false,
         })
+    }
+
+    /// Makes the linked shared object keep a symbol table naming every
+    /// function, local ones included (`codira build --certify`). ELF and
+    /// Mach-O linkers keep one by default; see
+    /// `linker::Linker::keep_symbol_table`. The direct image writer does not
+    /// write one, so it declines such a link.
+    pub fn with_symbol_table(mut self, enabled: bool) -> Self {
+        self.symbol_table = enabled;
+        self
     }
 
     /// Where the object file is on disk, writing it there first if this is
@@ -79,13 +93,22 @@ impl ObjectFile {
         native: Option<&crate::NativeInputs>,
     ) -> Result<(), anyhow::Error> {
         image_link::dump_object(&self.obj, exported_symbols);
-        let direct = image_link::link_directly(
-            &self.target,
-            &self.obj,
-            output_path,
-            exported_symbols,
-            native.is_some(),
-        );
+        let direct = if self.symbol_table {
+            image_link::decline_without_trying(
+                &self.target,
+                "symbol-table",
+                "the library has to keep a symbol table",
+            );
+            None
+        } else {
+            image_link::link_directly(
+                &self.target,
+                &self.obj,
+                output_path,
+                exported_symbols,
+                native.is_some(),
+            )
+        };
         let Some(image) = direct else {
             return self.link_with_lld(output_path, exported_symbols, native);
         };
@@ -112,6 +135,10 @@ impl ObjectFile {
         linker.add_object(self.on_disk()?)?;
         if let Some(native) = native {
             linker.add_native(native)?;
+        }
+
+        if self.symbol_table {
+            linker.keep_symbol_table();
         }
 
         // Link the object

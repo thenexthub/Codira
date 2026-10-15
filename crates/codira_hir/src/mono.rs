@@ -235,9 +235,10 @@ fn type_name(db: &dyn HirDatabase, ty: &Ty) -> String {
 fn type_depth(ty: &Ty) -> usize {
     let inner = match ty.interned() {
         TyKind::Array(element) | TyKind::Channel(element) => type_depth(element),
-        TyKind::Struct(_, args) | TyKind::Tuple(_, args) | TyKind::FnDef(_, args) => {
-            args.iter().map(type_depth).max().unwrap_or(0)
-        }
+        TyKind::Struct(_, args)
+        | TyKind::Tuple(_, args)
+        | TyKind::FnDef(_, args)
+        | TyKind::Function(args) => args.iter().map(type_depth).max().unwrap_or(0),
         _ => 0,
     };
     inner + 1
@@ -301,6 +302,12 @@ pub fn collect_instances(
                 continue;
             }
             let callee = match expr {
+                // A named function used as a value is reached like a call:
+                // its thunk calls it.
+                Expr::Path(_) => match infer.function_value(expr_id) {
+                    Some(function) => function,
+                    None => continue,
+                },
                 Expr::Call { callee, .. } => match infer[*callee].as_callable_def() {
                     Some(CallableDef::Function(callee)) => callee,
                     _ => continue,

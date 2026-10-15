@@ -82,6 +82,7 @@ impl CompletionItemKind {
                 SymbolKind::Struct => "st",
                 SymbolKind::TypeAlias => "ta",
                 SymbolKind::Effect => "ef",
+                SymbolKind::Enum => "en",
                 SymbolKind::Extend => "im",
                 SymbolKind::Method => "mt",
             },

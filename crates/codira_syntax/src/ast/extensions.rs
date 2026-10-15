@@ -201,6 +201,22 @@ impl ast::StructDef {
     }
 }
 
+impl ast::TupleFieldDef {
+    /// The optional `name:` label in front of the field's type, as in an
+    /// enum variant's `Circle(radius: f64)`. Documentation only: tuple
+    /// fields are positional.
+    pub fn label(&self) -> Option<crate::SyntaxToken> {
+        let mut tokens = self
+            .syntax()
+            .children_with_tokens()
+            .filter_map(NodeOrToken::into_token)
+            .filter(|token| !token.kind().is_trivia());
+        let label = tokens.find(|token| token.kind() == SyntaxKind::IDENT)?;
+        let colon = tokens.next()?;
+        (colon.kind() == T![:]).then_some(label)
+    }
+}
+
 impl ast::Param {
     /// Whether this parameter carries the `consuming` ownership-convention
     /// keyword (see `spec/LANGUAGE_SPEC.md` section 14 and

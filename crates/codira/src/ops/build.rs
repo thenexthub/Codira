@@ -84,6 +84,14 @@ pub struct Args {
     #[clap(long, conflicts_with_all = ["watch", "daemon"])]
     fuel: bool,
 
+    /// Write a proof certificate next to every library
+    /// (`<library>.cert.json`): each function's verified obligations as
+    /// SMT-LIB2 queries, with hashes of its source and machine code.
+    /// `codira certify` checks it without the compiler. Costs a second
+    /// verification of every function with a contract.
+    #[clap(long, conflicts_with_all = ["watch", "daemon", "emit_ir"])]
+    certify: bool,
+
     /// Target for machine code
     #[clap(long, value_parser=parse_target_triple)]
     target: Option<TargetArg>,
@@ -200,7 +208,10 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         &manifest_path,
         compiler_options,
         display_colors,
-        |driver| driver.set_fuel_instrumentation(args.fuel),
+        |driver| {
+            driver.set_fuel_instrumentation(args.fuel);
+            driver.set_certify(args.certify);
+        },
     )? {
         return Ok(ExitStatus::Error);
     }

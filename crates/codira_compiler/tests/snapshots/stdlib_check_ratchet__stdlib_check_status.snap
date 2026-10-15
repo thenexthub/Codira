@@ -4,7 +4,7 @@ expression: summary
 snapshot_kind: text
 ---
 9 of 79 std files check clean
-0 syntax, 2699 semantic
+0 syntax, 2654 semantic
 
    0 syntax     0 semantic  ai/algorithm/functional.code
    0 syntax    10 semantic  ai/algorithm/reduction.code
@@ -17,7 +17,7 @@ snapshot_kind: text
    0 syntax    10 semantic  ai/tensor/raw.code
    0 syntax     1 semantic  ai/tensor/shape.code
    0 syntax     7 semantic  atomic/atomic.code
-   0 syntax    82 semantic  base64/base64.code
+   0 syntax    72 semantic  base64/base64.code
    0 syntax    10 semantic  bit/bit.code
    0 syntax    20 semantic  bit/mask.code
    0 syntax     8 semantic  builtin/bool.code
@@ -25,23 +25,23 @@ snapshot_kind: text
    0 syntax    23 semantic  builtin/error.code
    0 syntax    32 semantic  builtin/int.code
    0 syntax    24 semantic  builtin/range.code
-   0 syntax    65 semantic  builtin/simd.code
-   0 syntax    16 semantic  builtin/slice.code
-   0 syntax    15 semantic  builtin/sort.code
+   0 syntax    62 semantic  builtin/simd.code
+   0 syntax    12 semantic  builtin/slice.code
+   0 syntax    18 semantic  builtin/sort.code
    0 syntax     0 semantic  builtin/string_literal.code
    0 syntax     8 semantic  builtin/swap.code
    0 syntax     0 semantic  builtin/traits.code
    0 syntax    74 semantic  builtin/tuple.code
    0 syntax     0 semantic  builtin/type_aliases.code
-   0 syntax     5 semantic  builtin/types.code
-   0 syntax    43 semantic  collections/array.code
+   0 syntax     7 semantic  builtin/types.code
+   0 syntax    44 semantic  collections/array.code
    0 syntax    36 semantic  collections/binary_heap.code
    0 syntax    30 semantic  collections/bitset.code
    0 syntax    46 semantic  collections/counter.code
    0 syntax    14 semantic  collections/deque.code
    0 syntax   106 semantic  collections/dict.code
    0 syntax   101 semantic  collections/linked_list.code
-   0 syntax    39 semantic  collections/list.code
+   0 syntax    42 semantic  collections/list.code
    0 syntax     1 semantic  collections/optional.code
    0 syntax    91 semantic  collections/set.code
    0 syntax    17 semantic  collections/span.code
@@ -49,12 +49,12 @@ snapshot_kind: text
    0 syntax     3 semantic  complex/complex.code
    0 syntax    44 semantic  ffi/cstring.code
    0 syntax    23 semantic  ffi/unsafe_union.code
-   0 syntax    84 semantic  format/format.code
-   0 syntax    61 semantic  format/repr.code
+   0 syntax    70 semantic  format/format.code
+   0 syntax    46 semantic  format/repr.code
    0 syntax    30 semantic  gpu/globals.code
    0 syntax    52 semantic  gpu/host_info.code
    0 syntax   139 semantic  gpu/id.code
-   0 syntax   174 semantic  gpu/intrinsics.code
+   0 syntax   172 semantic  gpu/intrinsics.code
    0 syntax    11 semantic  gpu/profiler.code
    0 syntax    75 semantic  gpu/warp.code
    0 syntax    18 semantic  hashlib/hash.code
@@ -72,8 +72,8 @@ snapshot_kind: text
    0 syntax     0 semantic  memory/region.code
    0 syntax    21 semantic  memory/unsafe_pointer.code
    0 syntax    13 semantic  os/env.code
-   0 syntax    38 semantic  os/os.code
-   0 syntax    49 semantic  os/path.code
+   0 syntax    36 semantic  os/os.code
+   0 syntax    46 semantic  os/path.code
    0 syntax     4 semantic  os/process.code
    0 syntax    63 semantic  pathlib/path.code
    0 syntax     0 semantic  prelude.code
@@ -82,6 +82,6 @@ snapshot_kind: text
    0 syntax    35 semantic  sys/info.code
    0 syntax    67 semantic  sys/intrinsics.code
    0 syntax     4 semantic  sys/terminate.code
-   0 syntax    35 semantic  testing/suite.code
+   0 syntax    34 semantic  testing/suite.code
    0 syntax    50 semantic  testing/testing.code
    0 syntax     0 semantic  time/time.code

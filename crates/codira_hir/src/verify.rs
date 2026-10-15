@@ -60,6 +60,7 @@
 //! (`codira_smt::DEFAULT_RLIMIT`); a query that exhausts it is reported as
 //! "unknown (resource limit)", which is an error, never a pass.
 
+pub mod api;
 pub(crate) mod exec;
 pub(crate) mod flow;
 mod ghost;
@@ -170,6 +171,9 @@ pub enum ObligationKind {
     /// One of this function's own clauses, which the verifier cannot
     /// encode; reported so it is never silently ignored.
     UncheckableClause,
+    /// A closure in code the verifier checks: its body is not verified, so
+    /// whatever it would have to prove is reported instead of passed.
+    UnverifiedClosure,
     /// The predicate of a `choose x where pred` (synthesis only).
     ChoosePredicate,
 }
@@ -344,6 +348,9 @@ impl Obligation {
             ObligationKind::UncheckableClause => {
                 format!("contract clause `{}` cannot be checked", self.clause)
             }
+            ObligationKind::UnverifiedClosure => {
+                "this closure's body is not verified yet".to_string()
+            }
             ObligationKind::ChoosePredicate => {
                 format!("the chosen value might not satisfy `{}`", self.clause)
             }
@@ -384,6 +391,36 @@ pub(crate) fn verify_function_query(
     func: Function,
 ) -> Arc<VerificationReport> {
     Arc::new(exec::verify(db, func))
+}
+
+/// One obligation of a function, with the queries that decided it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CertifiedObligation {
+    pub obligation: Obligation,
+    /// Every Z3 query asked for this obligation, as a self-contained
+    /// SMT-LIB2 script: the premise (path condition, `requires`, parameter
+    /// refinements, callee `ensures`) asserted first, the negated goal
+    /// last. The obligation is proven exactly when every one is `unsat`.
+    /// Empty when the obligation could not be encoded.
+    pub queries: Vec<String>,
+}
+
+/// Verifies `func` again, keeping the text of every Z3 query: what a proof
+/// certificate (`codira build --certify`) records so that a checker can
+/// re-decide each obligation without this crate. Verdicts are those of
+/// [`HirDatabase::verify_function`]; the queries are not cached, so this
+/// costs a second verification of the function.
+pub fn certify_function(db: &dyn HirDatabase, func: Function) -> Vec<CertifiedObligation> {
+    let (report, queries) = exec::verify_recording(db, func, true);
+    report
+        .obligations
+        .into_iter()
+        .zip(queries)
+        .map(|(obligation, queries)| CertifiedObligation {
+            obligation,
+            queries,
+        })
+        .collect()
 }
 
 /// Pushes a diagnostic for every obligation of `func` that was not proven,

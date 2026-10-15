@@ -14,6 +14,7 @@ license.workspace = true
 
 [dependencies]
 codira_codegen = { version = "0.6.0-dev", path = "../codira_codegen" }
+codira_circuits = { version = "0.6.0-dev", path = "../codira_circuits" }
 codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
 codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
 codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
@@ -21,6 +22,8 @@ codira_paths = { version = "0.6.0-dev", path = "../codira_paths" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
 codira_project = { version = "0.6.0-dev", path = "../codira_project" }
 codira_diagnostics = { version = "0.6.0-dev", path = "../codira_diagnostics" }
+codira_certificate = { version = "0.6.0-dev", path = "../codira_certificate" }
+codira_smt = { version = "0.6.0-dev", path = "../codira_smt" }
 annotate-snippets = { workspace = true }
 anyhow = { workspace = true }
 lockfile = { workspace = true }

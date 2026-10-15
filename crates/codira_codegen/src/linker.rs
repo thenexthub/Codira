@@ -403,6 +403,12 @@ pub trait Linker {
     /// COFF has anything to do here; see `MsvcLinker::uses_c_runtime`.
     fn uses_c_runtime(&mut self, _cxx: bool) {}
 
+    /// Keeps a symbol table in the output that names every function,
+    /// including local ones (`codira build --certify`). `ld.lld` and
+    /// `ld64.lld` keep the full symbol table unless told to strip it, so
+    /// only COFF has anything to do here.
+    fn keep_symbol_table(&mut self) {}
+
     /// Links the accumulated objects into a shared object at `path`.
     ///
     /// `exported_symbols` names the functions carrying `@export("C")`, which
@@ -707,6 +713,18 @@ impl Linker for MsvcLinker {
     /// `no_sysroot_arg` otherwise stops it from doing.
     fn uses_c_runtime(&mut self, cxx: bool) {
         self.c_runtime = Some(cxx);
+    }
+
+    /// A PE image carries no symbol table by default. `/DEBUG:SYMTAB` is
+    /// LLD's switch for writing the COFF one -- static (local) symbols
+    /// included -- without a PDB. It also turns off the reference
+    /// elimination and identical-code folding that LLD enables when not
+    /// debugging, so those are asked for explicitly: the certified image is
+    /// laid out the way an ordinary one is.
+    fn keep_symbol_table(&mut self) {
+        self.args.push("/DEBUG:SYMTAB".to_owned());
+        self.args.push("/OPT:REF".to_owned());
+        self.args.push("/OPT:ICF".to_owned());
     }
 
     fn add_object(&mut self, path: &Path) -> Result<(), LinkerError> {

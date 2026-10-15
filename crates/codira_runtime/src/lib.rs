@@ -18,6 +18,7 @@ mod adt;
 mod array;
 mod builtins;
 mod dispatch_table;
+mod fn_cells;
 mod fuel;
 mod function_info;
 mod marshal;
@@ -277,6 +278,8 @@ pub struct Runtime {
     renamed_files: HashMap<usize, PathBuf>,
     gc: Arc<GarbageCollector>,
     fuel: fuel::FuelCounter,
+    /// The code cells function values call through (see `fn_cells`).
+    fn_cells: fn_cells::FnCells,
 }
 
 impl Runtime {
@@ -366,6 +369,7 @@ impl Runtime {
             renamed_files: HashMap::new(),
             gc: Arc::new(self::garbage_collector::GarbageCollector::default()),
             fuel: fuel::FuelCounter::new(options.fuel),
+            fn_cells: fn_cells::FnCells::default(),
         };
         runtime.gc.set_heap_limit(options.heap_limit);
 
@@ -431,8 +435,12 @@ impl Runtime {
             }
         }
 
-        (self.dispatch_table, self.type_table) =
-            Assembly::link_all(loaded.values_mut(), &self.dispatch_table, &self.type_table)?;
+        (self.dispatch_table, self.type_table) = Assembly::link_all(
+            loaded.values_mut(),
+            &self.dispatch_table,
+            &self.type_table,
+            &mut self.fn_cells,
+        )?;
 
         for (library_path, assembly) in loaded {
             self.watcher
@@ -441,6 +449,7 @@ impl Runtime {
 
             self.assemblies.insert(library_path, assembly);
         }
+        self.fn_cells.refresh(self.assemblies.values());
 
         Ok(())
     }
@@ -562,6 +571,7 @@ impl Runtime {
                 &mut runtime.assemblies,
                 &runtime.dispatch_table,
                 &runtime.type_table,
+                &mut runtime.fn_cells,
             )
         }
 
@@ -582,6 +592,9 @@ impl Runtime {
                         self.dispatch_table = dispatch_table;
                         self.type_table = type_table;
                         self.assemblies_to_relink.clear();
+                        // Function values created before the reload now
+                        // call the reloaded code.
+                        self.fn_cells.refresh(self.assemblies.values());
 
                         return true;
                     }

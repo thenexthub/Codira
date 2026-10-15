@@ -203,7 +203,8 @@ pub(crate) fn build_target_assembly(
     // Convert the assembly into an object file
     let obj_file = assembly
         .into_object_file()
-        .expect("unable to create object file");
+        .expect("unable to create object file")
+        .with_symbol_table(db.keep_function_symbols());
 
     // Construct a temporary file for the assembly
     let file = NamedTempFile::new().expect("could not create temp file for shared object");

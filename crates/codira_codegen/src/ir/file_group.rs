@@ -14,6 +14,7 @@ use inkwell::{module::Module, types::PointerType, values::UnnamedAddress, Addres
 use rustc_hash::FxHashSet;
 
 use super::{
+    closures::FnValueTargets,
     dispatch_table::{DispatchTable, DispatchTableBuilder},
     intrinsics,
     type_table::{TypeTable, TypeTableBuilder},
@@ -222,6 +223,19 @@ pub(crate) fn gen_file_group_ir<'ink>(
         );
     }
 
+    // The closures and named functions the group turns into function values
+    // (see `ir::closures`). A thunk may box value-struct arguments for a
+    // call through the dispatch table, which allocates.
+    let fn_values = FnValueTargets::collect(code_gen.db, module_group, &units, &instance_types);
+    if !fn_values.targets().is_empty() {
+        intrinsics::collect_wrapper_body(
+            code_gen.context,
+            code_gen.target_machine.get_target_data(),
+            &mut intrinsics_map,
+            &mut needs_alloc,
+        );
+    }
+
     // Collect all exposed functions' bodies.
     let mut dispatch_table_builder = DispatchTableBuilder::new(
         code_gen.context,
@@ -245,6 +259,7 @@ pub(crate) fn gen_file_group_ir<'ink>(
         dispatch_table_builder.collect_body(&body, &unit.infer);
     }
 
+    dispatch_table_builder.collect_fn_values(fn_values);
     let (dispatch_table, referenced_modules) = dispatch_table_builder.build();
 
     let target_data = code_gen.target_machine.get_target_data();
@@ -279,6 +294,9 @@ pub(crate) fn gen_file_group_ir<'ink>(
             ModuleDef::Struct(s) => {
                 type_table_builder.collect_struct(&s.ty(code_gen.db));
             }
+            ModuleDef::Enum(e) => {
+                type_table_builder.collect_enum(e);
+            }
             ModuleDef::Function(_)
             | ModuleDef::PrimitiveType(_)
             | ModuleDef::TypeAlias(_)
@@ -292,6 +310,7 @@ pub(crate) fn gen_file_group_ir<'ink>(
     for unit in &units {
         type_table_builder.collect_fn(&unit.instance, &unit.infer);
     }
+    type_table_builder.collect_fn_values(dispatch_table.fn_values());
 
     let type_table = type_table_builder.build();
 

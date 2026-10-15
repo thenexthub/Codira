@@ -174,6 +174,8 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
                     self.maybe_collect_fn_signature(hir_fn);
                 }
                 Some(codira_hir::CallableDef::Struct(_)) => (),
+                // A call through a function value: no callee signature.
+                None if infer.is_indirect_call(expr_id) => (),
                 None => panic!("expected a callable expression"),
             }
         } else if let codira_hir::Expr::Array(..) = expr {
@@ -232,6 +234,22 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
         self.collect_expr(body.body_expr(), &body, infer);
     }
 
+    /// Collects the type of every function-value object the group allocates
+    /// (see `ir::closures`), and the signature of every function a thunk
+    /// calls, which a call through the dispatch table may need to box.
+    pub fn collect_fn_values(&mut self, fn_values: &crate::ir::closures::FnValueTargets) {
+        for target in fn_values.targets() {
+            self.collect_type(crate::ir::closures::FnValueTargets::object_type_id(
+                target,
+                self.db,
+                self.hir_types,
+            ));
+            if let crate::ir::closures::TargetKind::Item(item) = target.kind {
+                self.collect_fn_signature(item);
+            }
+        }
+    }
+
     /// Collects unique `TypeInfo` from the specified struct type -- a
     /// non-generic struct, or an instantiated generic one -- and its fields.
     pub fn collect_struct(&mut self, struct_ty: &codira_hir::Ty) {
@@ -240,6 +258,14 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
 
         for field_ty in codira_hir::mono::struct_field_types(self.db, struct_ty) {
             self.collect_type(self.hir_types.type_id(&field_ty));
+        }
+    }
+
+    /// Collects an enum's type and the types of its payload slots.
+    pub fn collect_enum(&mut self, hir_enum: codira_hir::Enum) {
+        self.collect_type(self.hir_types.type_id(&hir_enum.ty()));
+        for slot in hir_enum.layout(self.db).slots.iter() {
+            self.collect_type(self.hir_types.type_id(&slot.ty));
         }
     }
 

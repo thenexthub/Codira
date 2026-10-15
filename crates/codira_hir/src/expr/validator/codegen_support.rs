@@ -57,7 +57,7 @@ use crate::{
     diagnostics::{DiagnosticSink, ExprError, UnsupportedByCodegen},
     mono,
     ty::{Ty, TypeWalk},
-    Expr, HasSource, HirDisplay, Literal, TyKind,
+    Expr, HasSource, HirDisplay, TyKind,
 };
 
 impl ExprValidator<'_> {
@@ -88,53 +88,20 @@ impl ExprValidator<'_> {
             return;
         }
 
+        // `nil` used to be reported here too; optionals have a
+        // representation now (`{ present, payload }`), so the only gap left
+        // in expressions is a construct that lowered to `Expr::Missing`.
         for (expr_id, expr) in self.body.exprs() {
             if let Expr::Missing = expr {
-                self.report_missing_expr(expr_id, sink);
-                continue;
+                self.report_missing_expr(expr_id, file, sink);
             }
-            let Expr::Literal(literal) = expr else {
-                continue;
-            };
-            let what = match literal {
-                Literal::Nil => "`nil`",
-                // A string literal lowers to `{ ptr, usize }` over constant
-                // bytes now, so it is no longer a backend gap.
-                Literal::String(_) | Literal::Bool(_) | Literal::Int(_) | Literal::Float(_) => {
-                    continue
-                }
-            };
-
-            let Some(node) = self.body_source_map.expr_syntax(expr_id).map(|ptr| {
-                ptr.value
-                    .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
-            }) else {
-                continue;
-            };
-
-            sink.push(UnsupportedByCodegen {
-                file,
-                node,
-                what: what.to_string(),
-                because: match literal {
-                    Literal::String(_) => {
-                        "there is no string representation in the runtime yet, so a string \
-                         literal has nothing to lower to"
-                    }
-                    _ => {
-                        "`Type?` optionals lower transparently to their base type, so there is \
-                         no null representation for `nil` to produce"
-                    }
-                }
-                .to_string(),
-            });
         }
     }
 
     /// Reports an `Expr::Missing` that stands in for a construct the front
     /// end parses but does not lower.
     ///
-    /// Several expression forms -- `match`, closures, postfix `!` and
+    /// Several expression forms -- `match`, postfix `!` and
     /// postfix `^` -- are fully parsed and then lowered to
     /// `Expr::Missing`, so that the code around them still type-checks.
     /// `Missing` infers to the error type, which unifies with everything and
@@ -147,7 +114,12 @@ impl ExprValidator<'_> {
     /// no syntax node behind it comes from a syntax error (an absent operand,
     /// an absent body), which the parser has already reported; reporting it
     /// again here would only repeat that error with a worse span.
-    fn report_missing_expr(&self, expr_id: crate::ExprId, sink: &mut DiagnosticSink<'_>) {
+    fn report_missing_expr(
+        &self,
+        expr_id: crate::ExprId,
+        file: codira_hir_input::FileId,
+        sink: &mut DiagnosticSink<'_>,
+    ) {
         use codira_syntax::SyntaxKind;
 
         let Some(node) = self.body_source_map.expr_syntax(expr_id).map(|ptr| {
@@ -158,18 +130,6 @@ impl ExprValidator<'_> {
         };
 
         let (what, because) = match node.kind() {
-            SyntaxKind::MATCH_EXPR => (
-                "`match`",
-                "pattern matching has no lowering yet; use `if`/`else` chains for now",
-            ),
-            SyntaxKind::CLOSURE_EXPR => (
-                "a closure",
-                "there is no function-value representation or capture analysis yet",
-            ),
-            SyntaxKind::TRY_EXPR => (
-                "postfix `!` (force-unwrap)",
-                "`Type?` optionals have no runtime representation yet",
-            ),
             SyntaxKind::TRANSFER_EXPR => (
                 "postfix `^` (transfer)",
                 "there is no move/ownership model in the code generator yet",
@@ -181,7 +141,7 @@ impl ExprValidator<'_> {
         };
 
         sink.push(UnsupportedByCodegen {
-            file: self.func.source(self.db).file_id,
+            file,
             node,
             what: what.to_string(),
             because: because.to_string(),

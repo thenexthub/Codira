@@ -44,6 +44,24 @@ fn array_index() {
     );
 }
 
+/// A closure capturing a parameter, passed as a function value and called
+/// through it: the object is allocated with its cell from the
+/// `codira.fn_cell:` slot, the call loads the object, the cell and the code,
+/// and the closure body reads its capture back out of the object.
+#[test]
+fn closure_call() {
+    test_snapshot_unoptimized(
+        "closure_call",
+        r"
+    func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+
+    public func main(k: i32) -> i32 {
+        apply(func(x: i32) -> i32 { x + k }, 2)
+    }
+    ",
+    );
+}
+
 #[test]
 fn array_literal() {
     test_snapshot_unoptimized(
@@ -1867,15 +1885,31 @@ fn tuple_pattern_is_zero_overhead() {
     );
 }
 
-/// A construct the front end parses but cannot lower yet stops the build with
-/// a diagnostic naming it, rather than reaching `gen_expr` and crashing.
+/// An enum is a value struct of a tag and typed payload slots, with slots
+/// of the same type shared between variants: `Circle` and `Rectangle` use
+/// two `f64` slots between them, not three. Building one and matching on it
+/// allocates nothing.
 #[test]
-fn unlowered_match_is_a_diagnostic() {
+fn enum_is_a_tag_and_shared_slots() {
     test_snapshot(
-        "unlowered_match_is_a_diagnostic",
+        "enum_is_a_tag_and_shared_slots",
         r#"
-    public func main(x: i32) -> i32 {
-        match x { 1 -> 10, _ -> 20 }
+    enum Shape {
+        Circle(radius: f64)
+        Rectangle(width: f64, height: f64)
+        Point
+    }
+
+    func area(shape: Shape) -> f64 {
+        match shape {
+            Shape.Circle(r) -> 3.0 * r * r,
+            Shape.Rectangle(w, h) -> w * h,
+            Shape.Point -> 0.0,
+        }
+    }
+
+    public func main(w: f64) -> f64 {
+        area(Shape.Rectangle(w, 2.0)) + area(Shape.Point)
     }"#,
     );
 }

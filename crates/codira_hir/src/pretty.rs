@@ -56,6 +56,17 @@ pub(crate) fn print_type_ref<W: Write>(
             write!(write, "?")
         }
         TypeRef::Refinement(elem) => print_type_ref(db, type_ref, *elem, write),
+        TypeRef::Function { params, ret } => {
+            write!(write, "func(")?;
+            for (i, param) in params.iter().enumerate() {
+                if i != 0 {
+                    write!(write, ", ")?;
+                }
+                print_type_ref(db, type_ref, *param, write)?;
+            }
+            write!(write, ") -> ")?;
+            print_type_ref(db, type_ref, *ret, write)
+        }
         TypeRef::Error => write!(write, "{{unknown}}"),
     }
 }
