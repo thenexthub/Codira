@@ -1374,6 +1374,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "codira_ueval"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "codira_compiler",
+ "codira_project",
+ "codira_runtime",
+ "log",
+ "tempfile",
+ "toml 0.8.19",
+]
+
+[[package]]
 name = "codira_vfs"
 version = "0.6.0-dev"
 dependencies = [
