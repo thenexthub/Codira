@@ -19,4 +19,6 @@ pub enum SymbolKind {
     TypeAlias,
     /// An algebraic effect declaration (`effect Name { .. }`).
     Effect,
+    /// An `enum` declaration.
+    Enum,
 }

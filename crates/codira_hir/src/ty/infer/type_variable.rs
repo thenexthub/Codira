@@ -142,11 +142,10 @@ impl TypeVariableTable {
         // First resolve both types as much as possible
         let a = self.replace_if_possible(db, a);
         let b = self.replace_if_possible(db, b);
-        // A variable that already stands for the other type: equal. Without
-        // this a type parameter never unified with a variable instantiated
-        // to that same parameter (`equals_ctor` has no case for it), so
-        // passing `cmp: func(T, T) -> i32` on to another generic function
-        // was a mismatch.
+        // Equal once resolved: a variable bound to a generic parameter `T`
+        // unifies with `T`. `equals_ctor` does not list types without
+        // arguments that only match themselves (`T`, `str`), so without
+        // this a resolved variable compared against its own value failed.
         if a == b {
             return true;
         }
@@ -159,9 +158,11 @@ impl TypeVariableTable {
                 // unify.
                 (TyKind::Tuple(_, a), TyKind::Tuple(_, b))
                 | (TyKind::Struct(_, a), TyKind::Struct(_, b))
-                | (TyKind::Function(a), TyKind::Function(b)) => self.unify_substitutions(db, a, b),
+                | (TyKind::Function(a), TyKind::Function(b))
+                | (TyKind::Enum(_, a), TyKind::Enum(_, b)) => self.unify_substitutions(db, a, b),
                 (TyKind::Array(t1), TyKind::Array(t2))
-                | (TyKind::Channel(t1), TyKind::Channel(t2)) => self.unify_inner(db, t1, t2),
+                | (TyKind::Channel(t1), TyKind::Channel(t2))
+                | (TyKind::Optional(t1), TyKind::Optional(t2)) => self.unify_inner(db, t1, t2),
                 _ => true,
             }
         } else {

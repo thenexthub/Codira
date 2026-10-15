@@ -1,0 +1,163 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        public enum Step { Next(count: i32), Done }\n\n        func run(s: Step) {\n            if let Step.Next(n) = s { n } else { 0 }\n            while let Step.Next(n) = next(n) { }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..202
+  WHITESPACE@0..9 "\n        "
+  ENUM_DEF@9..52
+    VISIBILITY@9..15
+      PUBLIC_KW@9..15 "public"
+    WHITESPACE@15..16 " "
+    ENUM_KW@16..20 "enum"
+    WHITESPACE@20..21 " "
+    NAME@21..25
+      IDENT@21..25 "Step"
+    WHITESPACE@25..26 " "
+    ENUM_VARIANT_LIST@26..52
+      L_CURLY@26..27 "{"
+      WHITESPACE@27..28 " "
+      ENUM_VARIANT@28..44
+        NAME@28..32
+          IDENT@28..32 "Next"
+        TUPLE_FIELD_DEF_LIST@32..44
+          L_PAREN@32..33 "("
+          TUPLE_FIELD_DEF@33..43
+            IDENT@33..38 "count"
+            COLON@38..39 ":"
+            WHITESPACE@39..40 " "
+            PATH_TYPE@40..43
+              PATH@40..43
+                PATH_SEGMENT@40..43
+                  NAME_REF@40..43
+                    IDENT@40..43 "i32"
+          R_PAREN@43..44 ")"
+      COMMA@44..45 ","
+      WHITESPACE@45..46 " "
+      ENUM_VARIANT@46..50
+        NAME@46..50
+          IDENT@46..50 "Done"
+      WHITESPACE@50..51 " "
+      R_CURLY@51..52 "}"
+  WHITESPACE@52..62 "\n\n        "
+  FUNCTION_DEF@62..193
+    FUNC_KW@62..66 "func"
+    WHITESPACE@66..67 " "
+    NAME@67..70
+      IDENT@67..70 "run"
+    PARAM_LIST@70..79
+      L_PAREN@70..71 "("
+      PARAM@71..78
+        BIND_PAT@71..72
+          NAME@71..72
+            IDENT@71..72 "s"
+        COLON@72..73 ":"
+        WHITESPACE@73..74 " "
+        PATH_TYPE@74..78
+          PATH@74..78
+            PATH_SEGMENT@74..78
+              NAME_REF@74..78
+                IDENT@74..78 "Step"
+      R_PAREN@78..79 ")"
+    WHITESPACE@79..80 " "
+    BLOCK_EXPR@80..193
+      L_CURLY@80..81 "{"
+      WHITESPACE@81..94 "\n            "
+      EXPR_STMT@94..134
+        IF_EXPR@94..134
+          IF_KW@94..96 "if"
+          WHITESPACE@96..97 " "
+          CONDITION@97..117
+            LET_KW@97..100 "let"
+            WHITESPACE@100..101 " "
+            TUPLE_STRUCT_PAT@101..113
+              PATH@101..110
+                PATH@101..105
+                  PATH_SEGMENT@101..105
+                    NAME_REF@101..105
+                      IDENT@101..105 "Step"
+                DOT@105..106 "."
+                PATH_SEGMENT@106..110
+                  NAME_REF@106..110
+                    IDENT@106..110 "Next"
+              L_PAREN@110..111 "("
+              BIND_PAT@111..112
+                NAME@111..112
+                  IDENT@111..112 "n"
+              R_PAREN@112..113 ")"
+            WHITESPACE@113..114 " "
+            EQ@114..115 "="
+            WHITESPACE@115..116 " "
+            PATH_EXPR@116..117
+              PATH@116..117
+                PATH_SEGMENT@116..117
+                  NAME_REF@116..117
+                    IDENT@116..117 "s"
+          WHITESPACE@117..118 " "
+          BLOCK_EXPR@118..123
+            L_CURLY@118..119 "{"
+            WHITESPACE@119..120 " "
+            PATH_EXPR@120..121
+              PATH@120..121
+                PATH_SEGMENT@120..121
+                  NAME_REF@120..121
+                    IDENT@120..121 "n"
+            WHITESPACE@121..122 " "
+            R_CURLY@122..123 "}"
+          WHITESPACE@123..124 " "
+          ELSE_KW@124..128 "else"
+          WHITESPACE@128..129 " "
+          BLOCK_EXPR@129..134
+            L_CURLY@129..130 "{"
+            WHITESPACE@130..131 " "
+            LITERAL@131..132
+              INT_NUMBER@131..132 "0"
+            WHITESPACE@132..133 " "
+            R_CURLY@133..134 "}"
+      WHITESPACE@134..147 "\n            "
+      WHILE_EXPR@147..183
+        WHILE_KW@147..152 "while"
+        WHITESPACE@152..153 " "
+        CONDITION@153..179
+          LET_KW@153..156 "let"
+          WHITESPACE@156..157 " "
+          TUPLE_STRUCT_PAT@157..169
+            PATH@157..166
+              PATH@157..161
+                PATH_SEGMENT@157..161
+                  NAME_REF@157..161
+                    IDENT@157..161 "Step"
+              DOT@161..162 "."
+              PATH_SEGMENT@162..166
+                NAME_REF@162..166
+                  IDENT@162..166 "Next"
+            L_PAREN@166..167 "("
+            BIND_PAT@167..168
+              NAME@167..168
+                IDENT@167..168 "n"
+            R_PAREN@168..169 ")"
+          WHITESPACE@169..170 " "
+          EQ@170..171 "="
+          WHITESPACE@171..172 " "
+          CALL_EXPR@172..179
+            PATH_EXPR@172..176
+              PATH@172..176
+                PATH_SEGMENT@172..176
+                  NAME_REF@172..176
+                    IDENT@172..176 "next"
+            ARG_LIST@176..179
+              L_PAREN@176..177 "("
+              PATH_EXPR@177..178
+                PATH@177..178
+                  PATH_SEGMENT@177..178
+                    NAME_REF@177..178
+                      IDENT@177..178 "n"
+              R_PAREN@178..179 ")"
+        WHITESPACE@179..180 " "
+        BLOCK_EXPR@180..183
+          L_CURLY@180..181 "{"
+          WHITESPACE@181..182 " "
+          R_CURLY@182..183 "}"
+      WHITESPACE@183..192 "\n        "
+      R_CURLY@192..193 "}"
+  WHITESPACE@193..202 "\n        "

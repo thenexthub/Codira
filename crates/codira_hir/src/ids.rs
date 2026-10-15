@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use codira_hir_input::ModuleId;
 
 use crate::{
-    item_tree::{Effect, Function, Impl, ItemTreeId, ItemTreeNode, Struct, TypeAlias},
+    item_tree::{Effect, Enum, Function, Impl, ItemTreeId, ItemTreeNode, Struct, TypeAlias},
     primitive_type::PrimitiveType,
     DefDatabase,
 };
@@ -147,6 +147,13 @@ pub struct EffectId(salsa::InternId);
 pub(crate) type EffectLoc = ItemLoc<Effect>;
 impl_intern!(EffectId, EffectLoc, intern_effect, lookup_intern_effect);
 
+/// An enumeration declared with `enum Name { .. }`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct EnumId(salsa::InternId);
+
+pub(crate) type EnumLoc = ItemLoc<Enum>;
+impl_intern!(EnumId, EnumLoc, intern_enum, lookup_intern_enum);
+
 pub trait Intern {
     type ID;
     fn intern(self, db: &dyn DefDatabase) -> Self::ID;
@@ -168,6 +175,15 @@ pub enum ItemDefinitionId {
     /// `perform Logger.log(..)`), but it is not a type: type resolution
     /// rejects it, and only `Resolver::resolve_path_as_effect` accepts it.
     EffectId(EffectId),
+    /// An enum is a type; its variants are reached through it
+    /// (`Shape.Circle`), never by name alone.
+    EnumId(EnumId),
+}
+
+impl From<EnumId> for ItemDefinitionId {
+    fn from(id: EnumId) -> Self {
+        ItemDefinitionId::EnumId(id)
+    }
 }
 
 impl From<EffectId> for ItemDefinitionId {
@@ -280,4 +296,20 @@ impl From<ImplId> for GenericDefId {
 pub struct TypeParamId {
     pub owner: GenericDefId,
     pub index: u32,
+}
+
+impl TypeParamId {
+    /// The name the parameter was declared with, for messages. `None` only
+    /// for an index past the owner's parameter list.
+    pub fn name(self, db: &dyn DefDatabase) -> Option<crate::Name> {
+        let index = self.index as usize;
+        match self.owner {
+            GenericDefId::FunctionId(id) => db.fn_data(id).generic_params().get(index).cloned(),
+            GenericDefId::StructId(id) => db.struct_data(id).generic_params.get(index).cloned(),
+            // An `extend` block's parameters are owned by the extended type
+            // (see `resolve::impl_generic_param`), so none is ever owned by
+            // the block itself.
+            GenericDefId::ImplId(_) => None,
+        }
+    }
 }

@@ -135,7 +135,8 @@ impl ExprValidator<'_> {
             | Expr::Cast { expr, .. }
             | Expr::Scope { body: expr }
             | Expr::Spawn { call: expr }
-            | Expr::ChannelReceive { channel: expr } => {
+            | Expr::ChannelReceive { channel: expr }
+            | Expr::Unwrap { expr } => {
                 self.validate_expr_access(sink, initialized_patterns, *expr, ExprKind::Normal);
             }
             Expr::BinaryOp { lhs, rhs, op } => {
@@ -208,6 +209,26 @@ impl ExprValidator<'_> {
                 let mut body_patterns = initialized_patterns.clone();
                 self.mark_initialized(&mut body_patterns, *pat);
                 self.validate_expr_access(sink, &mut body_patterns, *body, ExprKind::Normal);
+            }
+            Expr::Match { expr, arms, .. } => {
+                self.validate_expr_access(sink, initialized_patterns, *expr, ExprKind::Normal);
+                // Like `if`: a binding is initialized afterwards only if
+                // every arm that completes initialized it.
+                let mut after: Option<HashSet<PatId>> = None;
+                for arm in arms {
+                    let mut arm_patterns = initialized_patterns.clone();
+                    self.mark_initialized(&mut arm_patterns, arm.pat);
+                    self.validate_expr_access(sink, &mut arm_patterns, arm.expr, ExprKind::Normal);
+                    if !self.infer[arm.expr].is_never() {
+                        after = Some(match after {
+                            None => arm_patterns,
+                            Some(prev) => prev.intersection(&arm_patterns).copied().collect(),
+                        });
+                    }
+                }
+                if let Some(after) = after {
+                    initialized_patterns.extend(after);
+                }
             }
             Expr::Range { start, end, .. } => {
                 self.validate_expr_access(sink, initialized_patterns, *start, ExprKind::Normal);

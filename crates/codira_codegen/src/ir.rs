@@ -32,6 +32,11 @@ pub mod types;
 use array::RuntimeArrayValue;
 use reference::RuntimeReferenceValue;
 
+/// The LLVM function of every code unit of a module: a function, or an
+/// instance of a generic one (see `file_group::code_units`).
+pub(crate) type FunctionMap<'ink> =
+    std::collections::HashMap<codira_hir::mono::Instance, inkwell::values::FunctionValue<'ink>>;
+
 /// Defines that a type has a static representation in inkwell
 pub trait IsIrType<'ink> {
     type Type: AnyType<'ink>;

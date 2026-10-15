@@ -1,0 +1,66 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    struct Pair[A, B] { a: A, b: B }\n\n    func id[T](x: T) -> T { x }\n\n    func first[A, B](p: Pair[A, B]) -> A { id(p.a) }\n\n    public func main() -> f64 {\n        let i: i64 = id(1)\n        let p = Pair { a: 2.5, b: i }\n        id(first(p))\n    }"
+snapshot_kind: text
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+%DispatchTable = type { ptr }
+%"Pair[f64, i64]" = type { double, i64 }
+
+@allocatorHandle = external global ptr
+@dispatchTable = external global %DispatchTable
+@global_type_lookup_table = external global [3 x ptr]
+
+define double @main() {
+body:
+  %p = alloca %"Pair[f64, i64]", align 8
+  %i = alloca i64, align 8
+  %id = call i64 @"id[i64]"(i64 1)
+  store i64 %id, ptr %i, align 4
+  %i1 = load i64, ptr %i, align 4
+  %init = insertvalue %"Pair[f64, i64]" { double 2.500000e+00, i64 undef }, i64 %i1, 1
+  store %"Pair[f64, i64]" %init, ptr %p, align 8
+  %p2 = load %"Pair[f64, i64]", ptr %p, align 8
+  %first = call double @"first[f64, i64]"(%"Pair[f64, i64]" %p2)
+  %id3 = call double @"id[f64]"(double %first)
+  ret double %id3
+}
+
+define private i64 @"id[i64]"(i64 %0) {
+body:
+  %x = alloca i64, align 8
+  store i64 %0, ptr %x, align 4
+  %x1 = load i64, ptr %x, align 4
+  ret i64 %x1
+}
+
+define private double @"first[f64, i64]"(%"Pair[f64, i64]" %0) {
+body:
+  %p = alloca %"Pair[f64, i64]", align 8
+  store %"Pair[f64, i64]" %0, ptr %p, align 8
+  %"Pair->a" = getelementptr inbounds nuw %"Pair[f64, i64]", ptr %p, i32 0, i32 0
+  %Pair.a = load double, ptr %"Pair->a", align 8
+  %id = call double @"id[f64]"(double %Pair.a)
+  ret double %id
+}
+
+define private double @"id[f64]"(double %0) {
+body:
+  %x = alloca double, align 8
+  store double %0, ptr %x, align 8
+  %x1 = load double, ptr %x, align 8
+  ret double %x1
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+%DispatchTable = type { ptr }
+
+@dispatchTable = global %DispatchTable zeroinitializer
+@global_type_lookup_table = global [3 x ptr] zeroinitializer
+@allocatorHandle = unnamed_addr global ptr null

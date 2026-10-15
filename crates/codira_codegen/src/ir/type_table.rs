@@ -205,6 +205,11 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
     /// Collects `TypeInfo` from types in the signature of a function if it's
     /// exposed externally.
     pub fn maybe_collect_fn_signature(&mut self, hir_fn: codira_hir::Function) {
+        // A generic function is neither exported nor in the dispatch table:
+        // it has no signature of its own, only its instances do.
+        if hir_fn.is_generic(self.db) {
+            return;
+        }
         // If a function is externally visible or contained in the dispatch table,
         // record the types of the signature
         if self.module_group.should_export_fn(self.db, hir_fn)
@@ -214,15 +219,19 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
         }
     }
 
-    /// Collects unique `TypeInfo` from the specified function signature and
-    /// body.
-    pub fn collect_fn(&mut self, hir_fn: codira_hir::Function) {
-        self.maybe_collect_fn_signature(hir_fn);
+    /// Collects unique `TypeInfo` from the signature and body of a code
+    /// unit: a function, or an instance of a generic one, with its
+    /// inference result read at that instance. An instance is never in the
+    /// dispatch table or exported, so only its body contributes.
+    pub fn collect_fn(&mut self, instance: &codira_hir::mono::Instance, infer: &InferenceResult) {
+        let hir_fn = instance.function();
+        if !instance.is_generic() {
+            self.maybe_collect_fn_signature(hir_fn);
+        }
 
         // Collect used types from body
         let body = hir_fn.body(self.db);
-        let infer = hir_fn.infer(self.db);
-        self.collect_expr(body.body_expr(), &body, &infer);
+        self.collect_expr(body.body_expr(), &body, infer);
     }
 
     /// Collects the type of every function-value object the group allocates
@@ -241,14 +250,22 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
         }
     }
 
-    /// Collects unique `TypeInfo` from the specified struct type.
-    pub fn collect_struct(&mut self, hir_struct: codira_hir::Struct) {
-        let type_info = self.hir_types.type_id(&hir_struct.ty(self.db));
+    /// Collects unique `TypeInfo` from the specified struct type -- a
+    /// non-generic struct, or an instantiated generic one -- and its fields.
+    pub fn collect_struct(&mut self, struct_ty: &codira_hir::Ty) {
+        let type_info = self.hir_types.type_id(struct_ty);
         self.collect_type(type_info);
 
-        let fields = hir_struct.fields(self.db);
-        for field in fields {
-            self.collect_type(self.hir_types.type_id(&field.ty(self.db)));
+        for field_ty in codira_hir::mono::struct_field_types(self.db, struct_ty) {
+            self.collect_type(self.hir_types.type_id(&field_ty));
+        }
+    }
+
+    /// Collects an enum's type and the types of its payload slots.
+    pub fn collect_enum(&mut self, hir_enum: codira_hir::Enum) {
+        self.collect_type(self.hir_types.type_id(&hir_enum.ty()));
+        for slot in hir_enum.layout(self.db).slots.iter() {
+            self.collect_type(self.hir_types.type_id(&slot.ty));
         }
     }
 

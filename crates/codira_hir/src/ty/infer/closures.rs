@@ -234,9 +234,8 @@ impl InferenceResultBuilder<'_> {
                 self.diagnostics.push(InferenceDiagnostic::ExprError {
                     id: expr.into(),
                     message: format!(
-                        "this closure cannot capture `{}` of type `{}` yet: a closure can \
-                         capture integers, floats, `bool`, structs, classes, arrays and \
-                         function values",
+                        "this closure cannot capture `{}` of type `{}`: a channel is a handle \
+                         that lives only as long as its `scope`, so a closure cannot keep it",
                         binding_name(self.body, capture),
                         ty.display(self.db)
                     ),
@@ -268,6 +267,12 @@ impl InferenceResultBuilder<'_> {
                 }
             }
             Expr::For { pat, .. } => self.collect_bound_pats(*pat, out),
+            // Also what `if let` and `while let` lower to.
+            Expr::Match { arms, .. } => {
+                for arm in arms {
+                    self.collect_bound_pats(arm.pat, out);
+                }
+            }
             Expr::Handle { arms, .. } => {
                 for arm in arms {
                     for &param in &arm.params {
@@ -299,10 +304,10 @@ impl InferenceResultBuilder<'_> {
         };
         let data = function.data(self.db);
         let name = function.name(self.db);
-        let refusal = if !data.generic_params().is_empty() {
+        let refusal = if function.is_generic(self.db) {
             Some(format!(
-                "the generic function `{name}` cannot be used as a function value yet: generic \
-                 functions cannot be instantiated"
+                "the generic function `{name}` cannot be used as a function value yet: a value \
+                 names no instantiation of it; wrap the call in a closure instead"
             ))
         } else if !data.effects().is_empty() {
             Some(format!(
@@ -362,7 +367,7 @@ fn binding_name(body: &crate::expr::Body, pat: PatId) -> String {
 
 /// Whether a closure can capture a value of type `ty`: the environment is a
 /// garbage-collected object, so every capture needs runtime type
-/// information, which `str`, tuples and channels do not have yet.
+/// information, which a channel (an opaque runtime handle) does not have.
 fn is_capturable(ty: &Ty) -> bool {
     matches!(
         ty.interned(),
@@ -372,5 +377,11 @@ fn is_capturable(ty: &Ty) -> bool {
             | TyKind::Struct(..)
             | TyKind::Array(_)
             | TyKind::Function(_)
+            | TyKind::Tuple(..)
+            | TyKind::Optional(_)
+            | TyKind::Enum(..)
+            | TyKind::Str
+            // Concrete in every instance of a generic function.
+            | TyKind::TypeParam(..)
     )
 }

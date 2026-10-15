@@ -1,0 +1,11 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r\"\n    struct Box[T] { v: T }\n\n    func size[T]() -> i64 { 8 }\n\n    func main() -> i64 {\n        size()\n    }\",)"
+snapshot_kind: text
+---
+78..84: cannot infer the generic parameter `T` of `size` at this call: nothing passed to it or expected from it says what `T` is
+46..51 '{ 8 }': i64
+48..49 '8': i64
+72..86 '{     size() }': i64
+78..82 'size': function size() -> i64
+78..84 'size()': i64

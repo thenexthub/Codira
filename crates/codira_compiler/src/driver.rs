@@ -375,9 +375,20 @@ impl Driver {
         }
     }
 
+    /// Turns proof certificates on or off (`codira build --certify`): every
+    /// library written gets a `<library>.cert.json` beside it with each
+    /// function's code and source hashes and its verified obligations as
+    /// SMT-LIB2 queries (see `codira_certificate`). Functions keep their
+    /// symbols in the library so the certificate can name their code.
+    pub fn set_certify(&mut self, enabled: bool) {
+        if self.db.keep_function_symbols() != enabled {
+            self.db.set_keep_function_symbols(enabled);
+        }
+    }
+
     /// Turns fuel instrumentation on or off for the code this driver
     /// generates (`codira build --fuel`): a counter decrement at every
-    /// function entry and loop back-edge, checked against zero.
+    /// function entry and loop back-edge.
     pub fn set_fuel_instrumentation(&mut self, enabled: bool) {
         if self.db.fuel_instrumentation() != enabled {
             self.db.set_fuel_instrumentation(enabled);
@@ -444,6 +455,16 @@ impl Driver {
 }
 
 impl Driver {
+    /// Every HIR diagnostic of `module`, plus the ones that depend on how
+    /// this driver builds: a fuel-instrumented build cannot keep the promise
+    /// of a `@nopanic` or `@realtime` function.
+    fn module_diagnostics(&self, module: Module, sink: &mut DiagnosticSink<'_>) {
+        module.diagnostics(&self.db, sink);
+        if self.db.fuel_instrumentation() {
+            codira_hir::realtime::fuel_diagnostics(&self.db, module, sink);
+        }
+    }
+
     /// Emits all diagnostic messages currently in the database; returns true if
     /// errors were emitted.
     pub fn emit_diagnostics(
@@ -477,8 +498,8 @@ impl Driver {
 
                     // Emit all HIR diagnostics
                     let mut error = None;
-                    module.diagnostics(
-                        &self.db,
+                    self.module_diagnostics(
+                        module,
                         &mut DiagnosticSink::new(|d| {
                             has_error = true;
                             if let Err(e) =
@@ -549,8 +570,8 @@ impl Driver {
                 }
 
                 let mut error = None;
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         counts.semantic += 1;
                         file_has_diagnostic = true;
@@ -605,8 +626,8 @@ impl Driver {
                     })
                     .collect();
 
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         diagnostics.push(CheckDiagnostic {
                             kind: DiagnosticKind::Semantic,
@@ -865,6 +886,34 @@ impl Driver {
             anyhow::bail!("{reason}");
         }
 
+        // A library rewrite rule that `codira_tv` could not prove fails the
+        // build: an unproven rule is never used, and silently dropping it
+        // would hide that (`codira_codegen::rewrite`).
+        let rewrite_rules = self.db.rewrite_rules();
+        if !rewrite_rules.refused.is_empty() {
+            anyhow::bail!("{}", rewrite_rules.refused.join("\n"));
+        }
+
+        // `@target(gpu)` functions are also compiled for the GPU, to PTX
+        // written next to the library (`codira_codegen::gpu`). A kernel that
+        // cannot run on a GPU fails the build with the reason.
+        let gpu_kernels = self.db.gpu_kernels(module_group_id);
+        let gpu_kernels = match &*gpu_kernels {
+            Err(reason) => anyhow::bail!("{reason}"),
+            Ok(kernels) => kernels.clone(),
+        };
+
+        // `@target(fpga)` functions are also written as Verilog modules,
+        // `<function>.v` next to the library (`codira_circuits`). A function
+        // outside the circuit subset fails the build with the reason.
+        let fpga_modules = codira_circuits::fpga_modules(
+            &self.db,
+            module_group
+                .iter()
+                .flat_map(|module| module.all_functions(&self.db)),
+        )
+        .map_err(|e| anyhow::anyhow!("cannot compile an @target(fpga) function to Verilog: {e}"))?;
+
         // Determine the filename of the group (`.codiralib`, or `.wasm` for
         // a WebAssembly target)
         let assembly_path = self
@@ -885,6 +934,21 @@ impl Driver {
 
         // It did change or we are forced, so write it to disk
         assembly.copy_to(&assembly_path)?;
+        if let Some(kernels) = gpu_kernels {
+            std::fs::write(assembly_path.with_extension("ptx"), kernels.ptx)?;
+        }
+        for (name, verilog) in fpga_modules {
+            std::fs::write(assembly_path.with_file_name(format!("{name}.v")), verilog)?;
+        }
+
+        // A certificate describes exactly one build of the library: write
+        // this one's, or remove one left by an earlier certified build.
+        let certificate = codira_certificate::sidecar_path(&assembly_path);
+        if self.db.keep_function_symbols() {
+            crate::certify::write_certificate(&self.db, module_group_id, &assembly_path)?;
+        } else if certificate.is_file() {
+            std::fs::remove_file(&certificate)?;
+        }
 
         // Store the information so we maybe don't have to write it next time
         self.module_to_temp_assembly_path

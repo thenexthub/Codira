@@ -17,8 +17,9 @@ pub use codira_hir_input::ModuleId;
 pub use salsa;
 
 pub use self::code_model::{
-    Effect, EffectData, EffectOpSig, Field, Function, FunctionData, HasSource, Module, ModuleDef,
-    Package, PrimitiveType, Struct, StructMemoryKind, TypeAlias,
+    Effect, EffectData, EffectOpSig, Enum, EnumLayout, EnumSlot, EnumVariant, Field, Function,
+    FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Struct, StructMemoryKind,
+    TypeAlias, VariantKind,
 };
 pub use crate::{
     builtin::BuiltinFn,
@@ -30,7 +31,8 @@ pub use crate::{
     display::HirDisplay,
     expr::{
         ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
-        Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField, Statement, UnaryOp,
+        Literal, LogicOp, LoopContract, MatchArm, MatchSource, Ordering, Pat, PatId,
+        RecordLitField, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,
@@ -63,10 +65,12 @@ mod ids;
 mod in_file;
 mod item_tree;
 mod mir_lower;
+pub mod mono;
 mod name;
 mod name_resolution;
 mod path;
 mod primitive_type;
+pub mod realtime;
 mod refinement_check;
 mod resolve;
 mod source_id;

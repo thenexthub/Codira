@@ -247,6 +247,9 @@ pub(crate) struct DispatchTableBuilder<'db, 'ink, 't> {
     // The function-value targets and their cell slots
     fn_values: FnValueTargets,
     fn_cell_to_idx: HashMap<String, usize>,
+    // Functions of other modules this group emits a copy of, which are
+    // called directly (see `ir::file_group::code_units`)
+    local_copies: FxHashSet<codira_hir::Function>,
 }
 
 struct TypedDispatchableFunction<'ink> {
@@ -280,6 +283,7 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
             referenced_modules: FxHashSet::default(),
             fn_values: FnValueTargets::default(),
             fn_cell_to_idx: HashMap::default(),
+            local_copies: FxHashSet::default(),
         };
 
         if !intrinsics.is_empty() {
@@ -335,7 +339,14 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                     // for symbols that are not supposed to exist.
                     // An `@asm` function is the same: its assembly is emitted at
                     // the call site.
-                    if def.is_intrinsic(self.db) || def.is_inline_asm(self.db) {
+                    // A generic callee is instantiated in this group, and a
+                    // local copy is too: both are called directly, so
+                    // neither needs a slot.
+                    if def.is_intrinsic(self.db)
+                        || def.is_inline_asm(self.db)
+                        || def.is_generic(self.db)
+                        || self.local_copies.contains(&def)
+                    {
                         // Still walk the arguments -- they are ordinary
                         // expressions and may contain real calls.
                         expr.walk_child_exprs(|expr_id| self.collect_expr(expr_id, body, infer));
@@ -373,7 +384,10 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
         self.ensure_table_ref();
         for target in fn_values.targets() {
             if let TargetKind::Item(item) = target.kind {
-                if self.module_group.should_runtime_link_fn(self.db, item) {
+                if self.module_group.should_runtime_link_fn(self.db, item)
+                    && !item.is_generic(self.db)
+                    && !self.local_copies.contains(&item)
+                {
                     let fn_module = item.module(self.db);
                     if !item.is_extern(self.db) && !self.module_group.contains(fn_module) {
                         self.referenced_modules.insert(fn_module);
@@ -448,7 +462,9 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
             // reference, not the raw by-value struct). `gen_call` boxes
             // struct-by-value arguments and unboxes a struct-by-value return
             // to match.
-            let ir_type = self.hir_types.get_public_function_type(function);
+            let ir_type = self
+                .hir_types
+                .get_public_function_type(&codira_hir::mono::Instance::of(function));
             let arg_types = sig
                 .params()
                 .iter()
@@ -484,6 +500,12 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
     /// type inference result.
     pub fn collect_body(&mut self, body: &Arc<Body>, infer: &InferenceResult) {
         self.collect_expr(body.body_expr(), body, infer);
+    }
+
+    /// Records the functions of other modules this group emits a copy of,
+    /// which must therefore not be called through the table.
+    pub fn set_local_copies(&mut self, copies: FxHashSet<codira_hir::Function>) {
+        self.local_copies = copies;
     }
 
     /// Builds the final `DispatchTable` with all *called* functions from within
@@ -551,9 +573,15 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                                 function_type.const_null()
                             } else {
                                 // Otherwise generate a function prototype
-                                function::gen_prototype(self.db, self.hir_types, f, self.module)
-                                    .as_global_value()
-                                    .as_pointer_value()
+                                function::gen_prototype(
+                                    self.db,
+                                    self.hir_types,
+                                    &codira_hir::mono::Instance::of(f),
+                                    self.module,
+                                    false,
+                                )
+                                .as_global_value()
+                                .as_pointer_value()
                             }
                         }
                     }

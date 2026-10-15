@@ -18,7 +18,7 @@ use crate::{
     db::HirDatabase,
     diagnostics::{DuplicateDefinition, ImplForForeignType, InvalidSelfTyImpl},
     has_module::HasModule,
-    ids::{AssocItemId, FunctionId, ImplId, Lookup, StructId},
+    ids::{AssocItemId, EnumId, FunctionId, ImplId, Lookup, StructId},
     package_defs::PackageDefs,
     ty::lower::LowerDiagnostic,
     DefDatabase, DiagnosticSink, HasSource, InFile, Name, Ty, TyKind,
@@ -39,13 +39,37 @@ pub enum InherentImplsDiagnostics {
     DuplicateDefinitions(AssocItemId, AssocItemId),
 }
 
+/// A type that `extend` blocks can add methods to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum ImplTarget {
+    Struct(StructId),
+    Enum(EnumId),
+}
+
+impl ImplTarget {
+    fn of(ty: &Ty) -> Option<Self> {
+        match ty.interned() {
+            TyKind::Struct(s, _) => Some(ImplTarget::Struct(s.id)),
+            TyKind::Enum(e, _) => Some(ImplTarget::Enum(e.id)),
+            _ => None,
+        }
+    }
+
+    fn package(self, db: &dyn HirDatabase) -> PackageId {
+        match self {
+            ImplTarget::Struct(id) => id.module(db).package,
+            ImplTarget::Enum(id) => id.module(db).package,
+        }
+    }
+}
+
 /// Holds inherit impls defined in some package.
 ///
 /// Inherent impls are impls that are defined for a type in the same package as
 /// the type itself.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InherentImpls {
-    map: FxHashMap<StructId, Vec<ImplId>>,
+    map: FxHashMap<ImplTarget, Vec<ImplId>>,
     diagnostics: Vec<InherentImplsDiagnostics>,
 }
 
@@ -93,26 +117,26 @@ impl InherentImpls {
                         .map(|d| InherentImplsDiagnostics::LowerDiagnostic(impl_id, d.clone())),
                 );
 
-                // Make sure the type is a struct
+                // Make sure the type is a struct or an enum
                 let self_ty = lowered[impl_data.self_ty].clone();
-                let s = match self_ty.interned() {
-                    TyKind::Struct(s, _) => s,
-                    TyKind::Unknown => continue,
-                    _ => {
+                let target = match ImplTarget::of(&self_ty) {
+                    Some(target) => target,
+                    None if self_ty.is_unknown() => continue,
+                    None => {
                         self.diagnostics
                             .push(InherentImplsDiagnostics::InvalidSelfTy(impl_id));
                         continue;
                     }
                 };
 
-                // Make sure the struct is defined in the same package
-                if s.module(db).package().id != package_defs.id {
+                // Make sure the type is defined in the same package
+                if target.package(db) != package_defs.id {
                     self.diagnostics
                         .push(InherentImplsDiagnostics::ImplForForeignType(impl_id));
                 }
 
                 // Add the impl to the map
-                self.map.entry(s.id).or_default().push(impl_id);
+                self.map.entry(target).or_default().push(impl_id);
             }
         }
 
@@ -169,10 +193,9 @@ impl InherentImpls {
 
     /// Returns all implementations defined for the specified type.
     pub fn for_self_ty(&self, self_ty: &Ty) -> &[ImplId] {
-        match self_ty.interned() {
-            TyKind::Struct(s, _) => self.map.get(&s.id).map_or(&[], AsRef::as_ref),
-            _ => &[],
-        }
+        ImplTarget::of(self_ty)
+            .and_then(|target| self.map.get(&target))
+            .map_or(&[], AsRef::as_ref)
     }
 }
 
@@ -347,13 +370,7 @@ impl<'db> MethodResolutionCtx<'db> {
 
     /// Returns the package in which the type was defined.
     fn defining_package(&self) -> Option<PackageId> {
-        match self.ty.interned() {
-            TyKind::Struct(s, _) => {
-                let module = s.module(self.db);
-                Some(module.id.package)
-            }
-            _ => None,
-        }
+        ImplTarget::of(&self.ty).map(|target| target.package(self.db))
     }
 
     /// Returns whether the specified item is a valid candidate for method

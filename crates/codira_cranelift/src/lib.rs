@@ -316,6 +316,12 @@ impl State<'_> {
         if function.self_param_ty(self.db).is_some() {
             return Err(unsupported("a method with `self`".to_owned()));
         }
+        // Monomorphisation lives in the LLVM backend: this one compiles one
+        // body per function, and a generic function has one per
+        // instantiation.
+        if function.is_generic(self.db) {
+            return Err(unsupported("a generic function".to_owned()));
+        }
         let sig = function
             .ty(self.db)
             .callable_sig(self.db)
@@ -521,6 +527,11 @@ impl<'a, 'db> Translator<'a, 'db> {
     }
 
     fn expr(&mut self, id: ExprId) -> Lowered {
+        // A `T` used where a `T?` is expected changes representation, and
+        // this backend has no optional representation to change it into.
+        if self.infer.optional_wrap(id).is_some() {
+            return self.unsupported("an optional (`T?`) value");
+        }
         let body = self.body.clone();
         match &body[id] {
             Expr::Literal(literal) => self.literal(id, literal),

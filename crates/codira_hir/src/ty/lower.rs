@@ -147,8 +147,15 @@ impl Ty {
             // Tracked as follow-up work -- introducing it touches unification,
             // coercion, and codegen's representation of these values, which need a
             // real LLVM toolchain to verify end-to-end.
-            TypeRef::Optional(inner) | TypeRef::Refinement(inner) => Some(
-                Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *inner),
+            TypeRef::Optional(inner) => Some(
+                TyKind::Optional(Self::from_hir_with_diagnostics(
+                    db,
+                    resolver,
+                    type_ref_map,
+                    diagnostics,
+                    *inner,
+                ))
+                .intern(),
             ),
             TypeRef::Function { params, ret } => {
                 let params = params
@@ -167,6 +174,13 @@ impl Ty {
                     Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *ret);
                 Some(Ty::function(params, ret))
             }
+            TypeRef::Refinement(inner) => Some(Self::from_hir_with_diagnostics(
+                db,
+                resolver,
+                type_ref_map,
+                diagnostics,
+                *inner,
+            )),
         };
         if let Some(ty) = res {
             ty
@@ -237,6 +251,7 @@ impl Ty {
             }
             TypeNs::TypeAliasId(id) => type_for_def_fn(TypableDef::TypeAlias(id.into())),
             TypeNs::PrimitiveType(id) => type_for_def_fn(TypableDef::PrimitiveType(id.into())),
+            TypeNs::EnumId(id) => type_for_def_fn(TypableDef::Enum(id.into())),
             // This is the whole point of the generic-parameter scope: `T`
             // in a signature or field becomes a real type rather than an
             // unresolved-name error.
@@ -277,6 +292,7 @@ pub enum TypableDef {
     PrimitiveType(PrimitiveType),
     Struct(Struct),
     TypeAlias(TypeAlias),
+    Enum(crate::Enum),
 }
 
 impl From<Function> for TypableDef {
@@ -304,6 +320,7 @@ impl From<ModuleDef> for Option<TypableDef> {
             ModuleDef::PrimitiveType(t) => Some(TypableDef::PrimitiveType(t)),
             ModuleDef::Struct(t) => Some(TypableDef::Struct(t)),
             ModuleDef::TypeAlias(t) => Some(TypableDef::TypeAlias(t)),
+            ModuleDef::Enum(e) => Some(TypableDef::Enum(e)),
             ModuleDef::Module(_) | ModuleDef::Effect(_) => None,
         }
     }
@@ -346,12 +363,14 @@ pub(crate) fn type_for_def(db: &dyn HirDatabase, def: TypableDef, ns: Namespace)
         (TypableDef::Struct(s), Namespace::Values) => type_for_struct_constructor(db, s),
         (TypableDef::Struct(s), Namespace::Types) => type_for_struct(db, s),
         (TypableDef::TypeAlias(t), Namespace::Types) => type_for_type_alias(db, t),
+        (TypableDef::Enum(e), Namespace::Types) => e.ty(),
 
         // 'error' cases:
         (TypableDef::Function(_), Namespace::Types)
-        | (TypableDef::PrimitiveType(_) | TypableDef::TypeAlias(_), Namespace::Values) => {
-            TyKind::Unknown.intern()
-        }
+        | (
+            TypableDef::PrimitiveType(_) | TypableDef::TypeAlias(_) | TypableDef::Enum(_),
+            Namespace::Values,
+        ) => TyKind::Unknown.intern(),
     }
 }
 

@@ -67,6 +67,21 @@ fn enum_and_match() {
 }
 
 #[test]
+fn if_let_and_while_let_with_variant_patterns() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        public enum Step { Next(count: i32), Done }
+
+        func run(s: Step) {
+            if let Step.Next(n) = s { n } else { 0 }
+            while let Step.Next(n) = next(n) { }
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn comptime_and_generics_and_where() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"
@@ -1713,4 +1728,25 @@ fn continue_is_still_an_identifier() {
         .syntax_node()
         .descendants()
         .any(|n| n.kind() == SyntaxKind::CONTINUE_EXPR));
+}
+
+/// `unit(..)` after a type is a unit of measure; `unit` elsewhere is a name.
+#[test]
+fn unit_is_a_qualifier_only_after_a_type() {
+    let parse = SourceFile::parse(
+        r#"
+    func f(d: f64 unit(m / s), unit: f64) -> f64 unit(m) {
+        let unit2 = unit;
+        d * unit2
+    }
+    "#,
+    );
+    assert!(parse.errors().is_empty(), "{:?}", parse.errors());
+    let units = parse
+        .tree()
+        .syntax()
+        .descendants()
+        .filter(|n| n.kind() == SyntaxKind::UNIT_TYPE)
+        .count();
+    assert_eq!(units, 2);
 }

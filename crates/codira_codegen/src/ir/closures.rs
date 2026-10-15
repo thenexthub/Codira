@@ -58,11 +58,14 @@ use std::{
 };
 
 use codira_abi::Guid;
-use codira_hir::{ExprId, HirDatabase, IntTy, ModuleDef, Pat, PatId, Ty, TyKind};
+use codira_hir::{
+    mono::{self, Instance},
+    ExprId, HirDatabase, InferenceResult, IntTy, ModuleDef, Pat, PatId, Ty, TyKind,
+};
 use inkwell::types::StructType;
 
 use crate::{
-    ir::ty::HirTypeCache,
+    ir::{file_group::CodeUnit, ty::HirTypeCache},
     module_group::ModuleGroup,
     type_info::{TypeId, TypeIdData},
 };
@@ -70,11 +73,9 @@ use crate::{
 /// What a function-value target's code does.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) enum TargetKind {
-    /// The body of the closure literal `expr` in `owner`'s body.
-    Closure {
-        owner: codira_hir::Function,
-        expr: ExprId,
-    },
+    /// The body of the closure literal `expr` in the body of `owner` (an
+    /// instance: a closure in a generic function has code per instance).
+    Closure { owner: Instance, expr: ExprId },
     /// A thunk that calls the named function.
     Item(codira_hir::Function),
 }
@@ -92,9 +93,9 @@ pub(crate) struct Capture {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct FnValueTarget {
     /// The LLVM symbol of the code, and the target's identity: the
-    /// enclosing function's full name and the closure's index for a closure
-    /// (`mod::f#closure0`), the function's full name and the creating group
-    /// for a thunk (`mod::square#fn@mod`).
+    /// enclosing instance's name and the closure's index for a closure
+    /// (`mod::f#closure0`, `mod::map[i64, i64]#closure0`), the function's
+    /// full name and the creating group for a thunk (`mod::square#fn@mod`).
     pub symbol: String,
     /// `symbol` plus the signature: what cells are keyed by.
     pub key: String,
@@ -103,8 +104,10 @@ pub(crate) struct FnValueTarget {
     pub fn_ty: Ty,
     /// The captures, in object field order after `cell`.
     pub captures: Vec<Capture>,
-    /// A function of the group whose body generator compiles the target.
-    pub creator: codira_hir::Function,
+    /// An instance of the group whose body generator compiles the target,
+    /// with its inference result.
+    pub creator: Instance,
+    pub creator_infer: Arc<InferenceResult>,
 }
 
 /// A garbage-collected struct the runtime needs type information for that
@@ -122,7 +125,7 @@ pub(crate) struct SyntheticStruct<'ink> {
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub(crate) struct FnValueTargets {
     targets: Vec<FnValueTarget>,
-    closures: HashMap<(codira_hir::Function, ExprId), usize>,
+    closures: HashMap<(Instance, ExprId), usize>,
     items: HashMap<codira_hir::Function, usize>,
     /// The guid strings of the function types the group mentions, sorted so
     /// their definitions come out in a stable order.
@@ -130,21 +133,30 @@ pub(crate) struct FnValueTargets {
 }
 
 impl FnValueTargets {
-    /// Collects the targets of every function of `module_group`.
-    pub fn collect(db: &dyn HirDatabase, module_group: &ModuleGroup) -> Self {
+    /// Collects the targets of every code unit of `module_group`: its own
+    /// functions, the instances of generic functions they reach and the
+    /// copies of other modules' helpers (see `ir::file_group::code_units`).
+    /// `struct_types` are the struct types the group defines for the
+    /// runtime, whose fields may be of function type.
+    pub fn collect(
+        db: &dyn HirDatabase,
+        module_group: &ModuleGroup,
+        units: &[CodeUnit],
+        struct_types: &[Ty],
+    ) -> Self {
         let mut targets = FnValueTargets::default();
-        let functions: Vec<codira_hir::Function> = module_group
-            .iter()
-            .flat_map(|module| module.all_functions(db))
-            .filter(|f| !f.is_extern(db))
-            .collect();
 
-        for &function in &functions {
-            let infer = function.infer(db);
-            let body = function.body(db);
-            let full_name = function.full_name(db);
+        for unit in units {
+            let infer = &unit.infer;
+            let body = unit.instance.function().body(db);
+            // A copy of another module's function is this group's own: its
+            // closures must not share cells with the original's.
+            let mut owner_name = unit.instance.name(db);
+            if unit.local_copy {
+                owner_name = format!("{owner_name}@{}", module_group.name);
+            }
             for (idx, (expr, info)) in infer.closures().into_iter().enumerate() {
-                let symbol = format!("{full_name}#closure{idx}");
+                let symbol = format!("{owner_name}#closure{idx}");
                 let fn_ty = Ty::function(info.params.clone(), info.ret.clone());
                 let mut used_names: Vec<String> = Vec::new();
                 let captures = info
@@ -174,12 +186,13 @@ impl FnValueTargets {
                         key: key(db, &symbol, &fn_ty),
                         symbol,
                         kind: TargetKind::Closure {
-                            owner: function,
+                            owner: unit.instance.clone(),
                             expr,
                         },
                         fn_ty,
                         captures,
-                        creator: function,
+                        creator: unit.instance.clone(),
+                        creator_infer: unit.infer.clone(),
                     },
                     db,
                 );
@@ -188,10 +201,7 @@ impl FnValueTargets {
                 if targets.items.contains_key(&item) {
                     continue;
                 }
-                let sig = item
-                    .ty(db)
-                    .callable_sig(db)
-                    .expect("a function is callable");
+                let sig = Instance::of(item).sig(db);
                 let fn_ty = Ty::function(sig.params().to_vec(), sig.ret().clone());
                 let symbol = format!("{}#fn@{}", item.full_name(db), module_group.name);
                 targets.push(
@@ -201,7 +211,8 @@ impl FnValueTargets {
                         kind: TargetKind::Item(item),
                         fn_ty,
                         captures: Vec::new(),
-                        creator: function,
+                        creator: unit.instance.clone(),
+                        creator_infer: unit.infer.clone(),
                     },
                     db,
                 );
@@ -216,10 +227,7 @@ impl FnValueTargets {
             for (_, ty) in infer.pat_types() {
                 targets.note_fn_types(db, ty);
             }
-            let sig = function
-                .ty(db)
-                .callable_sig(db)
-                .expect("a function is callable");
+            let sig = unit.instance.sig(db);
             for ty in sig.params().iter().chain(std::iter::once(sig.ret())) {
                 targets.note_fn_types(db, ty);
             }
@@ -229,9 +237,16 @@ impl FnValueTargets {
             .flat_map(|module| module.declarations(db))
         {
             if let ModuleDef::Struct(s) = def {
-                for field in s.fields(db) {
-                    targets.note_fn_types(db, &field.ty(db));
+                if !s.is_generic(db) {
+                    for field_ty in mono::struct_field_types(db, &s.ty(db)) {
+                        targets.note_fn_types(db, &field_ty);
+                    }
                 }
+            }
+        }
+        for ty in struct_types {
+            for field_ty in mono::struct_field_types(db, ty) {
+                targets.note_fn_types(db, &field_ty);
             }
         }
         targets
@@ -241,7 +256,7 @@ impl FnValueTargets {
         let idx = self.targets.len();
         match &target.kind {
             TargetKind::Closure { owner, expr } => {
-                self.closures.insert((*owner, *expr), idx);
+                self.closures.insert((owner.clone(), *expr), idx);
             }
             TargetKind::Item(item) => {
                 self.items.insert(*item, idx);
@@ -270,9 +285,9 @@ impl FnValueTargets {
         &self.targets
     }
 
-    /// The target of the closure literal `expr` in `owner`.
-    pub fn closure(&self, owner: codira_hir::Function, expr: ExprId) -> &FnValueTarget {
-        &self.targets[self.closures[&(owner, expr)]]
+    /// The target of the closure literal `expr` in the body of `owner`.
+    pub fn closure(&self, owner: &Instance, expr: ExprId) -> &FnValueTarget {
+        &self.targets[self.closures[&(owner.clone(), expr)]]
     }
 
     /// The thunk target of the named function `item`.

@@ -41,7 +41,7 @@ mod test_utils;
 
 /// Defines the current ABI version
 #[allow(clippy::zero_prefixed_literal)]
-pub const ABI_VERSION: u32 = 00_03_00;
+pub const ABI_VERSION: u32 = 00_04_00;
 /// Defines the name for the `get_info` function
 pub const GET_INFO_FN_NAME: &str = "get_info";
 /// Defines the name for the `get_version` function

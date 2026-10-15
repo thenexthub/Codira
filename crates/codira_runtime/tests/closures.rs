@@ -383,3 +383,129 @@ fn function_values_across_modules() {
     let result: i32 = driver.runtime.invoke("main", ()).unwrap();
     assert_eq!(result, 711);
 }
+
+/// Generic higher-order functions: a function value whose type mentions the
+/// generic parameters, called inside each instance, and a closure created
+/// inside a generic function, compiled once per instance.
+#[test]
+fn generic_higher_order_functions() {
+    let driver = build(
+        r"
+    func apply_all[T](xs: [T], f: func(T) -> T) -> [T] {
+        for i in 0..xs.len() {
+            xs[i] = f(xs[i])
+        }
+        xs
+    }
+
+    func fold[T, U](xs: [T], init: U, f: func(U, T) -> U) -> U {
+        var acc = init
+        for x in xs {
+            acc = f(acc, x)
+        }
+        acc
+    }
+
+    func compose[T](f: func(T) -> T, g: func(T) -> T) -> func(T) -> T {
+        func(x: T) -> T { g(f(x)) }
+    }
+
+    public func main() -> i64 {
+        let ys = apply_all([1, 2, 3, 4], func(x) { x * 10 })
+        let total = fold(ys, 0.5, func(acc: f64, x: i64) -> f64 { acc + x as f64 })
+        let both = compose(func(x: i64) -> i64 { x + 1 }, func(x: i64) -> i64 { x * 2 })
+        let flip = compose(func(b: bool) -> bool { !b }, func(b: bool) -> bool { b })
+        let flipped: i64 = if flip(true) { 0 } else { 1 }
+        total as i64 * 1000 + both(5) * 10 + flipped
+    }
+    ",
+    );
+    // total = 100.5 -> 100; both(5) = 12; flip(true) = false -> 1.
+    let result: i64 = driver.runtime.invoke("main", ()).unwrap();
+    assert_eq!(result, 100121);
+}
+
+/// Enums, optionals, tuples and strings are captured by value like any
+/// other binding: they are value structs inside the closure's environment,
+/// and a later change to the variable outside does not reach the copy.
+#[test]
+fn enums_optionals_tuples_and_strings_are_captured_by_value() {
+    let driver = build(
+        r#"
+    enum Shape {
+        Circle(radius: i64)
+        Square(side: i64)
+    }
+
+    public func main() -> i64 {
+        var shape = Shape.Circle(3)
+        var maybe: i64? = 4
+        var pair = (10, 20)
+        let name = "abc"
+        let f = func() -> i64 {
+            let s = match shape {
+                Shape.Circle(r) -> r,
+                Shape.Square(a) -> a * 100,
+            }
+            let m = if let v = maybe { v } else { 0 }
+            s + m + pair.0 + pair.1 + name.len() as i64
+        }
+        shape = Shape.Square(1)
+        maybe = nil
+        pair = (0, 0)
+        f()
+    }
+    "#,
+    );
+    // 3 + 4 + 10 + 20 + 3
+    let result: i64 = driver.runtime.invoke("main", ()).unwrap();
+    assert_eq!(result, 40);
+}
+
+/// A function value inside an optional, and an optional returned from a
+/// closure.
+#[test]
+fn optional_function_values() {
+    let driver = build(
+        r#"
+    func pick(on: bool) -> (func(i64) -> i64)? {
+        if on { func(x: i64) -> i64 { x + 1 } } else { nil }
+    }
+
+    public func main() -> i64 {
+        let some = pick(true)
+        let none = pick(false)
+        let a = if let f = some { f(10) } else { 0 }
+        let b = if let f = none { f(10) } else { -1 }
+        a * 100 + b
+    }
+    "#,
+    );
+    let result: i64 = driver.runtime.invoke("main", ()).unwrap();
+    assert_eq!(result, 1099);
+}
+
+/// The optimizer folds the offsets of nested aggregates in a heap object
+/// into byte offsets, and has to do it with the target's layout: an object
+/// holding an optional and then a tuple used to be written with the tuple
+/// at offset 20 and read back by the runtime's layout (and a closure's
+/// captured environment is such an object).
+#[test]
+fn nested_aggregates_in_objects_use_the_targets_layout() {
+    let driver = build(
+        r"
+    class Holder {
+        maybe: i64?,
+        pair: (i64, i64),
+    }
+
+    public func main() -> i64 {
+        let h = Holder { maybe: 4, pair: (10, 20) }
+        let m = if let v = h.maybe { v } else { 0 }
+        m + h.pair.0 + h.pair.1
+    }
+    ",
+    );
+    let result: i64 = driver.runtime.invoke("main", ()).unwrap();
+    assert_eq!(result, 34);
+}

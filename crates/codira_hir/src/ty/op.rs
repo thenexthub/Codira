@@ -16,11 +16,14 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
     match op {
         BinaryOp::LogicOp(..) => TyKind::Bool.intern(),
 
-        // Compare operations are allowed for all scalar types
+        // Compare operations are allowed for all scalar types, and `==`/`!=`
+        // for optionals (checked further by inference).
         BinaryOp::CmpOp(..) => match lhs_ty.interned() {
             TyKind::Int(_)
             | TyKind::Float(_)
             | TyKind::Bool
+            | TyKind::Optional(_)
+            | TyKind::Enum(..)
             | TyKind::InferenceVar(InferTy::Float(_) | InferTy::Int(_)) => lhs_ty,
             _ => TyKind::Unknown.intern(),
         },
@@ -32,6 +35,13 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
             | TyKind::Struct(..)
             | TyKind::Array(_)
             | TyKind::Function(_)
+            | TyKind::Optional(_)
+            | TyKind::Str
+            | TyKind::Tuple(..)
+            | TyKind::Enum(..)
+            // Storing is one of the few things every type supports, so a
+            // `T` can be assigned like anything else.
+            | TyKind::TypeParam(..)
             | TyKind::InferenceVar(InferTy::Float(_) | InferTy::Int(_)) => lhs_ty,
             _ => TyKind::Unknown.intern(),
         },

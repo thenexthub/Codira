@@ -119,3 +119,32 @@ public func abs(x: i64) -> i64
     assert_eq!(build(project.path()), codira::ExitStatus::Error);
     assert!(!project.path().join("target/mod.codiralib").exists());
 }
+
+/// Units of measure exist only in the front end: a package that uses them
+/// builds and computes exactly what the same code without them would.
+#[test]
+fn units_of_measure_are_erased_before_code_generation() {
+    let project = tempfile::tempdir().unwrap();
+    write_package(
+        project.path(),
+        r#"
+public type Speed = f64 unit(m / s);
+
+public func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed {
+    d / t
+}
+
+public func trip() -> f64 unit(m) {
+    let v = speed(100.0, 8.0);
+    let t: f64 unit(s) = 2.0;
+    v * t
+}
+"#,
+    );
+    assert_eq!(build(project.path()), codira::ExitStatus::Success);
+    let library = project.path().join("target/mod.codiralib");
+    // Safety: the library was compiled by this test.
+    let runtime = unsafe { Runtime::builder(&library).finish() }.unwrap();
+    let distance: f64 = runtime.invoke("trip", ()).unwrap();
+    assert!((distance - 25.0).abs() < 1e-9, "{distance}");
+}

@@ -99,6 +99,14 @@ impl EidosOptions {
     }
 }
 
+/// What one code generation pass runs Eidos with: the optimizer for the
+/// target, and the package's proven rewrite rules (`crate::rewrite`).
+#[derive(Debug, Clone)]
+pub struct EidosRun {
+    pub optimizer: EGraphOptimizer,
+    pub rules: std::sync::Arc<[codira_egraph::PatternRule]>,
+}
+
 #[cfg(test)]
 mod tests {
     use codira_target::spec::Target;

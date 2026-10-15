@@ -130,7 +130,7 @@ impl TypeRefMapBuilder {
     pub fn alloc_from_node(&mut self, node: &ast::TypeRef) -> LocalTypeRefId {
         use codira_syntax::ast::TypeRefKind::{
             ArrayType, FunctionType, NeverType, OptionalType, ParenType, PathType, ReferenceType,
-            RefinementType, SecretType, TupleType, VariadicType,
+            RefinementType, SecretType, TupleType, UnitType, VariadicType,
         };
 
         let ptr = AstPtr::new(node);
@@ -203,6 +203,11 @@ impl TypeRefMapBuilder {
             // information-flow checker (`crate::verify::flow`).
             SecretType(inner) => {
                 return self.alloc_from_node_opt(inner.type_ref().as_ref());
+            }
+            // `T unit(..)` is `T`; the dimension is read back from the
+            // syntax tree by `crate::verify::units`.
+            UnitType(inner) => {
+                return self.alloc_from_node_opt(inner.base().as_ref());
             }
         };
         self.alloc_type_ref(type_ref, ptr)

@@ -4,16 +4,13 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use codira_abi as abi;
 use codira_hir::{
-    ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase, HirDisplay,
-    InferenceResult, Literal, LogicOp, Name, Ordering, Pat, PatId, Path, ResolveBitness, Resolver,
-    Statement, Ty, TyKind, UnaryOp, ValueNs,
+    mono::Instance, ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase,
+    HirDisplay, InferenceResult, Literal, LogicOp, MatchArm, Name, Ordering, Pat, PatId, Path,
+    ResolveBitness, Resolver, Statement, Ty, TyKind, UnaryOp, ValueNs,
 };
 use inkwell::{
     basic_block::BasicBlock,
@@ -31,7 +28,7 @@ use crate::{
     intrinsics,
     ir::{
         dispatch_table::DispatchTable, intrinsic_ops, ty::HirTypeCache, type_table::TypeTable,
-        RuntimeArrayValue, RuntimeReferenceValue,
+        FunctionMap, RuntimeArrayValue, RuntimeReferenceValue,
     },
     module_group::ModuleGroup,
     value::Global,
@@ -77,17 +74,21 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     pat_to_param: HashMap<PatId, inkwell::values::BasicValueEnum<'ink>>,
     pat_to_local: HashMap<PatId, inkwell::values::PointerValue<'ink>>,
     pat_to_name: HashMap<PatId, String>,
-    function_map: &'t BTreeMap<codira_hir::Function, FunctionValue<'ink>>,
+    function_map: &'t FunctionMap<'ink>,
     dispatch_table: &'t DispatchTable<'ink>,
     type_table: &'t TypeTable<'ink>,
     hir_types: &'t HirTypeCache<'db, 'ink>,
     active_loop: Option<LoopInfo<'ink>>,
     hir_function: codira_hir::Function,
+    /// The instance of `hir_function` being generated: the function itself
+    /// when it is not generic. `infer` is the function's inference result
+    /// read at this instance, so every type in it is concrete.
+    instance: Instance,
     external_globals: ExternalGlobals<'ink>,
     module_group: &'t ModuleGroup,
-    /// The e-graph optimizer Eidos runs with; `None` skips Eidos entirely
-    /// (`--mode=dev`). See `crate::EidosOptions`.
-    eidos: Option<codira_egraph::EGraphOptimizer>,
+    /// The optimizer and proven rules Eidos runs with; `None` skips Eidos
+    /// entirely (`--mode=dev`). See `crate::EidosOptions`.
+    eidos: Option<crate::EidosRun>,
     /// Evidence in scope, `handle` frames and the arm being generated. See
     /// `effects`.
     effects: effects::EffectState<'ink>,
@@ -102,20 +103,20 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         context: &'ink Context,
         module: &'t inkwell::module::Module<'ink>,
         db: &'db dyn HirDatabase,
-        function: (codira_hir::Function, FunctionValue<'ink>),
-        function_map: &'t BTreeMap<codira_hir::Function, FunctionValue<'ink>>,
+        function: (Instance, Arc<InferenceResult>, FunctionValue<'ink>),
+        function_map: &'t FunctionMap<'ink>,
         dispatch_table: &'t DispatchTable<'ink>,
         type_table: &'t TypeTable<'ink>,
         external_globals: ExternalGlobals<'ink>,
         hir_types: &'t HirTypeCache<'db, 'ink>,
         module_group: &'t ModuleGroup,
-        eidos: Option<codira_egraph::EGraphOptimizer>,
+        eidos: Option<crate::EidosRun>,
     ) -> Self {
-        let (hir_function, ir_function) = function;
+        let (instance, infer, ir_function) = function;
+        let hir_function = instance.function();
 
         // Get the type information from the `codira_hir::Function`
         let body = hir_function.body(db);
-        let infer = hir_function.infer(db);
 
         // Construct a builder for the IR function
         let builder = context.create_builder();
@@ -138,6 +139,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             type_table,
             active_loop: None,
             hir_function,
+            instance,
             external_globals,
             hir_types,
             module_group,
@@ -162,12 +164,19 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // below produces correct code either way. This is the one place
         // Eidos enters a build, so `--mode=dev` (no optimizer) skips it
         // here and nowhere else.
-        if let Some(optimizer) = self.eidos.as_ref().filter(|_| !runtime_checks) {
+        //
+        // Not for an instance of a generic function: the fold lowers the
+        // declaration's body, which is written in terms of its parameters.
+        if let Some(eidos) = self
+            .eidos
+            .as_ref()
+            .filter(|_| !runtime_checks && !self.instance.is_generic())
+        {
             if let Some(value) = crate::eidos_fold::fold_to_constant(
                 self.db,
                 self.hir_function,
                 self.fn_value,
-                optimizer,
+                eidos,
             ) {
                 self.builder
                     .build_return(Some(&value))
@@ -257,13 +266,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // is expected in the first place. If the return type of the body is
         // `never` there is no need to generate a return statement.
         let block_ret_type = &self.infer[self.body.body_expr()];
-        let fn_ret_type = self
-            .hir_function
-            .ty(self.db)
-            .callable_sig(self.db)
-            .unwrap()
-            .ret()
-            .clone();
+        let fn_ret_type = self.instance.sig(self.db).ret().clone();
         if !block_ret_type.is_never() {
             if fn_ret_type.is_empty() {
                 self.builder
@@ -325,7 +328,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 let param = self.fn_value.get_nth_param(idx as u32).unwrap();
                 if let Some(s) = ty.as_struct() {
                     if s.data(self.db).memory_kind == abi::StructMemoryKind::Value {
-                        deref_heap_value(&self.builder, param, self.hir_types.get_struct_type(s))
+                        deref_heap_value(&self.builder, param, self.hir_types.get_struct_type(ty))
                     } else {
                         param
                     }
@@ -336,7 +339,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             })
             .collect();
 
-        let ret_value = self.gen_call(self.hir_function, &args);
+        let ret_value = self.gen_call(None, self.hir_function, &args);
 
         let call_return_type = &self.infer[self.body.body_expr()];
         if !call_return_type.is_never() {
@@ -355,7 +358,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             } else if let Some(value) = ret_value {
                 let ret_value = if let Some(hir_struct) = fn_ret_type.as_struct() {
                     if hir_struct.data(self.db).memory_kind == codira_hir::StructMemoryKind::Value {
-                        self.gen_struct_alloc_on_heap(hir_struct, value.into_struct_value())
+                        self.gen_struct_alloc_on_heap(&fn_ret_type, value.into_struct_value())
                     } else {
                         value
                     }
@@ -371,7 +374,25 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
     /// Generates IR for the specified expression. Dependending on the type of
     /// expression an IR value is returned.
+    ///
+    /// A value used where an optional is expected (`return x` from a
+    /// `-> i32?` function) is wrapped here, after it is computed, so no
+    /// individual construct has to know about the conversion.
     fn gen_expr(&mut self, expr: ExprId) -> Option<inkwell::values::BasicValueEnum<'ink>> {
+        let value = self.gen_expr_inner(expr)?;
+        match self.infer.optional_wrap(expr).cloned() {
+            Some(optional_ty) => Some(self.wrap_optional(&optional_ty, value)),
+            None => Some(value),
+        }
+    }
+
+    /// The value of `expr` itself, before any implicit optional wrapping.
+    fn gen_expr_inner(&mut self, expr: ExprId) -> Option<inkwell::values::BasicValueEnum<'ink>> {
+        // `Shape.Circle(..)` and `Shape.Point` look like a method call and a
+        // field access; inference has recorded what they really are.
+        if let Some(variant) = self.infer.variant_of_expr(expr) {
+            return self.gen_variant(expr, variant);
+        }
         let body = self.body.clone();
         match &body[expr] {
             Expr::Block {
@@ -434,7 +455,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                             return self.gen_inline_asm_call(expr, def, &args);
                         }
 
-                        self.gen_call(def, &args)
+                        self.gen_call(Some(expr), def, &args)
                             // If the called function is a void function it doesn't return anything.
                             // If this method (`gen_expr`) returns None we assume the return value
                             // is `never`. We return a const unit struct here to ensure that at
@@ -467,6 +488,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 body: loop_body,
             } => self.gen_for(*pat, *iterable, *loop_body),
             Expr::Continue => self.gen_continue(),
+            Expr::Match { expr: scrutinee, arms, .. } => self.gen_match(expr, *scrutinee, arms),
+            Expr::Unwrap { expr: inner } => self.gen_unwrap(expr, *inner),
             Expr::Range { .. } => unreachable!(
                 "inference rejects a range anywhere but a `for` loop's iterable, which `gen_for` lowers itself"
             ),
@@ -1003,11 +1026,14 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
             Literal::String(value) => self.gen_string_literal(value),
 
-            Literal::Nil => unimplemented!(
-                "`nil`/optional codegen is not implemented yet -- `Type?` currently lowers \
-                 transparently to `Type` in the type system (see type_ref.rs), so there is no \
-                 IR representation for the absent case yet"
-            ),
+            // `nil` is the all-zero optional: absent, with a zero payload.
+            Literal::Nil => {
+                let ty = self.infer[expr].clone();
+                self.hir_types
+                    .get_basic_type(&ty)
+                    .expect("`nil` has an optional type")
+                    .const_zero()
+            }
         }
     }
 
@@ -1059,11 +1085,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// type of the struct.
     fn gen_struct_alloc(
         &mut self,
-        hir_struct: codira_hir::Struct,
+        hir_ty: &Ty,
         args: Vec<BasicValueEnum<'ink>>,
     ) -> BasicValueEnum<'ink> {
+        let hir_struct = hir_ty.as_struct().expect("a struct type");
         // Construct the struct literal
-        let struct_ty = self.hir_types.get_struct_type(hir_struct);
+        let struct_ty = self.hir_types.get_struct_type(hir_ty);
         let mut value: AggregateValueEnum<'_> = struct_ty.get_undef().into();
         for (i, arg) in args.into_iter().enumerate() {
             value = self
@@ -1077,17 +1104,17 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             codira_hir::StructMemoryKind::Value => struct_lit.into(),
             codira_hir::StructMemoryKind::Gc => {
                 // TODO: Root memory in GC
-                self.gen_struct_alloc_on_heap(hir_struct, struct_lit)
+                self.gen_struct_alloc_on_heap(hir_ty, struct_lit)
             }
         }
     }
 
     fn gen_struct_alloc_on_heap(
         &mut self,
-        hir_struct: codira_hir::Struct,
+        hir_ty: &Ty,
         struct_lit: StructValue<'_>,
     ) -> BasicValueEnum<'ink> {
-        let struct_ir_ty = self.hir_types.get_struct_type(hir_struct);
+        let struct_ir_ty = self.hir_types.get_struct_type(hir_ty);
         let (new_fn_ty, new_fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
             self.external_globals.dispatch_table,
             &self.builder,
@@ -1100,7 +1127,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let type_info_ptr = self.type_table.gen_type_info_lookup(
             self.context,
             &self.builder,
-            &self.hir_types.type_id(&hir_struct.ty(self.db)),
+            &self.hir_types.type_id(hir_ty),
             self.external_globals.type_table,
         );
 
@@ -1141,13 +1168,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         fields: &[codira_hir::RecordLitField],
     ) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
         let fields: Vec<BasicValueEnum<'ink>> = fields
             .iter()
             .map(|field| self.gen_expr(field.expr).expect("expected a field value"))
             .collect();
 
-        self.gen_struct_alloc(hir_struct, fields)
+        self.gen_struct_alloc(&struct_ty, fields)
     }
 
     /// Generates IR for `receiver.method(args...)`.
@@ -1184,10 +1210,15 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             let Expr::MethodCall { method_name, .. } = &body[tgt_expr] else {
                 unreachable!("a field call is a method-call expression");
             };
-            let fn_ty = self.infer[receiver]
+            let receiver_ty = self.infer[receiver].clone();
+            let fn_ty = receiver_ty
                 .as_struct()
                 .and_then(|s| s.field(self.db, method_name))
-                .map(|field| field.ty(self.db))
+                .and_then(|field| {
+                    codira_hir::mono::struct_field_types(self.db, &receiver_ty)
+                        .get(field.index(self.db) as usize)
+                        .cloned()
+                })
                 .expect("inference resolved the called field");
             let callee_value = self.gen_field(tgt_expr, receiver, method_name)?;
             return self.gen_indirect_call(tgt_expr, callee_value, &fn_ty, args);
@@ -1210,7 +1241,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             call_args.push(self.gen_expr(*arg)?.into());
         }
 
-        self.gen_call(function, &call_args)
+        self.gen_call(Some(tgt_expr), function, &call_args)
             // Same convention as `Expr::Call`: a void method returns the unit
             // struct so callers always get *something*, while a `never`
             // method genuinely returns nothing.
@@ -1223,13 +1254,12 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// Generates IR for a named tuple literal, e.g. `Foo(1.23, 4)`
     fn gen_named_tuple_lit(&mut self, type_expr: ExprId, args: &[ExprId]) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
         let args: Vec<BasicValueEnum<'ink>> = args
             .iter()
             .map(|expr| self.gen_expr(*expr).expect("expected a field value"))
             .collect();
 
-        self.gen_struct_alloc(hir_struct, args)
+        self.gen_struct_alloc(&struct_ty, args)
     }
 
     /// Generates IR for a tuple literal, e.g. `(1.23, 4)`.
@@ -1270,8 +1300,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// Generates IR for a unit struct literal, e.g `Foo`
     fn gen_unit_struct_lit(&mut self, type_expr: ExprId) -> BasicValueEnum<'ink> {
         let struct_ty = self.infer[type_expr].clone();
-        let hir_struct = struct_ty.as_struct().unwrap(); // Can only really get here if the type is a struct
-        self.gen_struct_alloc(hir_struct, Vec::new())
+        self.gen_struct_alloc(&struct_ty, Vec::new())
     }
 
     /// Generates IR for the specified block expression.
@@ -1472,7 +1501,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let ty = &self.infer[expr];
         if let Some(s) = ty.as_struct() {
             if s.data(self.db).memory_kind == codira_hir::StructMemoryKind::Gc {
-                return deref_heap_value(&self.builder, value, self.hir_types.get_struct_type(s));
+                return deref_heap_value(&self.builder, value, self.hir_types.get_struct_type(ty));
             }
         }
         value
@@ -1490,7 +1519,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let ty = &self.infer[expr];
         if let Some(s) = ty.as_struct() {
             if s.data(self.db).memory_kind == codira_hir::StructMemoryKind::Gc {
-                let struct_ty = self.hir_types.get_struct_type(s);
+                let struct_ty = self.hir_types.get_struct_type(ty);
                 let handle = self
                     .builder
                     .build_load(
@@ -1545,6 +1574,23 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_short_circuit(lhs, rhs, op);
         }
         let lhs_type = self.infer[lhs].clone();
+        match (lhs_type.interned(), op) {
+            (
+                TyKind::Optional(_)
+                | TyKind::Str
+                | TyKind::Tuple(..)
+                | TyKind::Enum(..)
+                | TyKind::Function(_),
+                BinaryOp::Assignment { op: None },
+            ) => return self.gen_plain_assignment(lhs, rhs),
+            (TyKind::Enum(e, _), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
+                return self.gen_enum_eq(lhs, rhs, *e, negated)
+            }
+            (TyKind::Optional(payload), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
+                return self.gen_optional_eq(lhs, rhs, &payload.clone(), negated)
+            }
+            _ => {}
+        }
         match lhs_type.interned() {
             TyKind::Bool => self.gen_binary_op_bool(lhs, rhs, op),
             TyKind::Float(_) => self.gen_binary_op_float(lhs, rhs, op),
@@ -2241,12 +2287,25 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         }
     }
 
+    ///
+    /// `call` is the call expression, which says -- through its recorded
+    /// instantiation -- which instance of a generic `function` is called.
+    /// It is `None` only for the host wrapper's call of its own function,
+    /// which is never generic.
     fn gen_call(
         &mut self,
+        call: Option<ExprId>,
         function: codira_hir::Function,
         args: &[BasicMetadataValueEnum<'ink>],
     ) -> Option<BasicValueEnum<'ink>> {
-        let sig = function.ty(self.db).callable_sig(self.db).unwrap();
+        let instance = call
+            .and_then(|call| Instance::callee(self.db, &self.infer, call, function))
+            .unwrap_or_else(|| Instance::of(function));
+        let sig = instance.sig(self.db);
+        // A function this module has code for -- its own, an instance of a
+        // generic one, or a copy of another module's private helper -- is
+        // called directly, never through the dispatch table.
+        let local = self.function_map.get(&instance).copied();
 
         // A `uses` callee takes the innermost evidence for each of its
         // effects after its ordinary arguments, and may then abort to a
@@ -2264,7 +2323,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             &with_evidence[..]
         };
 
-        let call_site = if self.should_use_dispatch_table(function) {
+        let through_table = local.is_none() && self.should_use_dispatch_table(function);
+        let call_site = if through_table {
             let boxed_args: Vec<BasicMetadataValueEnum<'ink>> = args
                 .iter()
                 .zip(sig.params().iter())
@@ -2274,7 +2334,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                             == codira_hir::StructMemoryKind::Value
                         {
                             return self
-                                .gen_struct_alloc_on_heap(hir_struct, arg.into_struct_value())
+                                .gen_struct_alloc_on_heap(param_ty, arg.into_struct_value())
                                 .into();
                         }
                     }
@@ -2297,8 +2357,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 )
                 .expect("failed to build indirect call")
         } else {
-            let llvm_function = match self.function_map.get(&function) {
-                Some(function) => *function,
+            let llvm_function = match local {
+                Some(function) => function,
                 // An `extern` declaration of a function the package's native
                 // code defines: declared here, on first use, under its own
                 // name, so the linker -- or, for C and C++, the bitcode linked
@@ -2310,8 +2370,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                         crate::ir::function::gen_prototype(
                             self.db,
                             self.hir_types,
-                            function,
+                            &instance,
                             self.module,
+                            false,
                         )
                     })
                 }
@@ -2330,10 +2391,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             self.gen_abort_check();
         }
 
-        if self.should_use_dispatch_table(function) {
+        if through_table {
             if let Some(hir_struct) = sig.ret().as_struct() {
                 if hir_struct.data(self.db).memory_kind == codira_hir::StructMemoryKind::Value {
-                    let struct_ty = self.hir_types.get_struct_type(hir_struct);
+                    let struct_ty = self.hir_types.get_struct_type(sig.ret());
                     return ret_value
                         .map(|value| deref_heap_value(&self.builder, value, struct_ty));
                 }
@@ -2628,6 +2689,601 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         }
     }
 
+    /// Wraps `value`, a `T`, into the present `T?` of type `optional_ty`.
+    fn wrap_optional(
+        &mut self,
+        optional_ty: &Ty,
+        value: BasicValueEnum<'ink>,
+    ) -> BasicValueEnum<'ink> {
+        let optional_type = self
+            .hir_types
+            .get_basic_type(optional_ty)
+            .expect("an optional is a basic type")
+            .into_struct_type();
+        let with_flag = self
+            .builder
+            .build_insert_value(
+                optional_type.const_zero(),
+                self.context.bool_type().const_all_ones(),
+                0,
+                "some.flag",
+            )
+            .expect("failed to set an optional's present flag");
+        self.builder
+            .build_insert_value(with_flag, value, 1, "some")
+            .expect("failed to set an optional's payload")
+            .into_struct_value()
+            .into()
+    }
+
+    /// `x!`: the payload of a present optional, or a panic naming the
+    /// source location when it is `nil`.
+    fn gen_unwrap(&mut self, unwrap_expr: ExprId, inner: ExprId) -> Option<BasicValueEnum<'ink>> {
+        let optional = self.gen_expr(inner)?.into_struct_value();
+        let present = self
+            .builder
+            .build_extract_value(optional, 0, "is_some")
+            .expect("an optional has a present flag")
+            .into_int_value();
+        let ok_block = self
+            .context
+            .append_basic_block(self.fn_value, "unwrap.some");
+        let nil_block = self.context.append_basic_block(self.fn_value, "unwrap.nil");
+        self.builder
+            .build_conditional_branch(present, ok_block, nil_block)
+            .expect("failed to branch on an optional");
+
+        self.builder.position_at_end(nil_block);
+        self.gen_panic("unwrapped `nil` with postfix `!`", unwrap_expr);
+
+        self.builder.position_at_end(ok_block);
+        Some(
+            self.builder
+                .build_extract_value(optional, 1, "value")
+                .expect("an optional has a payload"),
+        )
+    }
+
+    /// Emits a call to `codira.panic` with `message` and the location of
+    /// `expr`, followed by `unreachable`: the runtime never returns.
+    fn gen_panic(&mut self, message: &str, expr: ExprId) {
+        let message = self.gen_string_literal(message).into_struct_value();
+        let (file, line, column) = self.source_location(expr);
+        let mut args: Vec<BasicMetadataValueEnum<'ink>> = Vec::with_capacity(6);
+        for value in [message, file] {
+            args.push(
+                self.builder
+                    .build_extract_value(value, 0, "str.data")
+                    .expect("a str has a data pointer")
+                    .into(),
+            );
+            args.push(
+                self.builder
+                    .build_extract_value(value, 1, "str.len")
+                    .expect("a str has a length")
+                    .into(),
+            );
+        }
+        let u32_type = self.context.i32_type();
+        args.push(u32_type.const_int(u64::from(line), false).into());
+        args.push(u32_type.const_int(u64::from(column), false).into());
+        self.gen_runtime_call(&intrinsics::panic, &args);
+        self.builder
+            .build_unreachable()
+            .expect("failed to build unreachable after a panic");
+    }
+
+    /// `place = value` for a type that is stored as a whole: an optional, a
+    /// `str` or a tuple.
+    fn gen_plain_assignment(&mut self, lhs: ExprId, rhs: ExprId) -> Option<BasicValueEnum<'ink>> {
+        let value = self.gen_expr(rhs)?;
+        let place = self.gen_place_expr(lhs)?;
+        self.builder
+            .build_store(place, value)
+            .expect("failed to build store");
+        Some(self.gen_empty())
+    }
+
+    /// `a == b` / `a != b` on optionals: equal when both are `nil`, or both
+    /// are present with equal payloads. A `nil` payload is zero, so the
+    /// payload comparison is always well defined, and it only decides the
+    /// result when both are present.
+    fn gen_optional_eq(
+        &mut self,
+        lhs: ExprId,
+        rhs: ExprId,
+        payload_ty: &Ty,
+        negated: bool,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let lhs_value = self.gen_expr(lhs)?.into_struct_value();
+        let rhs_value = self.gen_expr(rhs)?.into_struct_value();
+        let b = &self.builder;
+        let lhs_present = b
+            .build_extract_value(lhs_value, 0, "lhs.is_some")
+            .expect("an optional has a present flag")
+            .into_int_value();
+
+        let equal = if matches!(self.body[rhs], Expr::Literal(Literal::Nil)) {
+            b.build_not(lhs_present, "is_nil")
+                .expect("failed to negate a present flag")
+        } else {
+            let rhs_present = b
+                .build_extract_value(rhs_value, 0, "rhs.is_some")
+                .expect("an optional has a present flag")
+                .into_int_value();
+            let lhs_payload = b
+                .build_extract_value(lhs_value, 1, "lhs.value")
+                .expect("an optional has a payload");
+            let rhs_payload = b
+                .build_extract_value(rhs_value, 1, "rhs.value")
+                .expect("an optional has a payload");
+            let payloads_equal = match payload_ty.interned() {
+                TyKind::Float(_) => b
+                    .build_float_compare(
+                        FloatPredicate::OEQ,
+                        lhs_payload.into_float_value(),
+                        rhs_payload.into_float_value(),
+                        "payload_eq",
+                    )
+                    .expect("failed to compare payloads"),
+                TyKind::Int(_) | TyKind::Bool => b
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        lhs_payload.into_int_value(),
+                        rhs_payload.into_int_value(),
+                        "payload_eq",
+                    )
+                    .expect("failed to compare payloads"),
+                _ => unreachable!(
+                    "inference only admits optional equality on scalar payloads, or against `nil`"
+                ),
+            };
+            let flags_equal = b
+                .build_int_compare(IntPredicate::EQ, lhs_present, rhs_present, "flags_eq")
+                .expect("failed to compare present flags");
+            let absent = b
+                .build_not(lhs_present, "absent")
+                .expect("failed to negate a present flag");
+            let absent_or_equal = b
+                .build_or(absent, payloads_equal, "absent_or_equal")
+                .expect("failed to combine optional comparison");
+            b.build_and(flags_equal, absent_or_equal, "optional_eq")
+                .expect("failed to combine optional comparison")
+        };
+
+        Some(if negated {
+            self.builder
+                .build_not(equal, "optional_ne")
+                .expect("failed to negate an optional comparison")
+                .into()
+        } else {
+            equal.into()
+        })
+    }
+
+    /// Generates IR for a `match` (and the `if let`/`while let` that lower
+    /// to one).
+    ///
+    /// The scrutinee is evaluated once; then each arm's pattern is tested in
+    /// order, and the first that matches binds its names and runs its arm.
+    /// An arm whose pattern always matches ends the chain. Falling off the
+    /// end is `unreachable`: inference has proved the match exhaustive, and
+    /// an `if let` ends in a `_` arm.
+    fn gen_match(
+        &mut self,
+        match_expr: ExprId,
+        scrutinee: ExprId,
+        arms: &[MatchArm],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let value = self.gen_expr(scrutinee)?;
+        let ty = self.infer[scrutinee].clone();
+        let merge_block = self.context.append_basic_block(self.fn_value, "match.end");
+        let mut incoming: Vec<(BasicValueEnum<'ink>, BasicBlock<'ink>)> = Vec::new();
+        let mut falls_through = true;
+
+        for arm in arms {
+            let arm_block = self.context.append_basic_block(self.fn_value, "match.arm");
+            let next_block = if let Some(matched) = self.gen_pat_test(arm.pat, value, &ty) {
+                let next_block = self.context.append_basic_block(self.fn_value, "match.next");
+                self.builder
+                    .build_conditional_branch(matched, arm_block, next_block)
+                    .expect("failed to branch on a match arm");
+                Some(next_block)
+            } else {
+                self.builder
+                    .build_unconditional_branch(arm_block)
+                    .expect("failed to branch to a match arm");
+                None
+            };
+
+            self.builder.position_at_end(arm_block);
+            self.gen_pat_bind(arm.pat, value, &ty);
+            if let Some(arm_value) = self.gen_expr(arm.expr) {
+                let end_block = self.builder.get_insert_block().unwrap();
+                self.builder
+                    .build_unconditional_branch(merge_block)
+                    .expect("failed to branch out of a match arm");
+                incoming.push((arm_value, end_block));
+            }
+
+            if let Some(next_block) = next_block {
+                self.builder.position_at_end(next_block);
+            } else {
+                falls_through = false;
+                break;
+            }
+        }
+
+        // Inference has proved the match exhaustive, so this is reached only
+        // by a value no declaration describes -- an enum tag a hot reload
+        // has removed the variant of. Stop with the location rather than
+        // run on.
+        if falls_through {
+            self.gen_panic("no `match` arm matches this value", match_expr);
+        }
+
+        if incoming.is_empty() {
+            merge_block
+                .remove_from_function()
+                .expect("the merge block must have a parent");
+            return None;
+        }
+
+        self.builder.position_at_end(merge_block);
+        if self.infer[match_expr].is_empty() {
+            return Some(self.gen_empty());
+        }
+        let phi = self
+            .builder
+            .build_phi(incoming[0].0.get_type(), "match")
+            .expect("failed to build a match phi");
+        for (arm_value, block) in &incoming {
+            phi.add_incoming(&[(arm_value, *block)]);
+        }
+        Some(phi.as_basic_value())
+    }
+
+    /// Emits the test of `pat` against `value` (of type `ty`), or returns
+    /// `None` when the pattern matches every value and needs no test.
+    fn gen_pat_test(
+        &mut self,
+        pat: PatId,
+        value: BasicValueEnum<'ink>,
+        ty: &Ty,
+    ) -> Option<IntValue<'ink>> {
+        let body = self.body.clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            return match &body[pat] {
+                Pat::Wild | Pat::Missing => None,
+                Pat::Literal(Literal::Nil) => {
+                    let present = self.optional_present(value);
+                    Some(
+                        self.builder
+                            .build_not(present, "is_nil")
+                            .expect("failed to negate a present flag"),
+                    )
+                }
+                // Any other pattern tests the payload of a present value.
+                _ => {
+                    let present = self.optional_present(value);
+                    let payload_value = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), 1, "value")
+                        .expect("an optional has a payload");
+                    Some(match self.gen_pat_test(pat, payload_value, payload) {
+                        None => present,
+                        Some(matched) => self
+                            .builder
+                            .build_and(present, matched, "some_and")
+                            .expect("failed to combine pattern tests"),
+                    })
+                }
+            };
+        }
+
+        match &body[pat] {
+            Pat::Wild | Pat::Missing | Pat::Bind { .. } => None,
+            Pat::Literal(literal) => Some(self.gen_literal_test(literal, value)),
+            Pat::Tuple(args) => {
+                let TyKind::Tuple(_, elements) = ty.interned() else {
+                    unreachable!("inference checked that a tuple pattern matches a tuple");
+                };
+                let mut all: Option<IntValue<'ink>> = None;
+                for (idx, (&arg, element_ty)) in args.iter().zip(elements.iter()).enumerate() {
+                    let element = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), idx as u32, "element")
+                        .expect("tuple element index checked by inference");
+                    if let Some(matched) = self.gen_pat_test(arg, element, element_ty) {
+                        all = Some(match all {
+                            None => matched,
+                            Some(previous) => self
+                                .builder
+                                .build_and(previous, matched, "and")
+                                .expect("failed to combine pattern tests"),
+                        });
+                    }
+                }
+                all
+            }
+            Pat::Path(_) | Pat::TupleStruct { .. } => {
+                let variant = self
+                    .infer
+                    .variant_of_pat(pat)
+                    .expect("inference resolved every variant pattern");
+                let enum_value = value.into_struct_value();
+                let tag = self
+                    .builder
+                    .build_extract_value(enum_value, 0, "tag")
+                    .expect("an enum has a tag")
+                    .into_int_value();
+                let mut all = self
+                    .builder
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        tag,
+                        tag.get_type().const_int(u64::from(variant.index()), false),
+                        "is_variant",
+                    )
+                    .expect("failed to compare an enum tag");
+                // The payload tests read the variant's slots whatever the
+                // tag is: an inactive slot holds a zero, which every test
+                // can safely look at, and the tag test decides the result.
+                let args = match &body[pat] {
+                    Pat::TupleStruct { args, .. } => args.clone(),
+                    _ => Vec::new(),
+                };
+                let field_tys = variant.field_types(self.db);
+                let slots = variant.slots(self.db);
+                for ((&arg, field_ty), slot) in args.iter().zip(field_tys.iter()).zip(slots) {
+                    let field = self
+                        .builder
+                        .build_extract_value(enum_value, slot as u32 + 1, "payload")
+                        .expect("a payload slot exists in the layout");
+                    if let Some(matched) = self.gen_pat_test(arg, field, field_ty) {
+                        all = self
+                            .builder
+                            .build_and(all, matched, "and")
+                            .expect("failed to combine pattern tests");
+                    }
+                }
+                Some(all)
+            }
+        }
+    }
+
+    /// The present flag of an optional value.
+    fn optional_present(&self, value: BasicValueEnum<'ink>) -> IntValue<'ink> {
+        self.builder
+            .build_extract_value(value.into_struct_value(), 0, "is_some")
+            .expect("an optional has a present flag")
+            .into_int_value()
+    }
+
+    /// Compares `value` against a literal pattern.
+    fn gen_literal_test(
+        &mut self,
+        literal: &Literal,
+        value: BasicValueEnum<'ink>,
+    ) -> IntValue<'ink> {
+        match literal {
+            Literal::Bool(b) => {
+                let constant = self.context.bool_type().const_int(u64::from(*b), false);
+                self.builder
+                    .build_int_compare(IntPredicate::EQ, value.into_int_value(), constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Int(int) => {
+                let int_value = value.into_int_value();
+                let int_type = int_value.get_type();
+                let constant = if int_type.get_bit_width() > 64 {
+                    int_type.const_int_arbitrary_precision(&[
+                        int.value as u64,
+                        (int.value >> 64) as u64,
+                    ])
+                } else {
+                    int_type.const_int(int.value as u64, false)
+                };
+                self.builder
+                    .build_int_compare(IntPredicate::EQ, int_value, constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Float(float) => {
+                let float_value = value.into_float_value();
+                let constant = float_value.get_type().const_float(float.value);
+                self.builder
+                    .build_float_compare(FloatPredicate::OEQ, float_value, constant, "is_lit")
+                    .expect("failed to compare with a literal")
+            }
+            Literal::String(text) => {
+                let literal = self.gen_string_literal(text).into_struct_value();
+                let value = value.into_struct_value();
+                let mut args: Vec<BasicMetadataValueEnum<'ink>> = Vec::with_capacity(4);
+                for string in [value, literal] {
+                    args.push(
+                        self.builder
+                            .build_extract_value(string, 0, "str.data")
+                            .expect("a str has a data pointer")
+                            .into(),
+                    );
+                    args.push(
+                        self.builder
+                            .build_extract_value(string, 1, "str.len")
+                            .expect("a str has a length")
+                            .into(),
+                    );
+                }
+                let (fn_ty, fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
+                    self.external_globals.dispatch_table,
+                    &self.builder,
+                    &intrinsics::str_eq,
+                );
+                let equal = self
+                    .builder
+                    .build_indirect_call(fn_ty, fn_ptr, &args, "str_eq")
+                    .expect("failed to call str_eq")
+                    .try_as_basic_value()
+                    .unwrap_basic()
+                    .into_int_value();
+                self.builder
+                    .build_int_compare(
+                        IntPredicate::NE,
+                        equal,
+                        equal.get_type().const_zero(),
+                        "is_lit",
+                    )
+                    .expect("failed to compare with a literal")
+            }
+            Literal::Nil => unreachable!("`nil` patterns are tested on the optional itself"),
+        }
+    }
+
+    /// Binds the names in `pat`, which has already matched `value`.
+    fn gen_pat_bind(&mut self, pat: PatId, value: BasicValueEnum<'ink>, ty: &Ty) {
+        let body = self.body.clone();
+        if let TyKind::Optional(payload) = ty.interned() {
+            if !matches!(
+                &body[pat],
+                Pat::Wild | Pat::Missing | Pat::Literal(Literal::Nil)
+            ) {
+                let payload_value = self
+                    .builder
+                    .build_extract_value(value.into_struct_value(), 1, "value")
+                    .expect("an optional has a payload");
+                self.gen_pat_bind(pat, payload_value, payload);
+            }
+            return;
+        }
+        match &body[pat] {
+            Pat::Bind { .. } => self.bind_pattern_to_value(pat, value),
+            Pat::Tuple(args) => {
+                let TyKind::Tuple(_, elements) = ty.interned() else {
+                    return;
+                };
+                for (idx, (&arg, element_ty)) in args.iter().zip(elements.iter()).enumerate() {
+                    let element = self
+                        .builder
+                        .build_extract_value(value.into_struct_value(), idx as u32, "element")
+                        .expect("tuple element index checked by inference");
+                    self.gen_pat_bind(arg, element, element_ty);
+                }
+            }
+            Pat::TupleStruct { args, .. } => {
+                let Some(variant) = self.infer.variant_of_pat(pat) else {
+                    return;
+                };
+                let enum_value = value.into_struct_value();
+                let field_tys = variant.field_types(self.db);
+                let slots = variant.slots(self.db);
+                for ((&arg, field_ty), slot) in args.iter().zip(field_tys.iter()).zip(slots) {
+                    let field = self
+                        .builder
+                        .build_extract_value(enum_value, slot as u32 + 1, "payload")
+                        .expect("a payload slot exists in the layout");
+                    self.gen_pat_bind(arg, field, field_ty);
+                }
+            }
+            Pat::Wild | Pat::Missing | Pat::Literal(_) | Pat::Path(_) => {}
+        }
+    }
+
+    /// Generates IR for `Shape.Circle(args)` or `Shape.Point`: the enum's
+    /// all-zero value with the variant's tag and its payload in the
+    /// variant's slots (see `codira_hir::EnumLayout`). Every slot the
+    /// variant does not use stays zero, so a reference slot is null.
+    fn gen_variant(
+        &mut self,
+        expr: ExprId,
+        variant: codira_hir::EnumVariant,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let body = self.body.clone();
+        let args: Vec<ExprId> = match &body[expr] {
+            Expr::MethodCall { args, .. } => args.clone(),
+            _ => Vec::new(),
+        };
+        let enum_type = self.hir_types.get_enum_type(variant.parent());
+        let tag = self
+            .context
+            .i32_type()
+            .const_int(u64::from(variant.index()), false);
+        let mut value: AggregateValueEnum<'ink> = self
+            .builder
+            .build_insert_value(enum_type.const_zero(), tag, 0, "variant")
+            .expect("failed to set an enum tag");
+        for (&arg, slot) in args.iter().zip(variant.slots(self.db)) {
+            let payload = self.gen_expr(arg)?;
+            value = self
+                .builder
+                .build_insert_value(value, payload, slot as u32 + 1, "payload")
+                .expect("failed to set an enum payload");
+        }
+        Some(value.into_struct_value().into())
+    }
+
+    /// `a == b` / `a != b` on an enum whose payloads are all numbers or
+    /// `bool`s: the tags are equal and so is every slot. A slot the variant
+    /// does not use is zero on both sides, so it never decides the result;
+    /// a float slot compares like float `==` (`NaN` is unequal to itself).
+    fn gen_enum_eq(
+        &mut self,
+        lhs: ExprId,
+        rhs: ExprId,
+        hir_enum: codira_hir::Enum,
+        negated: bool,
+    ) -> Option<BasicValueEnum<'ink>> {
+        let lhs_value = self.gen_expr(lhs)?.into_struct_value();
+        let rhs_value = self.gen_expr(rhs)?.into_struct_value();
+        let layout = hir_enum.layout(self.db);
+        let b = &self.builder;
+        let field = |value: StructValue<'ink>, idx: u32| {
+            b.build_extract_value(value, idx, "field")
+                .expect("an enum field exists in its layout")
+        };
+        let mut equal = b
+            .build_int_compare(
+                IntPredicate::EQ,
+                field(lhs_value, 0).into_int_value(),
+                field(rhs_value, 0).into_int_value(),
+                "tag_eq",
+            )
+            .expect("failed to compare enum tags");
+        for (idx, slot) in layout.slots.iter().enumerate() {
+            let (l, r) = (
+                field(lhs_value, idx as u32 + 1),
+                field(rhs_value, idx as u32 + 1),
+            );
+            let slot_equal = match slot.ty.interned() {
+                TyKind::Float(_) => b
+                    .build_float_compare(
+                        FloatPredicate::OEQ,
+                        l.into_float_value(),
+                        r.into_float_value(),
+                        "slot_eq",
+                    )
+                    .expect("failed to compare enum payloads"),
+                TyKind::Int(_) | TyKind::Bool => b
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        l.into_int_value(),
+                        r.into_int_value(),
+                        "slot_eq",
+                    )
+                    .expect("failed to compare enum payloads"),
+                _ => unreachable!("inference only admits `==` on enums with scalar payloads"),
+            };
+            equal = b
+                .build_and(equal, slot_equal, "enum_eq")
+                .expect("failed to combine enum comparison");
+        }
+        Some(if negated {
+            b.build_not(equal, "enum_ne")
+                .expect("failed to negate an enum comparison")
+                .into()
+        } else {
+            equal.into()
+        })
+    }
+
     /// Generates IR for `continue`: a jump to the innermost loop's
     /// `continue_block`. Like `break`, it never yields a value.
     fn gen_continue(&mut self) -> Option<BasicValueEnum<'ink>> {
@@ -2876,9 +3532,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_tuple_field(receiver_expr, name, substs.as_ref());
         }
 
-        let hir_struct = self.infer[receiver_expr]
-            .as_struct()
-            .expect("expected a struct");
+        let receiver_ty = self.infer[receiver_expr].clone();
+        let hir_struct = receiver_ty.as_struct().expect("expected a struct");
 
         let hir_struct_name = hir_struct.name(self.db);
 
@@ -2889,7 +3544,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
 
         let field_ir_name = &format!("{hir_struct_name}.{name}");
         if self.is_place_expr(receiver_expr) {
-            let struct_ty = self.hir_types.get_struct_type(hir_struct);
+            let struct_ty = self.hir_types.get_struct_type(&receiver_ty);
             let receiver_ptr = self.gen_place_expr(receiver_expr)?;
             let receiver_ptr = self.opt_deref_place(receiver_expr, receiver_ptr);
             let field_ptr = self
@@ -3002,9 +3657,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             );
         }
 
-        let hir_struct = self.infer[receiver_expr]
-            .as_struct()
-            .expect("expected a struct");
+        let receiver_ty = self.infer[receiver_expr].clone();
+        let hir_struct = receiver_ty.as_struct().expect("expected a struct");
 
         let hir_struct_name = hir_struct.name(self.db);
 
@@ -3018,7 +3672,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         Some(
             self.builder
                 .build_struct_gep(
-                    self.hir_types.get_struct_type(hir_struct),
+                    self.hir_types.get_struct_type(&receiver_ty),
                     receiver_ptr,
                     field_idx,
                     &format!("{hir_struct_name}->{name}"),

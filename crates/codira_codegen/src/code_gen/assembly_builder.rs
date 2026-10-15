@@ -126,6 +126,19 @@ impl<'db, 'ink, 'ctx, 't> AssemblyBuilder<'db, 'ink, 'ctx, 't> {
             dependencies,
         );
 
+        // A certified build names every function's machine code by its
+        // symbol. Private linkage keeps a function out of the object's
+        // symbol table; internal linkage is the same to the optimizer (local
+        // to the module, free to inline, specialise or drop) but keeps the
+        // symbol. Declarations are left alone.
+        if self.code_gen.keep_function_symbols {
+            for function in self.assembly_module.get_functions() {
+                if function.get_linkage() == Linkage::Private && function.count_basic_blocks() > 0 {
+                    function.set_linkage(Linkage::Internal);
+                }
+            }
+        }
+
         // Optimize the assembly module
         optimize_module(
             &self.assembly_module,

@@ -57,6 +57,8 @@ pub trait InternDatabase: SourceDatabase {
     fn intern_impl(self, loc: ids::ImplLoc) -> ids::ImplId;
     #[salsa::interned]
     fn intern_effect(&self, loc: ids::EffectLoc) -> ids::EffectId;
+    #[salsa::interned]
+    fn intern_enum(&self, loc: ids::EnumLoc) -> ids::EnumId;
 }
 
 #[salsa::query_group(DefDatabaseStorage)]
@@ -71,6 +73,9 @@ pub trait DefDatabase: InternDatabase + AstDatabase {
 
     #[salsa::invoke(crate::code_model::EffectData::effect_data_query)]
     fn effect_data(&self, id: ids::EffectId) -> Arc<crate::code_model::EffectData>;
+
+    #[salsa::invoke(crate::code_model::EnumData::enum_data_query)]
+    fn enum_data(&self, id: ids::EnumId) -> Arc<crate::code_model::EnumData>;
 
     #[salsa::invoke(TypeAliasData::type_alias_data_query)]
     fn type_alias_data(&self, id: ids::TypeAliasId) -> Arc<TypeAliasData>;
@@ -125,6 +130,12 @@ pub trait HirDatabase: DefDatabase {
     #[salsa::invoke(crate::code_model::lower_effect_query)]
     fn lower_effect(&self, def: crate::code_model::Effect) -> Arc<LowerTyMap>;
 
+    #[salsa::invoke(crate::code_model::lower_enum_query)]
+    fn lower_enum(&self, def: crate::code_model::Enum) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::EnumLayout::enum_layout_query)]
+    fn enum_layout(&self, def: crate::code_model::Enum) -> Arc<crate::code_model::EnumLayout>;
+
     #[salsa::invoke(crate::ty::callable_item_sig)]
     fn callable_sig(&self, def: CallableDef) -> FnSig;
 
@@ -153,6 +164,16 @@ pub trait HirDatabase: DefDatabase {
     /// it calls -- and what Z3 said about each. See `crate::verify`.
     #[salsa::invoke(crate::verify::verify_function_query)]
     fn verify_function(&self, func: Function) -> Arc<crate::verify::VerificationReport>;
+
+    /// What `func`'s own body does that allocates, blocks, panics or may
+    /// not terminate, and every call it makes. See `crate::realtime`.
+    #[salsa::invoke(crate::realtime::effect_sources_query)]
+    fn effect_sources(&self, func: Function) -> Arc<crate::realtime::EffectSources>;
+
+    /// Every effect a call to `func` can have, through everything it calls,
+    /// with the chain of calls that explains each. See `crate::realtime`.
+    #[salsa::invoke(crate::realtime::effect_summary_query)]
+    fn effect_summary(&self, func: Function) -> Arc<crate::realtime::EffectSummary>;
 
     #[salsa::invoke(crate::mir_lower::mir_generator_query)]
     fn mir_generator(&self, func: Function) -> Option<Arc<codira_mir::Generator>>;

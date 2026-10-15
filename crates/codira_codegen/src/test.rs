@@ -1813,6 +1813,30 @@ fn static_member_access() {
     );
 }
 
+/// A generic function becomes one LLVM function per instantiation, named by
+/// the instance -- `id[i64]`, `id[f64]` -- and private to the module; the
+/// generic declaration itself produces no code. An instantiated generic
+/// struct gets a layout of its own (`Pair[f64, i64]`), and a generic body
+/// calling another generic function calls the matching instance of it.
+#[test]
+fn generic_instantiations() {
+    test_snapshot_unoptimized(
+        "generic_instantiations",
+        r#"
+    struct Pair[A, B] { a: A, b: B }
+
+    func id[T](x: T) -> T { x }
+
+    func first[A, B](p: Pair[A, B]) -> A { id(p.a) }
+
+    public func main() -> f64 {
+        let i: i64 = id(1)
+        let p = Pair { a: 2.5, b: i }
+        id(first(p))
+    }"#,
+    );
+}
+
 /// Tuple patterns destructure with `extractvalue` and no branch: the arity is
 /// fixed by the type and inference has already checked it, so there is no
 /// test to emit. Nesting falls out by recursion, and `_` binds nothing.
@@ -1861,15 +1885,31 @@ fn tuple_pattern_is_zero_overhead() {
     );
 }
 
-/// A construct the front end parses but cannot lower yet stops the build with
-/// a diagnostic naming it, rather than reaching `gen_expr` and crashing.
+/// An enum is a value struct of a tag and typed payload slots, with slots
+/// of the same type shared between variants: `Circle` and `Rectangle` use
+/// two `f64` slots between them, not three. Building one and matching on it
+/// allocates nothing.
 #[test]
-fn unlowered_match_is_a_diagnostic() {
+fn enum_is_a_tag_and_shared_slots() {
     test_snapshot(
-        "unlowered_match_is_a_diagnostic",
+        "enum_is_a_tag_and_shared_slots",
         r#"
-    public func main(x: i32) -> i32 {
-        match x { 1 -> 10, _ -> 20 }
+    enum Shape {
+        Circle(radius: f64)
+        Rectangle(width: f64, height: f64)
+        Point
+    }
+
+    func area(shape: Shape) -> f64 {
+        match shape {
+            Shape.Circle(r) -> 3.0 * r * r,
+            Shape.Rectangle(w, h) -> w * h,
+            Shape.Point -> 0.0,
+        }
+    }
+
+    public func main(w: f64) -> f64 {
+        area(Shape.Rectangle(w, 2.0)) + area(Shape.Point)
     }"#,
     );
 }

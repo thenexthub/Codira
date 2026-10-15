@@ -32,6 +32,7 @@ impl CompilerDatabase {
         // Set the initial configuration
         db.set_config(config);
         db.set_fuel_instrumentation(false);
+        db.set_keep_function_symbols(false);
         db.set_native_inputs(std::sync::Arc::default());
 
         db

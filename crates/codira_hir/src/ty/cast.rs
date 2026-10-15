@@ -209,6 +209,8 @@ fn classify(ty: &Ty) -> Class {
         | TyKind::Tuple(..)
         | TyKind::Array(_)
         | TyKind::Channel(_)
+        | TyKind::Optional(_)
+        | TyKind::Enum(..)
         | TyKind::FnDef(..)
         | TyKind::Function(_)
         // A generic parameter is not a numeric type *here*, whatever it is

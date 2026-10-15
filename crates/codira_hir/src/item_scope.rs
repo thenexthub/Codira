@@ -243,7 +243,8 @@ impl PerNs<(ItemDefinitionId, Visibility)> {
             ItemDefinitionId::TypeAliasId(_)
             | ItemDefinitionId::PrimitiveType(_)
             | ItemDefinitionId::ModuleId(_)
-            | ItemDefinitionId::EffectId(_) => PerNs::types((def, vis)),
+            | ItemDefinitionId::EffectId(_)
+            | ItemDefinitionId::EnumId(_) => PerNs::types((def, vis)),
         }
     }
 }

@@ -519,6 +519,11 @@ impl ArmContext {
                     self.bind(validator, param);
                 }
             }
+            Expr::Match { arms, .. } => {
+                for arm in arms {
+                    self.bind(validator, arm.pat);
+                }
+            }
             _ => {}
         }
         validator.body[expr].walk_child_exprs(|child| self.collect_bound(validator, child));

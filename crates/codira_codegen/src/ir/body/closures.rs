@@ -49,7 +49,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
         let target = self
             .dispatch_table
             .fn_values()
-            .closure(self.hir_function, expr)
+            .closure(&self.instance, expr)
             .clone();
         let mut values = Vec::with_capacity(target.captures.len());
         for capture in &target.captures {
@@ -244,7 +244,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
                             .into()
                     })
                     .collect();
-                let result = self.gen_call(*item, &args);
+                let result = self.gen_call(None, *item, &args);
                 (result, ret_ty.is_never())
             }
             TargetKind::Closure { expr, .. } => {

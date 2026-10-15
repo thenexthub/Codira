@@ -46,6 +46,14 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// a call may run.
     #[salsa::input]
     fn fuel_instrumentation(&self) -> bool;
+
+    /// Whether every function keeps a symbol in the assembly's symbol table
+    /// (`codira build --certify`): functions get internal instead of private
+    /// linkage, which changes nothing about the code LLVM generates, and the
+    /// COFF linker writes a symbol table it otherwise leaves out. A proof
+    /// certificate names each function's machine code by these symbols.
+    #[salsa::input]
+    fn keep_function_symbols(&self) -> bool;
     /// The package's native code (C, C++, assembly), linked into every module
     /// group that calls it. See `crate::native`.
     #[salsa::input]
@@ -58,6 +66,19 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// Returns a file containing the IR for the specified module.
     #[salsa::invoke(crate::assembly::build_assembly_ir)]
     fn assembly_ir(&self, module_group: ModuleGroupId) -> Arc<AssemblyIr>;
+
+    /// The package's `@rewrite` rules: those `codira_tv` proved, and why the
+    /// others were refused (see `crate::rewrite`).
+    #[salsa::invoke(crate::rewrite::rewrite_rules_query)]
+    fn rewrite_rules(&self) -> Arc<crate::rewrite::RewriteRules>;
+
+    /// PTX for the group's `@target(gpu)` functions, `None` when it has none,
+    /// or why they cannot run on a GPU (see `crate::gpu`).
+    #[salsa::invoke(crate::gpu::gpu_kernels_query)]
+    fn gpu_kernels(
+        &self,
+        module_group: ModuleGroupId,
+    ) -> Arc<Result<Option<crate::gpu::GpuKernels>, String>>;
 
     /// Returns a fully linked shared object for the specified module.
     #[salsa::invoke(crate::assembly::build_target_assembly)]
@@ -137,5 +158,7 @@ pub(crate) fn initialize_target_backends_once() {
         Target::initialize_riscv(&InitializationConfig::default());
         #[cfg(feature = "target-webassembly")]
         Target::initialize_webassembly(&InitializationConfig::default());
+        #[cfg(feature = "target-nvptx")]
+        Target::initialize_nvptx(&InitializationConfig::default());
     });
 }

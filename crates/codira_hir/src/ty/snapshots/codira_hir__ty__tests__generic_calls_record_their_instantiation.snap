@@ -1,0 +1,13 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: out
+snapshot_kind: text
+---
+twice: U -> [U]
+twice: U -> [U]
+main: i32 -> [i32]
+main: f64 -> [f64]
+main: bool -> [bool]
+main: Box[f64] -> [f64]
+main: bool -> [bool]
+main: i64 -> [i64]

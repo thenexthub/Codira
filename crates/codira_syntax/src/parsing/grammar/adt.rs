@@ -165,6 +165,9 @@ pub(super) fn tuple_field_def_list(p: &mut Parser<'_>) {
 
 fn record_field_def(p: &mut Parser<'_>) {
     let m = p.start();
+    // A field may carry attributes, e.g. `@renamed(from: "hp") health: i32`
+    // for hot reload.
+    super::opt_attribute_list(p);
     opt_visibility(p);
     // `let`/`var` mirror local-binding mutability: a `let` field can only be
     // set from `init`, a `var` field can be reassigned any time. Neither
