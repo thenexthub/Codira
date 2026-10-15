@@ -4,9 +4,12 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
-use codira_hir::{HasVisibility, ModuleDef};
+use codira_hir::{
+    mono::{self, Instance},
+    HasVisibility, HirDatabase, HirDisplay, InferenceResult, ModuleDef, Ty, TyKind, TypeWalk,
+};
 use inkwell::{module::Module, types::PointerType, values::UnnamedAddress, AddressSpace};
 use rustc_hash::FxHashSet;
 
@@ -38,6 +41,128 @@ pub struct FileGroupIr<'ink> {
     /// The modules that contain code that was referenced from this group of
     /// modules
     pub(crate) referenced_modules: FxHashSet<codira_hir::Module>,
+    /// The functions this group emits code for. See [`code_units`].
+    pub(crate) units: Vec<CodeUnit>,
+    /// The instantiated generic struct types the group's code and structs
+    /// use, which it defines for the runtime. See [`instance_struct_types`].
+    pub(crate) instance_types: Vec<Ty>,
+}
+
+/// One function body the group emits: a function of the group, an instance
+/// of a generic function, or a copy of another module's function.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct CodeUnit {
+    pub instance: Instance,
+    /// The function's inference result read at `instance`.
+    pub infer: Arc<InferenceResult>,
+    /// Whether this is a copy of a non-generic function of another module
+    /// (see [`code_units`]), emitted privately and called directly.
+    pub local_copy: bool,
+}
+
+/// The functions a module group emits code for, in a deterministic order:
+/// every non-generic function of its modules, then everything they reach
+/// that the group must emit itself.
+///
+/// That is every instance of a generic function the group's code calls --
+/// wherever the generic function is declared, the instance is generated in
+/// the group that uses it, so generics cross module and assembly boundaries
+/// as source, never as code -- and every function of another module that
+/// such an instance calls but cannot reach through the dispatch table: a
+/// helper the generic function's own module keeps private, and so does not
+/// export. A function the group can see is exported by its own module and
+/// called through the table as usual.
+///
+/// A generic function itself is never a unit. It has no code, so the
+/// dispatch table, `@export` and the runtime never see it.
+pub(crate) fn code_units(db: &dyn HirDatabase, module_group: &ModuleGroup) -> Vec<CodeUnit> {
+    // Sorted, so that the group's own functions keep the order they were
+    // always emitted in (their ids').
+    let mut roots: Vec<codira_hir::Function> = module_group
+        .iter()
+        .flat_map(|module| module.all_functions(db))
+        .filter(|f| !f.is_extern(db) && !f.is_generic(db))
+        .collect();
+    roots.sort();
+    let foreign = |f: codira_hir::Function| !module_group.contains(f.module(db));
+    let instances = mono::collect_instances(db, roots, |f| {
+        foreign(f)
+            && !module_group
+                .iter()
+                .any(|module| mono::is_callable_from(db, f, module))
+    })
+    .unwrap_or_else(|overflow| {
+        panic!(
+            "instantiation of `{}` does not terminate; the HIR validator reports this before \
+             code generation",
+            overflow.instance.name(db)
+        )
+    });
+    instances
+        .into_iter()
+        .map(|(instance, infer)| CodeUnit {
+            local_copy: !instance.is_generic() && foreign(instance.function()),
+            instance,
+            infer,
+        })
+        .collect()
+}
+
+/// Every instantiated generic struct type the group needs defined for the
+/// runtime, in a deterministic order: those that appear in the types of its
+/// code units, in the fields of its non-generic structs, and -- recursively
+/// -- in the fields of those.
+///
+/// The group that uses an instantiation defines it, just as it generates
+/// the instances of generic functions it calls. Two groups that both use
+/// `Box[i32]` both define it, with the same GUID; the runtime treats those
+/// as one type.
+pub(crate) fn instance_struct_types(
+    db: &dyn HirDatabase,
+    module_group: &ModuleGroup,
+    units: &[CodeUnit],
+) -> Vec<Ty> {
+    let mut roots: Vec<Ty> = Vec::new();
+    for unit in units {
+        let sig = unit.instance.sig(db);
+        roots.extend(sig.params().iter().cloned());
+        roots.push(sig.ret().clone());
+        roots.extend(unit.instance.self_param_ty(db));
+        roots.extend(unit.infer.types().cloned());
+    }
+    for def in module_group
+        .iter()
+        .flat_map(|module| module.declarations(db))
+    {
+        if let ModuleDef::Struct(s) = def {
+            if !s.is_generic(db) {
+                roots.extend(mono::struct_field_types(db, &s.ty(db)));
+            }
+        }
+    }
+
+    let mut found: Vec<Ty> = Vec::new();
+    let mut seen: FxHashSet<Ty> = FxHashSet::default();
+    while let Some(ty) = roots.pop() {
+        let mut new = Vec::new();
+        ty.walk(&mut |inner| {
+            if let TyKind::Struct(_, args) = inner.interned() {
+                if !args.is_empty()
+                    && !mono::contains_type_param(inner)
+                    && seen.insert(inner.clone())
+                {
+                    new.push(inner.clone());
+                }
+            }
+        });
+        // The fields of a newly found instance can name further ones.
+        for instance in new {
+            roots.extend(mono::struct_field_types(db, &instance));
+            found.push(instance);
+        }
+    }
+    found.sort_by_cached_key(|ty| ty.display(db).to_string());
+    found
 }
 
 /// Generates IR that is shared among the group's files.
@@ -51,19 +176,16 @@ pub(crate) fn gen_file_group_ir<'ink>(
     let mut intrinsics_map = BTreeMap::new();
     let mut needs_alloc = false;
 
+    // Every body the group emits: its own functions (`all_functions`, which
+    // covers `extend` block methods too), the instances of generic
+    // functions they reach, and copies of private helpers those need.
+    let units = code_units(code_gen.db, module_group);
+    let instance_types = instance_struct_types(code_gen.db, module_group, &units);
+
     // Collect all intrinsic functions, wrapper function, and generate struct
     // declarations.
-    // See `file::gen_file_ir`: `all_functions` covers `extend` block methods
-    // too, which `declarations` alone would miss.
-    for f in module_group
-        .iter()
-        .flat_map(|module| module.all_functions(code_gen.db))
-    {
-        if f.is_extern(code_gen.db) {
-            // TODO: Extern types for functions?
-            continue;
-        }
-
+    for unit in &units {
+        let f = unit.instance.function();
         intrinsics::collect_fn_body(
             code_gen.context,
             code_gen.target_machine.get_target_data(),
@@ -71,9 +193,14 @@ pub(crate) fn gen_file_group_ir<'ink>(
             &mut intrinsics_map,
             &mut needs_alloc,
             &f.body(code_gen.db),
-            &f.infer(code_gen.db),
+            &unit.infer,
         );
 
+        // Only the group's own non-generic functions get a host-visible
+        // wrapper; an instance or a copy is never exported.
+        if unit.instance.is_generic() || unit.local_copy {
+            continue;
+        }
         let fn_sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
         if f.visibility(code_gen.db).is_externally_visible() && !fn_sig.marshallable(code_gen.db) {
             intrinsics::collect_wrapper_body(
@@ -105,16 +232,17 @@ pub(crate) fn gen_file_group_ir<'ink>(
         &code_gen.hir_types,
         module_group,
     );
-    for f in module_group
-        .iter()
-        .flat_map(|module| module.all_functions(code_gen.db))
-    {
+    dispatch_table_builder.set_local_copies(
+        units
+            .iter()
+            .filter(|unit| unit.local_copy)
+            .map(|unit| unit.instance.function())
+            .collect(),
+    );
+    for unit in &units {
         // Find all functions that must be present in the dispatch table
-        if !f.is_extern(code_gen.db) {
-            let body = f.body(code_gen.db);
-            let infer = f.infer(code_gen.db);
-            dispatch_table_builder.collect_body(&body, &infer);
-        }
+        let body = unit.instance.function().body(code_gen.db);
+        dispatch_table_builder.collect_body(&body, &unit.infer);
     }
 
     let (dispatch_table, referenced_modules) = dispatch_table_builder.build();
@@ -145,8 +273,11 @@ pub(crate) fn gen_file_group_ir<'ink>(
         .flat_map(|module| module.declarations(code_gen.db))
     {
         match def {
+            // A generic struct has no layout of its own; its instantiations
+            // are collected below.
+            ModuleDef::Struct(s) if s.is_generic(code_gen.db) => (),
             ModuleDef::Struct(s) => {
-                type_table_builder.collect_struct(s);
+                type_table_builder.collect_struct(&s.ty(code_gen.db));
             }
             ModuleDef::Function(_)
             | ModuleDef::PrimitiveType(_)
@@ -156,11 +287,11 @@ pub(crate) fn gen_file_group_ir<'ink>(
             | ModuleDef::Module(_) => (),
         }
     }
-    for f in module_group
-        .iter()
-        .flat_map(|module| module.all_functions(code_gen.db))
-    {
-        type_table_builder.collect_fn(f);
+    for ty in &instance_types {
+        type_table_builder.collect_struct(ty);
+    }
+    for unit in &units {
+        type_table_builder.collect_fn(&unit.instance, &unit.infer);
     }
 
     let type_table = type_table_builder.build();
@@ -204,5 +335,7 @@ pub(crate) fn gen_file_group_ir<'ink>(
         allocator_handle_type,
         fuel_counter_type,
         referenced_modules,
+        units,
+        instance_types,
     }
 }

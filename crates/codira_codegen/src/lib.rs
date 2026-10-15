@@ -10,7 +10,7 @@ pub use crate::{
     assembly::{AssemblyIr, TargetAssembly},
     code_gen::AssemblyBuilder,
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
-    eidos_options::{BuildMode, EidosOptions},
+    eidos_options::{BuildMode, EidosOptions, EidosRun},
     linker::{in_process_lld_available, link_mode, LinkMode, LINK_MODE_ENV},
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
@@ -25,6 +25,7 @@ mod code_gen;
 mod db;
 mod eidos_fold;
 mod eidos_options;
+pub mod rewrite;
 #[macro_use]
 mod ir;
 mod assembly;
@@ -41,6 +42,7 @@ mod test_targets;
 pub mod value;
 
 mod apple;
+pub mod gpu;
 pub(crate) mod intrinsics;
 mod linker;
 pub mod mir_codegen;

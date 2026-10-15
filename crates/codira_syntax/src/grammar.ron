@@ -200,6 +200,10 @@ Grammar(
         // (followed by `}`, `;`, a line break or the end of input), so a
         // binding named `continue` is still an ordinary identifier.
         "continue",
+        // Units of measure: `f64 unit(m / s)` (see `codira_hir`'s
+        // `verify::units`). Promoted only directly after a type and before
+        // `(`.
+        "unit",
     ],
     literals: [
         "INT_NUMBER",
@@ -271,6 +275,7 @@ Grammar(
         "OPTIONAL_TYPE",
         "REFINEMENT_TYPE",
         "SECRET_TYPE",
+        "UNIT_TYPE",
 
         "SUPERVISOR_DEF",
         "SUPERVISOR_ITEM_LIST",
@@ -522,7 +527,8 @@ Grammar(
                 "NameOwner",
                 "VisibilityOwner",
                 "DocCommentsOwner",
-                "TypeAscriptionOwner"
+                "TypeAscriptionOwner",
+                "AttributeOwner"
             ]
         ),
         "TupleFieldDefList": (collections: [("fields", "TupleFieldDef")]),
@@ -766,6 +772,9 @@ Grammar(
         "SecretType": (options: ["TypeRef"]),
         // `dual S`: the other endpoint's view of session `S`.
         "DualType": (options: ["TypeRef"]),
+        // `T unit(<dimension>)` -- a unit of measure on a numeric type.
+        // Erases to `T` everywhere except the dimension checker.
+        "UnitType": (options: [["base", "TypeRef"], ["dimension", "Expr"]]),
         "TypeRef": (
             enum: [
                 "PathType",
@@ -780,6 +789,7 @@ Grammar(
                 "RefinementType",
                 "SecretType",
                 "DualType",
+                "UnitType",
             ]
         ),
 

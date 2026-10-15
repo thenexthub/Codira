@@ -859,6 +859,30 @@ impl Diagnostic for SecretFlow {
     }
 }
 
+/// A function does something its `@noalloc`/`@nopanic`/`@noblock`/
+/// `@realtime` attribute rules out, or carries an effect attribute the
+/// compiler cannot check (see `crate::realtime`).
+#[derive(Debug)]
+pub struct EffectAttributeViolation {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for EffectAttributeViolation {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
 /// A synthesis hole (`??` or `choose`) that has not been filled: the
 /// program has no code there until `codira synth` writes some.
 #[derive(Debug)]
@@ -876,6 +900,29 @@ impl Diagnostic for UnfilledHole {
              to meet the contract",
             self.what
         )
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.site.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}
+
+/// A units-of-measure error: two values of different dimensions added,
+/// compared, assigned, passed or returned (see `crate::verify::units`).
+#[derive(Debug)]
+pub struct UnitMismatch {
+    pub file: FileId,
+    pub site: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for UnitMismatch {
+    fn message(&self) -> String {
+        self.message.clone()
     }
 
     fn source(&self) -> InFile<SyntaxNodePtr> {

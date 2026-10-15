@@ -624,6 +624,46 @@ impl Runtime {
         self.fuel.set(fuel);
     }
 
+    /// Writes every object of the GC heap -- types, contents, references and
+    /// root counts -- to `path`, so [`Runtime::restore_heap`] can rebuild it
+    /// in a runtime that loaded the same assembly, in this process or
+    /// another. Returns the number of objects written.
+    ///
+    /// Like a collection, this must not run while another thread executes
+    /// Codira code. Objects whose types hold raw pointers cannot be saved.
+    pub fn save_heap(&self, path: impl AsRef<Path>) -> Result<usize, gc::SnapshotError> {
+        let mut file = std::io::BufWriter::new(std::fs::File::create(path)?);
+        self.gc.write_snapshot(&mut file)
+    }
+
+    /// Rebuilds the objects of a snapshot written by [`Runtime::save_heap`]
+    /// in this runtime's heap, resolving types by GUID through the loaded
+    /// assemblies (a type whose layout changed is refused). Returns a
+    /// [`RootedStruct`] for every struct that was rooted when the snapshot
+    /// was taken, in snapshot order; that is how the host gets its state
+    /// back. Rooted arrays come back rooted with their original root counts.
+    pub fn restore_heap(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Vec<RootedStruct>, gc::SnapshotError> {
+        let mut file = std::io::BufReader::new(std::fs::File::open(path)?);
+        let restored = self.gc.read_snapshot(&mut file, |guid| {
+            self.type_table
+                .find_type_info_by_id(&abi::TypeId::Concrete(*guid))
+        })?;
+        let mut roots = Vec::new();
+        for (handle, count) in restored.roots {
+            if self.gc.ptr_type(handle).is_struct() {
+                // Hand the root over to a `RootedStruct`.
+                roots.push(RootedStruct::new(&self.gc, adt::RawStruct(handle)));
+                for _ in 0..count {
+                    self.gc.unroot(handle);
+                }
+            }
+        }
+        Ok(roots)
+    }
+
     /// Returns statistics about the garbage collector.
     pub fn gc_stats(&self) -> gc::Stats {
         self.gc.stats()

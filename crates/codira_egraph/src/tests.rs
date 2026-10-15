@@ -964,3 +964,74 @@ mod memory {
         assert_eq!(text, "%0 = core.const 0\n", "{text}");
     }
 }
+
+// ---- rules as data (crate::pattern) ----------------------------------------
+
+mod pattern_rules {
+    use std::sync::Arc;
+
+    use codira_mir::{print_body, verify_body, Body, OpKind};
+
+    use crate::{EGraphOptimizer, PatternRule, TypeEnv};
+
+    /// `(a ^ b) ^ b`, which no built-in rule simplifies.
+    fn xor_twice() -> Body {
+        let mut body = Body::new();
+        let a = body.push(OpKind::Arg(0), []);
+        let b = body.push(OpKind::Arg(1), []);
+        let ab = body.push(OpKind::BitXor, [a, b]);
+        body.push(OpKind::BitXor, [ab, b]);
+        body
+    }
+
+    fn just_a() -> Body {
+        let mut body = Body::new();
+        body.push(OpKind::Arg(0), []);
+        body
+    }
+
+    fn rules() -> Arc<[PatternRule]> {
+        Arc::from(vec![PatternRule::from_bodies(
+            "xor_cancel",
+            &xor_twice(),
+            &just_a(),
+        )
+        .unwrap()])
+    }
+
+    #[test]
+    fn a_supplied_rule_is_applied() {
+        let env = TypeEnv::with_int_args([0, 1]);
+        let without = EGraphOptimizer::default()
+            .optimize_body_with(&xor_twice(), &env)
+            .0;
+        assert!(print_body(&without).contains("core.bitxor"));
+
+        let with = EGraphOptimizer::default()
+            .optimize_body_with_rules(&xor_twice(), &env, &rules())
+            .0;
+        verify_body(&with).unwrap();
+        assert_eq!(print_body(&with), "%0 = core.arg 0\n");
+    }
+
+    #[test]
+    fn an_integer_rule_does_not_bind_a_value_of_unknown_type() {
+        // Nothing says the arguments are integers here, so the rule (proven
+        // over integers) must not fire.
+        let out = EGraphOptimizer::default()
+            .optimize_body_with_rules(&xor_twice(), &TypeEnv::unknown(), &rules())
+            .0;
+        assert!(print_body(&out).contains("core.bitxor"));
+    }
+
+    #[test]
+    fn malformed_rules_are_refused() {
+        let error = PatternRule::from_bodies("bare", &just_a(), &xor_twice()).unwrap_err();
+        assert!(error.contains("must be an operation"), "{error}");
+
+        let mut free = Body::new();
+        free.push(OpKind::Arg(5), []);
+        let error = PatternRule::from_bodies("free", &xor_twice(), &free).unwrap_err();
+        assert!(error.contains("does not bind"), "{error}");
+    }
+}

@@ -249,6 +249,10 @@ fn extern_item_list(p: &mut Parser<'_>) {
 
 fn extern_item(p: &mut Parser<'_>) {
     let m = p.start();
+    // Attributes, so a declaration can carry the trusted effect assertions
+    // `@noalloc`/`@nopanic`/`@noblock`/`@realtime` (see `codira_hir`'s
+    // `realtime` module).
+    super::opt_attribute_list(p);
     // An extern item takes visibility like any other declaration. Without
     // this, a module that declares an intrinsic cannot re-export it, so
     // every module needing `load_u8` would have to re-declare it -- and two

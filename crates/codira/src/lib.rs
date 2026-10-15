@@ -13,8 +13,8 @@ use clap::{Parser, Subcommand};
 /// `codira-launcher` binary runs.
 pub use ops::exe;
 use ops::{
-    bindgen, build, check, daemon, import_c, init, language_server, new, quantum, query, run,
-    start, synth, test,
+    api_diff, attest, bindgen, build, certify, check, daemon, import_c, init, language_server, new,
+    quantum, query, run, start, synth, test,
 };
 
 #[derive(Parser)]
@@ -32,6 +32,15 @@ enum Command {
 
     /// Compiles a local Codira file into a module
     Build(build::Args),
+
+    /// Compares the public API of two versions of a package (directories or
+    /// git revisions) and says whether each change is major, minor or patch;
+    /// `--check` fails when the manifest's version is not bumped far enough
+    ApiDiff(api_diff::Args),
+
+    /// Checks the proof certificates of a library, directory or executable
+    /// built with `--certify`, without the compiler's front end
+    Certify(certify::Args),
 
     /// Type-checks Codira sources and reports diagnostics, emitting nothing
     Check(check::Args),
@@ -57,6 +66,10 @@ enum Command {
 
     /// Quantum kernels: build to QIR/OpenQASM, simulate, import circuits
     Quantum(quantum::Args),
+
+    /// Zero-knowledge proofs of `oblivious` functions: build the circuit and
+    /// keys, prove a result on private inputs, verify a proof
+    Attest(attest::Args),
 
     /// Build the package with its `tests/` and run every `@test` function,
     /// each in its own process
@@ -99,6 +112,8 @@ where
     let args = Args::parse_from(args);
     match args.command {
         Command::Build(args) => build::build(args),
+        Command::ApiDiff(args) => api_diff::api_diff(args),
+        Command::Certify(args) => certify::certify(args),
         Command::Check(args) => check::check(args),
         Command::Daemon(args) => daemon::daemon(args),
         Command::Bindgen(args) => bindgen::bindgen(args),
@@ -108,6 +123,7 @@ where
         Command::Start(args) => start::start(args),
         Command::Run(args) => run::run(args),
         Command::Quantum(args) => quantum::quantum(args),
+        Command::Attest(args) => attest::attest(args),
         Command::Test(args) => test::test(args),
         Command::Query(args) => query::query(args),
         Command::Synth(args) => synth::synth(args),

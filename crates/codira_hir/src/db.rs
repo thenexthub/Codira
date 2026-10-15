@@ -170,6 +170,16 @@ pub trait HirDatabase: DefDatabase {
     #[salsa::invoke(crate::verify::verify_function_query)]
     fn verify_function(&self, func: Function) -> Arc<crate::verify::VerificationReport>;
 
+    /// What `func`'s own body does that allocates, blocks, panics or may
+    /// not terminate, and every call it makes. See `crate::realtime`.
+    #[salsa::invoke(crate::realtime::effect_sources_query)]
+    fn effect_sources(&self, func: Function) -> Arc<crate::realtime::EffectSources>;
+
+    /// Every effect a call to `func` can have, through everything it calls,
+    /// with the chain of calls that explains each. See `crate::realtime`.
+    #[salsa::invoke(crate::realtime::effect_summary_query)]
+    fn effect_summary(&self, func: Function) -> Arc<crate::realtime::EffectSummary>;
+
     #[salsa::invoke(crate::mir_lower::mir_generator_query)]
     fn mir_generator(&self, func: Function) -> Option<Arc<codira_mir::Generator>>;
 

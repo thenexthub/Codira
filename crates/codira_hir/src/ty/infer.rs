@@ -77,6 +77,18 @@ pub struct InferenceResult {
     /// [`effects::EffectResolutions`].
     pub(crate) effects: effects::EffectResolutions,
 
+    /// For each call of a generic function -- a free function, a method or
+    /// an associated function -- the types its generic parameters stand for
+    /// at that call, in the order of the callee's
+    /// [`Function::generic_environment`].
+    ///
+    /// This is what monomorphisation reads to find out which instance of
+    /// the callee a call reaches. Inside a generic body the arguments may
+    /// themselves mention the body's own parameters; substituting the
+    /// caller's instance into them (see [`InferenceResult::map_types`])
+    /// makes them concrete.
+    pub(crate) instantiations: FxHashMap<ExprId, Substitution>,
+
     /// Interned Unknown to return references to.
     standard_types: InternedStandardTypes,
 }
@@ -106,10 +118,62 @@ impl InferenceResult {
         self.method_resolutions.get(&expr).cloned()
     }
 
+    /// Every type this result records: the type of every expression and of
+    /// every pattern.
+    pub fn types(&self) -> impl Iterator<Item = &Ty> {
+        self.type_of_expr
+            .iter()
+            .map(|(_, ty)| ty)
+            .chain(self.type_of_pat.iter().map(|(_, ty)| ty))
+    }
+
     /// Returns the builtin a call expression invokes, or `None` when `expr`
     /// is not a call to a builtin. See [`BuiltinFn`].
     pub fn builtin_call(&self, expr: ExprId) -> Option<BuiltinFn> {
         self.builtin_calls.get(&expr).copied()
+    }
+
+    /// The types a call of a generic function instantiated the callee's
+    /// generic parameters with, in the order of the callee's
+    /// [`Function::generic_environment`]. `None` when `call` does not call
+    /// a generic function.
+    pub fn instantiation(&self, call: ExprId) -> Option<&Substitution> {
+        self.instantiations.get(&call)
+    }
+
+    /// This result with `f` applied to every type it records: the type of
+    /// every expression and pattern and the arguments of every
+    /// instantiation.
+    ///
+    /// Monomorphisation uses it to read a generic body at one instance --
+    /// `f` replaces the body's own parameters with that instance's
+    /// arguments -- so that code generation sees nothing but concrete
+    /// types. Diagnostics are dropped: they belong to the generic
+    /// declaration, which reports them once.
+    pub fn map_types(&self, mut f: impl FnMut(&Ty) -> Ty) -> InferenceResult {
+        let mut type_of_expr = ArenaMap::default();
+        for (expr, ty) in self.type_of_expr.iter() {
+            type_of_expr.insert(expr, f(ty));
+        }
+        let mut type_of_pat = ArenaMap::default();
+        for (pat, ty) in self.type_of_pat.iter() {
+            type_of_pat.insert(pat, f(ty));
+        }
+        let instantiations = self
+            .instantiations
+            .iter()
+            .map(|(expr, args)| (*expr, args.iter().map(&mut f).collect()))
+            .collect();
+        InferenceResult {
+            type_of_expr,
+            type_of_pat,
+            diagnostics: Vec::new(),
+            method_resolutions: self.method_resolutions.clone(),
+            builtin_calls: self.builtin_calls.clone(),
+            effects: self.effects.clone(),
+            instantiations,
+            standard_types: InternedStandardTypes::default(),
+        }
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -171,6 +235,14 @@ impl InferTy {
     }
 }
 
+/// What a call of an associated function is made on.
+enum CallReceiver {
+    /// `value.method(..)`: the receiver expression and its type.
+    Value(ExprId, Ty),
+    /// `Type.assoc(..)`: the receiver expression and the type it names.
+    Type(ExprId, Ty),
+}
+
 enum ActiveLoop {
     Loop(Ty, Expectation),
     While,
@@ -211,6 +283,11 @@ struct InferenceResultBuilder<'a> {
     /// The return type of the effect operation whose handler arm is being
     /// inferred: what `resume` takes. `None` outside every arm.
     active_arm_ret: Option<Ty>,
+
+    /// See [`InferenceResult::instantiations`]; the callee is kept until
+    /// `resolve_all` so that a parameter no argument determined can be
+    /// reported by name.
+    instantiations: FxHashMap<ExprId, (Function, Substitution)>,
 }
 
 impl<'a> InferenceResultBuilder<'a> {
@@ -231,6 +308,7 @@ impl<'a> InferenceResultBuilder<'a> {
             builtin_calls: FxHashMap::default(),
             effects: effects::EffectResolutions::default(),
             active_arm_ret: None,
+            instantiations: FxHashMap::default(),
         }
     }
 
@@ -504,7 +582,15 @@ impl InferenceResultBuilder<'_> {
                         }
                     };
                     let rhs_expected = op::binary_op_rhs_expectation(*op, lhs_ty.clone());
-                    if lhs_ty.is_known() && rhs_expected.is_unknown() {
+                    if matches!(lhs_ty.interned(), TyKind::TypeParam(..))
+                        && rhs_expected.is_unknown()
+                    {
+                        self.report_op_on_type_param(
+                            tgt_expr,
+                            &format!("cannot apply `{}` to", binary_op_symbol(*op)),
+                            &lhs_ty,
+                        );
+                    } else if lhs_ty.is_known() && rhs_expected.is_unknown() {
                         self.diagnostics
                             .push(InferenceDiagnostic::CannotApplyBinaryOp {
                                 id: tgt_expr,
@@ -679,6 +765,14 @@ impl InferenceResultBuilder<'_> {
             Expr::UnaryOp { expr, op } => {
                 let inner_ty =
                     self.infer_expr_inner(*expr, &Expectation::none(), &CheckParams::default());
+                if matches!(inner_ty.interned(), TyKind::TypeParam(..)) {
+                    let what = match op {
+                        UnaryOp::Neg => "cannot negate",
+                        UnaryOp::Not | UnaryOp::BitNot => "cannot complement",
+                    };
+                    self.report_op_on_type_param(tgt_expr, what, &inner_ty);
+                    return error_type();
+                }
                 match op {
                     // `~` is bitwise complement: integers only. `!` keeps
                     // its historical bool-or-integer behaviour; separating
@@ -984,9 +1078,20 @@ impl InferenceResultBuilder<'_> {
                 self.diagnostics
                     .push(InferenceDiagnostic::MethodNotInScope {
                         id: tgt_expr,
-                        receiver_ty,
+                        receiver_ty: receiver_ty.clone(),
                     });
                 resolved
+            }
+            Err(None) if matches!(receiver_ty.interned(), TyKind::TypeParam(..)) => {
+                for &arg in args {
+                    self.infer_expr(arg, &Expectation::none());
+                }
+                self.report_op_on_type_param(
+                    tgt_expr,
+                    &format!("cannot call method `{method_name}` on"),
+                    &receiver_ty,
+                );
+                return error_type();
             }
             Err(None) => {
                 // `len()` and friends on arrays and `str` are builtins.
@@ -1030,6 +1135,7 @@ impl InferenceResultBuilder<'_> {
             tgt_expr,
             args,
             Function::from(resolved_function).into(),
+            CallReceiver::Value(receiver, receiver_ty),
         )
     }
 
@@ -1095,15 +1201,17 @@ impl InferenceResultBuilder<'_> {
         )
         .ok()?;
 
-        // Record the receiver's type so later stages never see `Unknown`
-        // here, and register the resolution the same way a method call does.
-        self.set_expr_type(receiver, self_ty);
+        // Register the resolution the same way a method call does. The
+        // receiver's type is recorded by the call below, instantiated along
+        // with the callee: `Box` names `Box[T]`, and which `T` is meant is
+        // only known once the arguments have been checked.
         self.method_resolution.insert(tgt_expr, resolved_function);
 
         Some(self.infer_call_arguments_and_return(
             tgt_expr,
             args,
             Function::from(resolved_function).into(),
+            CallReceiver::Type(receiver, self_ty),
         ))
     }
 
@@ -1134,6 +1242,18 @@ impl InferenceResultBuilder<'_> {
     }
 
     fn instantiate_signature(&mut self, params: &[Ty], ret: &Ty) -> (Vec<Ty>, Ty) {
+        let (params, ret, _) = self.instantiate_signature_with_args(params, ret);
+        (params, ret)
+    }
+
+    /// [`Self::instantiate_signature`], also returning which fresh variable
+    /// stands for which parameter, so that the call can record its
+    /// instantiation (see [`Self::record_instantiation`]).
+    fn instantiate_signature_with_args(
+        &mut self,
+        params: &[Ty],
+        ret: &Ty,
+    ) -> (Vec<Ty>, Ty, FxHashMap<TypeParamId, Ty>) {
         let mut fresh: FxHashMap<TypeParamId, Ty> = FxHashMap::default();
 
         for ty in params.iter().chain(std::iter::once(ret)) {
@@ -1151,7 +1271,7 @@ impl InferenceResultBuilder<'_> {
         }
 
         if fresh.is_empty() {
-            return (params.to_vec(), ret.clone());
+            return (params.to_vec(), ret.clone(), fresh);
         }
 
         let apply = |ty: &Ty| {
@@ -1161,7 +1281,62 @@ impl InferenceResultBuilder<'_> {
             })
         };
 
-        (params.iter().map(apply).collect(), apply(ret))
+        let params = params.iter().map(apply).collect();
+        let ret = apply(ret);
+        (params, ret, fresh)
+    }
+
+    /// Reports an operation applied to a value whose type is a generic
+    /// parameter.
+    ///
+    /// A parameter stands for every type, so the only operations valid on
+    /// it are the ones every type has: moving, copying, passing, returning
+    /// and storing. Anything more -- `a + b`, `a < b`, `a.len()` -- needs a
+    /// bound saying the operation exists (`where T: Add`), and bounds are
+    /// parsed but not resolved. The message says that instead of the
+    /// generic "cannot apply binary operator", which reads as if `T` were a
+    /// type the operator merely does not support.
+    fn report_op_on_type_param(&mut self, id: ExprId, what: &str, ty: &Ty) {
+        let ty = ty.display(self.db).to_string();
+        self.diagnostics.push(InferenceDiagnostic::ExprError {
+            id: id.into(),
+            message: format!(
+                "{what} a value of generic type `{ty}`: an operation on a type parameter needs \
+                 a bound (`where {ty}: ...`), and bounds are not supported yet; generic code \
+                 can only move, copy, pass, return and store a `{ty}`"
+            ),
+        });
+    }
+
+    /// Records which instance of `callee` the call `call` reaches: the
+    /// variable each of the callee's generic parameters was instantiated
+    /// with, in the order of [`Function::generic_environment`].
+    ///
+    /// A parameter that appears in neither the parameters nor the result of
+    /// the signature got no variable from the instantiation, so it gets one
+    /// here. Nothing can ever determine it, and `resolve_all` reports it as
+    /// a parameter the call does not say -- rather than code generation
+    /// later finding an instance with a hole in it.
+    fn record_instantiation(
+        &mut self,
+        call: ExprId,
+        callee: Function,
+        fresh: &FxHashMap<TypeParamId, Ty>,
+    ) {
+        let environment = callee.generic_environment(self.db);
+        if environment.is_empty() {
+            return;
+        }
+        let args = environment
+            .iter()
+            .map(|param| {
+                fresh
+                    .get(param)
+                    .cloned()
+                    .unwrap_or_else(|| self.type_variables.new_type_var())
+            })
+            .collect();
+        self.instantiations.insert(call, (callee, args));
     }
 
     fn infer_call_arguments_and_return(
@@ -1169,10 +1344,46 @@ impl InferenceResultBuilder<'_> {
         tgt_expr: ExprId,
         args: &[ExprId],
         callable: CallableDef,
+        receiver: CallReceiver,
     ) -> Ty {
         // Retrieve the function signature.
         let signature = self.db.callable_sig(callable);
-        let (param_tys, ret_ty) = self.instantiate_signature(signature.params(), signature.ret());
+
+        // The receiver is instantiated together with the signature, through
+        // the same variables, so that it can decide the parameters of the
+        // type it belongs to: `b.get()` on a `Box[i32]` makes `get`'s `T`
+        // `i32` only because `self: Box[T]` and the `T -> T` of the result
+        // share one variable.
+        let receiver_declared = match (&receiver, callable) {
+            (CallReceiver::Value(..), CallableDef::Function(f)) => f.self_param_ty(self.db),
+            (CallReceiver::Type(_, named), _) => Some(named.clone()),
+            _ => None,
+        };
+        let mut instantiated: Vec<Ty> = signature.params().to_vec();
+        instantiated.extend(receiver_declared.iter().cloned());
+        let (mut param_tys, ret_ty, fresh) =
+            self.instantiate_signature_with_args(&instantiated, signature.ret());
+        let receiver_instantiated = receiver_declared.and_then(|_| param_tys.pop());
+
+        match (receiver, receiver_instantiated) {
+            (CallReceiver::Value(expr, actual), Some(expected)) => {
+                if !self.unify(&expected, &actual) {
+                    self.diagnostics.push(InferenceDiagnostic::MismatchedTypes {
+                        expected,
+                        found: actual,
+                        id: expr,
+                    });
+                }
+            }
+            (CallReceiver::Type(expr, _), Some(instantiated)) => {
+                self.set_expr_type(expr, instantiated);
+            }
+            _ => {}
+        }
+
+        if let CallableDef::Function(function) = callable {
+            self.record_instantiation(tgt_expr, function, &fresh);
+        }
 
         // Verify that the number of arguments matches
         if param_tys.len() != args.len() {
@@ -1236,7 +1447,11 @@ impl InferenceResultBuilder<'_> {
             TyKind::FnDef(def, _substs) => {
                 // Found either a tuple struct literal or function
                 let sig = callee_ty.callable_sig(self.db).unwrap();
-                let (param_tys, ret_ty) = self.instantiate_signature(sig.params(), sig.ret());
+                let (param_tys, ret_ty, fresh) =
+                    self.instantiate_signature_with_args(sig.params(), sig.ret());
+                if let CallableDef::Function(function) = *def {
+                    self.record_instantiation(tgt_expr, function, &fresh);
+                }
                 self.check_call_argument_count(
                     tgt_expr,
                     def.is_struct(),
@@ -1647,6 +1862,7 @@ impl InferenceResultBuilder<'_> {
             }
             *ty = resolved;
         }
+        let instantiations = self.resolve_instantiations();
         InferenceResult {
             //            field_resolutions: self.field_resolutions,
             //            variant_resolutions: self.variant_resolutions,
@@ -1658,7 +1874,56 @@ impl InferenceResultBuilder<'_> {
             method_resolutions: self.method_resolution,
             builtin_calls: self.builtin_calls,
             effects: self.effects,
+            instantiations,
         }
+    }
+
+    /// Resolves the arguments of every recorded instantiation, reporting a
+    /// generic parameter that nothing at the call determined.
+    ///
+    /// Such a parameter is one the callee's signature does not mention in a
+    /// way the call constrains -- `func make[T]() -> i32` called as
+    /// `make()`. There is no type to generate the instance at, so it is an
+    /// error here rather than a hole code generation would find later. The
+    /// report is held back when the body already has errors: an argument
+    /// whose own type failed to infer leaves the parameter undetermined
+    /// too, and saying so again would only repeat the first error.
+    fn resolve_instantiations(&mut self) -> FxHashMap<ExprId, Substitution> {
+        let mut calls: Vec<_> = std::mem::take(&mut self.instantiations)
+            .into_iter()
+            .collect();
+        calls.sort_by_key(|(call, _)| u32::from(call.into_raw()));
+
+        let report = self.diagnostics.is_empty();
+        let mut resolved_calls = FxHashMap::default();
+        for (call, (callee, args)) in calls {
+            let resolved: Substitution = args
+                .iter()
+                .map(|ty| self.type_variables.resolve_ty_completely(ty.clone()))
+                .collect();
+            let undetermined = resolved.iter().position(|ty| {
+                let mut unknown = false;
+                ty.walk(&mut |inner| unknown |= inner.is_unknown());
+                unknown
+            });
+            if let (true, Some(index)) = (report, undetermined) {
+                let name = callee
+                    .generic_environment(self.db)
+                    .get(index)
+                    .and_then(|param| param.name(self.db))
+                    .map_or_else(|| "?".to_owned(), |name| name.to_string());
+                self.diagnostics.push(InferenceDiagnostic::ExprError {
+                    id: call.into(),
+                    message: format!(
+                        "cannot infer the generic parameter `{name}` of `{}` at this call: \
+                         nothing passed to it or expected from it says what `{name}` is",
+                        callee.name(self.db)
+                    ),
+                });
+            }
+            resolved_calls.insert(call, resolved);
+        }
+        resolved_calls
     }
 
     fn infer_block(
@@ -2647,4 +2912,47 @@ pub(crate) fn substitute_type_params(
             .unwrap_or(inner),
         _ => inner,
     })
+}
+
+/// How `op` is written, for messages.
+fn binary_op_symbol(op: BinaryOp) -> &'static str {
+    use crate::{ArithOp, CmpOp, LogicOp, Ordering};
+    let arith = |op: ArithOp| match op {
+        ArithOp::Add => "+",
+        ArithOp::Multiply => "*",
+        ArithOp::Subtract => "-",
+        ArithOp::Divide => "/",
+        ArithOp::Remainder => "%",
+        ArithOp::LeftShift => "<<",
+        ArithOp::RightShift => ">>",
+        ArithOp::BitAnd => "&",
+        ArithOp::BitOr => "|",
+        ArithOp::BitXor => "^",
+    };
+    match op {
+        BinaryOp::LogicOp(LogicOp::And) => "&&",
+        BinaryOp::LogicOp(LogicOp::Or) => "||",
+        BinaryOp::ArithOp(op) => arith(op),
+        BinaryOp::CmpOp(CmpOp::Eq { negated: false }) => "==",
+        BinaryOp::CmpOp(CmpOp::Eq { negated: true }) => "!=",
+        BinaryOp::CmpOp(CmpOp::Ord { ordering, strict }) => match (ordering, strict) {
+            (Ordering::Less, true) => "<",
+            (Ordering::Less, false) => "<=",
+            (Ordering::Greater, true) => ">",
+            (Ordering::Greater, false) => ">=",
+        },
+        BinaryOp::Assignment { op: None } => "=",
+        BinaryOp::Assignment { op: Some(op) } => match op {
+            ArithOp::Add => "+=",
+            ArithOp::Multiply => "*=",
+            ArithOp::Subtract => "-=",
+            ArithOp::Divide => "/=",
+            ArithOp::Remainder => "%=",
+            ArithOp::LeftShift => "<<=",
+            ArithOp::RightShift => ">>=",
+            ArithOp::BitAnd => "&=",
+            ArithOp::BitOr => "|=",
+            ArithOp::BitXor => "^=",
+        },
+    }
 }

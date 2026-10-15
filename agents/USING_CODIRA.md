@@ -200,15 +200,53 @@ func area(shape: Shape) -> f64 {
 
 ### Generics
 
+Generic functions, structs and classes build and run. Each use at concrete
+types is compiled separately (monomorphisation): `id(1)` and `id(2.5)` run
+two functions, `Box[i32]` and `Box[f64]` are two types with their own
+layouts.
+
 ```codira
-struct Box[T] {
-    value: T
+struct Pair[A, B] { a: A, b: B }
+class Box[T] { value: T }
+
+extend Box[T] {                          // methods of every Box[T]
+    func get(self) -> T { self.value }
+    func new(value: T) -> Box[T] { Box { value: value } }
 }
 
-func first[T](items: [T]) -> T? {
-    if items.is_empty() { nil } else { items[0] }
+func pick[T](a: T, b: T, first: bool) -> T {
+    if first { a } else { b }
+}
+
+func main() -> f64 {
+    let b: Box[i32] = Box { value: 41 }  // explicit arguments, in type position
+    let p = Pair { a: 3, b: 0.5 }        // inferred: Pair[i64, f64]
+    let n = Box.new(p)                   // Box[Pair[i64, f64]]
+    pick(1.5, 2.5, b.get() > 40)
 }
 ```
+
+- Type arguments are written only in type position (`Box[i32]`); at calls
+  they are always inferred from the arguments and the expected type. A
+  parameter nothing determines (`func size[T]() -> i64` called as `size()`)
+  is an error at the call.
+- A value of type `T` can be moved, copied, passed, returned and stored.
+  Anything more -- `a + b`, `a < b`, `-a`, `a.len()` -- needs a bound
+  (`where T: ...`), and bounds are not supported yet: it is a type error
+  saying so.
+- A generic type needs its arguments outside its own declaration: `b: Box`
+  is an error, write `b: Box[i32]`.
+- Generics cross modules as source: a module calling another module's
+  generic function compiles the instance itself (and a private helper the
+  function calls, which its module does not export). A generic function has
+  no code of its own, so it is never exported to the host, even when
+  `public`; `codira start`/`invoke` can only call non-generic functions.
+  `@export`, `@asm` and `@test` cannot be put on a generic function, and a
+  generic function cannot have a `uses` clause or be `spawn`ed yet.
+- A function calling itself at an ever larger type (`f(Box { v: x })`
+  inside `f[T]`) has no finite set of instances and is reported.
+- The Cranelift backend (`codira run --jit`) does not compile generic
+  functions; a program using them runs on LLVM.
 
 ### Optional types
 
@@ -511,6 +549,13 @@ func sum_to(n: i64) -> i64
 - Integers are checked with the semantics the compiled code has: fixed
   width, wrapping. `ensures result > x` for `x + 1` fails at `x = i64::MAX`.
 - Inside `ensures`, a parameter means its value on entry.
+- Loops are checked from an arbitrary iteration: every local a loop assigns
+  is unknown at its head. A `while`/`loop` recovers facts through its
+  `invariant`s, which must hold at the end of the body and at every
+  `continue`; its `decreases` measure must drop on both paths too. A `for`
+  loop takes no clauses: inside it the variable is known to lie in its range
+  (an array element is unknown), and after it every local it assigns is
+  unknown.
 - A function with any contract must also prove its divisions safe (no zero
   divisor, no signed `MIN / -1`).
 - `ghost let` bindings and all clauses are erased before code generation;
@@ -588,6 +633,108 @@ public func equal(a: u64, b: u64) -> bool {
   lower a `select` to a branch (`!unpredictable` asks it not to); multiplies,
   shifts and loads at public addresses are assumed constant-time; speculative
   execution is out of scope.
+
+### Units of measure
+
+```codira
+type Speed = f64 unit(m / s);
+
+func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed { d / t }
+
+func area(w: f64 unit(m), h: f64 unit(m)) -> f64 unit(m * m) { w * h }
+
+func wrong(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+    d + t      // error: dimension mismatch: added or subtracted `s` where `m` is required
+}
+```
+
+- `T unit(<dimension>)` gives a number a dimension: a product of base units
+  with integer exponents, written with `*`, `/`, parentheses and `1`
+  (`kg * m / (s * s)`). Any identifier is a base unit; units are not declared.
+  `unit` is contextual (only directly after a type and before `(`).
+- `+`, `-`, comparisons, assignment, `if` arms, arguments and results need
+  equal dimensions; `*` adds exponents and `/` subtracts them. An unannotated
+  numeric parameter, `let` or result is dimensionless.
+- A literal takes the dimension it meets (`x + 1.0` is fine for any `x`) and
+  is dimensionless under `*` and `/` (`2.0 * x` keeps `x`'s dimension).
+- Values the checker cannot follow (fields, array elements, calls through
+  anything but a plain function) are unconstrained, so a mismatch through them
+  is not caught.
+- The qualifier lowers to its base type: units cost nothing at run time and
+  code generation never sees them. There are no unit conversions (`km` and
+  `m` are unrelated base units).
+
+### Allocation-, panic- and block-free code: `@noalloc`, `@nopanic`, `@noblock`, `@realtime`
+
+```codira
+class Particle {
+    x: i64
+}
+
+@realtime                                  // = @noalloc @nopanic @noblock + bounded
+func mean(total: i64, count: i64) -> i64
+    requires count > 0                     // proves the division safe
+{
+    total / count
+}
+
+@noalloc
+func tick(n: i64) -> i64 {
+    step(n)                                // error, see below
+}
+
+func step(n: i64) -> i64 {
+    let p = Particle { x: n }
+    p.x
+}
+```
+
+```
+error: `tick` is `@noalloc` but calls `step` (line 14), which allocates: class `Particle` constructed at line 18
+```
+
+The compiler computes, for every function, whether a call to it can
+allocate, block, panic or run unboundedly, through everything it calls
+(recursion included), and remembers one chain of calls that explains each.
+An attribute forbids effects: `@noalloc` allocation, `@nopanic` panics,
+`@noblock` blocking, `@realtime` all three and unbounded running time. Every
+place in an annotated function that has a forbidden effect, directly or
+through a call, is an error that prints the chain.
+
+What counts, exactly (today's code generator and runtime):
+
+- **Allocates** (and so may also block on the heap's lock and abort when the
+  heap limit or memory runs out): constructing a `class`, an array literal,
+  `print`/`println`, `channel(n)`, `scope`, `spawn`, a channel send, `select`
+  (even with `default`), opening a session (`S.open()`), and a
+  call to a function of *another module* that takes or returns a value
+  struct (the cross-module calling convention boxes it). String literals,
+  value structs, tuples and effect handler records allocate nothing.
+- **Blocks**: channel send and receive (also on a session endpoint, and
+  `ep.choose(..)` and `offer`), `select`, the end of a `scope`, and the
+  allocations above.
+- **Panics**: `a[i]` and `a[i] = v` (bounds check; `a.unchecked_get(i)` is
+  the unchecked escape hatch), integer `/` and `%` (and `/=`, `%=`), calling a
+  `@runtime_checked` function that has `requires`, and every allocation.
+  Integer division is not checked by the generated code at all -- a zero
+  divisor or `MIN / -1` is undefined behaviour -- so a division only counts
+  as safe when its divisor is a positive literal or the function has a
+  contract and Z3 proves the divisor non-zero (and, signed, not `MIN / -1`).
+- **May not terminate** (`@realtime` only): a `while` or `loop` without a
+  `decreases` measure, or whose measure the verifier does not prove, and
+  recursion, direct or mutual. `for` loops are bounded by construction.
+- **Everything at once**: a call to an `extern` function, a `perform` (its
+  handler is chosen at run time), and any call the analysis cannot resolve.
+  An `extern` declaration may carry the attributes as a *trusted
+  assertion* -- nothing checks it -- e.g. `@noalloc @nopanic extern func
+  c_mix(a: i64) -> i64;`, also inside `extern "C" { .. }` blocks.
+  `extern "codira-intrinsic"` operations have no effects.
+
+Limits: stack overflow is not ruled out (there is no stack bound). `@realtime`
+proves termination, not a time bound: `@deadline(..)` is rejected, because a
+worst-case execution time needs a cycle model of the target CPU that the
+compiler does not have. `codira build --fuel` lets any call stop when its fuel
+runs out, so such a build rejects `@nopanic` and `@realtime` functions.
 
 ### Modules & imports
 
@@ -716,6 +863,117 @@ unpacks them once into a temporary directory named after their hash; later
 runs load them directly. `main` may return nothing (exit code 0), an integer
 (the exit code) or `bool` (true is success). Host target only for now.
 
+### Proof certificates: `codira build --certify`, `codira certify`
+
+```bash
+codira build --certify                     # also writes target/mod.codiralib.cert.json
+codira certify target/mod.codiralib        # re-checks it without the compiler
+codira certify target/                     # every library in a directory
+codira build --exe --certify -o app.exe    # the certificates travel inside the executable
+codira certify app.exe
+codira certify target/mod.codiralib --source-dir src   # also match the source text
+```
+
+The certificate (a JSON sidecar, `<library>.cert.json`) lists every function
+of the library with: its symbol; the byte range of its machine code in the
+library and a SHA-256 of those bytes; the file, line, byte range and SHA-256
+of its source; and every proof obligation the contract verifier generated
+for it, each as the self-contained SMT-LIB2 queries Z3 decided (premise
+asserted, then the negated goal; `unsat` = proven) or the reason it is not
+proven. The whole library file is hashed too.
+
+`codira certify` uses Z3 and the certificate reader only -- no parser, type
+checker, verifier or code generator. It fails (exit 1) when the library is not
+the hashed file, when a function's code bytes or symbol position differ (the
+failing function is named), when a query contains anything but declarations
+and assertions, or when Z3 under the checker's own `--rlimit` does not answer
+`unsat` for a query recorded as proven. It reports, without failing,
+obligations the certificate records as unproven (a `@runtime_checked`
+`requires` the solver could not decide; `--deny-unproven` makes them fail) and
+proofs that hold only because their path condition is unsatisfiable.
+
+What a passing check establishes, and what it does not:
+
+- It re-proves the recorded obligations and binds them, by hash, to the
+  library's bytes. It does **not** show the obligations are the right ones:
+  the verification-condition generator that turned source and contracts into
+  queries is trusted, as is Z3. Nothing relates the machine code to the
+  source beyond sitting in one certificate: the queries are about the source
+  program, so a miscompilation is not detected.
+- The certificate is not signed. Whoever can rewrite both the library and its
+  certificate can make them agree; keep the certificate somewhere the library
+  cannot change it (or sign it by other means) if that matters.
+- Translation validation does not run during builds, so the certificate
+  contains no translation-validation results (it says so). The Codira runtime
+  that loads the library is not covered.
+- Code ranges: ELF gives each function's exact size; on PE and Mach-O a
+  function's range runs to the next symbol, so it includes alignment padding.
+  A certified build keeps every function's symbol (internal instead of
+  private linkage, and `/DEBUG:SYMTAB` on Windows) -- the generated code is
+  the same. A function the optimizer inlined away has no code range (noted),
+  and neither has a generic function: its instances are compiled into the
+  libraries that use them and are not given ranges.
+
+Cost: certifying verifies each function with a contract a second time and
+writes its queries; it is opt-in for that reason.
+
+### API compatibility: `codira api-diff`
+
+```bash
+codira api-diff v1.2.0 .              # a git revision of this package vs the working tree
+codira api-diff ../lib-old ../lib-new # two package directories
+codira api-diff HEAD~1 . --check      # exit 1 if `version` is not bumped far enough
+```
+
+```text
+v2.2 (2.2.0) -> . (2.3.0)
+      minor: weakens the precondition of `decode()`
+             requires was: `x >= 0`
+             requires now: `x >= -10`
+             newly accepted: x = -10
+      major: weakens the postcondition of `decode()`
+             ensures was: `result >= 0 && result <= x`
+             ensures now: `result >= 0`
+             allowed now, ruled out before: x = 17592186044414, result = 17592186044416
+      major: adds `Net` to `parse()`
+2.3.0 weakens the precondition of `decode()`, weakens the postcondition of `decode()` and adds `Net` to `parse()`
+required bump: major
+error: 2.2.0 -> 2.3.0 is a minor bump; these changes need a major bump
+```
+
+It compares the `public` items (functions, methods as `Type.method`, structs,
+type aliases, effects), matched by path:
+
+- removed item, changed parameter/return types, receiver or generic
+  parameters, an effect added to `uses`, a struct's fields or kind changed, an
+  alias retargeted or its refinement changed: **major**;
+- added item, an effect removed from `uses`: **minor**;
+- `requires` + parameter refinements: **strengthened** (some input accepted
+  before is refused now) is major, **weakened** is minor, an equivalent rewrite
+  is a patch;
+- `ensures` + return refinement: **weakened** (for an input old callers could
+  pass, something ruled out before is allowed now) is major, **strengthened**
+  is minor;
+- bodies and private items: patch.
+
+Contracts are compared by Z3 implication over the parameters by position
+(`p0`, `p1`, ...; a renamed parameter is the same parameter) and `result`,
+with the verifier's machine-integer semantics; a refuted implication prints
+the input that shows it. A clause that cannot be encoded (floats, fields,
+calls) or a check that exhausts the budget makes the change **undecided**:
+reported as such, never guessed, and counted as major by `--check`.
+A public generic function counts as API although it is never exported (its
+callers compile its instances from source); its type parameters are compared
+by position, so renaming `T` is no change and adding one is major.
+`--check` follows Cargo's reading of versions: below 1.0 the leftmost
+non-zero component is the breaking one (`0.4.0 -> 0.4.1` allows additions,
+`0.4 -> 0.5` allows breaks), and every `0.0.z` is incompatible. A git
+revision is read with `git cat-file` into a temporary directory; the working
+tree and index are not touched. Limits: enums and traits are not compared;
+`@export`, `@runtime_checked` and other attribute changes are not reported;
+there is no `codira publish` -- `--check` is the step a CI job or publish
+script runs.
+
 ### Targets
 
 `--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,
@@ -795,6 +1053,73 @@ addresses as `usize`:
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
 loads and stores). As with `load_*`/`store_*`, nothing checks the address.
 
+### Proven rewrite rules: `@rewrite`
+
+A library can teach the optimizer an equation over a function's parameters:
+
+```codira
+@rewrite(from: 3 * a + 2 * a, to: 5 * a)
+func five(a: i64) -> i64 { 5 * a }
+```
+
+`from` and `to` (or two positional arguments) are expressions over the
+parameters using literals and operators. The function only names the
+variables and their types. Each rule is proven by the translation validator
+(`codira_tv`) when the package is built, and only a proven rule is used.
+A false rule fails the build with a counterexample (`the two sides differ for
+a = 1`). So does a rule the validator cannot prove: it decides linear integer
+arithmetic, so a rule that multiplies two parameters, uses bitwise operators
+or uses floats is refused for now. A rule proven only in the absence of
+overflow is accepted when it uses nothing but `+`, `-` and `*` (it then holds
+for wrapping `i64` too) and refused otherwise. Proven rules are applied by the
+e-graph during Eidos optimization. Today that only feeds whole-function
+constant folding, so a rule cannot yet change the code that is generated.
+
+### GPU kernels: `@target(gpu)`
+
+A function marked `@target(gpu)` is also compiled for NVIDIA GPUs. `codira
+build` writes its PTX to `target/<module>.ptx`, next to the library, and the
+CUDA driver JIT-compiles that for whatever GPU it finds. A GPU function that
+returns nothing is a kernel, which the host launches. One that returns a value
+is a device function, which kernels can call. Buffers are `usize` device
+addresses, read and written with the `load_<t>`/`store_<t>` intrinsics. Each
+thread finds its work item with `gpu_thread_id_x/y/z`, `gpu_block_id_*`,
+`gpu_block_dim_*` and `gpu_grid_dim_*` (all `-> u32`), and
+`gpu_sync_threads()` is the block barrier:
+
+```codira
+extern "codira-intrinsic" {
+    func gpu_thread_id_x() -> u32;
+    func gpu_block_id_x() -> u32;
+    func gpu_block_dim_x() -> u32;
+    func load_f32(addr: usize) -> f32;
+    func store_f32(addr: usize, value: f32);
+}
+
+@target(gpu)
+public func vadd(a: usize, b: usize, c: usize, n: u32) {
+    let i = gpu_block_id_x() * gpu_block_dim_x() + gpu_thread_id_x()
+    if i < n {
+        let at = (i as usize) * 4
+        store_f32(c + at, load_f32(a + at) + load_f32(b + at))
+    }
+}
+```
+
+The GPU has no Codira runtime, so a GPU function may take and return only
+integers, floats and booleans, and may call only other `@target(gpu)`
+functions and intrinsics: no classes or other garbage-collected values, no
+host functions, no `extern` functions. Anything else fails the build with the
+reason. In the host library the same function is an ordinary function, and
+the geometry intrinsics describe a one-thread launch (ids 0, dimensions 1).
+
+Launching from Rust goes through the `codira_gpu` crate: `Gpu::open()`,
+`load_ptx`, `upload`, `launch`, `copy_to`. It opens the CUDA driver library at
+run time, so nothing links against CUDA, and a machine without a GPU gets an
+error instead of a crash. There is no launch syntax in Codira yet. A vector
+add over 100,000 elements is tested on an RTX 4080 against the host result;
+without a driver or device that test reports that it was skipped.
+
 ### Quantum kernels (`codira quantum`)
 
 A function marked `@target(qpu)` is a quantum kernel: the compiler runs its
@@ -854,6 +1179,77 @@ Rules that matter when writing kernels:
 From Python, `bindings/python/codira_quantum` converts kernels to and from
 Qiskit circuits and produces QIR bitcode; see `crates/codira_quantum/README.md`
 for the full surface, the profile limits, and what is verified.
+
+### Zero-knowledge proofs: `codira attest`
+
+An `oblivious func` never branches on, indexes by or loops over its inputs,
+so it is a fixed circuit. `codira attest` proves, in zero knowledge, that the
+function returns a given value on inputs only the prover knows -- the
+roadmap's `attest score(x, y) reveal r`, as a command:
+
+```codira
+oblivious func score(x: i64, y: i64) -> i64 {
+    var total = 0
+    for i in 0..3 {
+        total += x * (i + 1) - (y >> i)
+    }
+    total + ct_select(x > y, 10i64, -10i64)
+}
+```
+
+```bash
+codira attest build score.code::score --out-dir keys   # score.r1cs .circom .pk .vk
+codira attest prove score.code::score --input x=-7 --input y=1234 --pk keys/score.pk -o score.proof
+codira attest verify --vk keys/score.vk --proof score.proof              # valid
+codira attest verify --vk keys/score.vk --proof score.proof --reveal 5   # INVALID
+```
+
+- The result is the one public value (`reveal`); every input stays private.
+  `verify` needs only the verifying key and the proof file.
+- Integer semantics are exact: `i64 + i64` wraps at 2^64 in the proof as it
+  does natively (values are bit-decomposed and reduced; the field's own wrap
+  never shows). Per-operator constraint costs are in
+  `crates/codira_circuits/README.md` (64-bit `+` is free until reduced, `*`
+  costs 1 plus a 130-constraint reduction, `<` costs 66).
+- The circuit subset: integers of 8 to 64 bits and `bool`; `+ - * & | ^ ~ !
+  << >>`, comparisons, `as`, `ct_select`, `declassify`; `let`/`var`; calls to
+  other oblivious/`@constant_time` functions (inlined); `while`/`loop`/`for`
+  with compile-time bounds (unrolled); `/` and `%` on compile-time values
+  only. Floats, `i128`, arrays, structs, objects, effects, `print` and any
+  branch on an input are refused with the line and the reason.
+- Proofs are Groth16 over BN254 (arkworks). `build` runs a one-party setup:
+  whoever runs it could forge proofs for that circuit. The `.r1cs` (iden3
+  format) and `.circom` files work with circom/snarkjs for anything else.
+- Shifting by the width or more is undefined natively; circuits give 0 (or
+  all sign bits for signed `>>`).
+
+### FPGA: `@target(fpga)`
+
+A function marked `@target(fpga)` is also compiled to a synthesizable
+Verilog-2001 module: `codira build` writes `target/<function>.v`, one
+combinational module with an input port per parameter and an output port
+`result`. The function stays an ordinary host function too.
+
+```codira
+@target(fpga)
+public func clamp(x: i32, lo: i32, hi: i32) -> i32 {
+    var r = x
+    if x < lo { r = lo }        // an `if` on an input becomes a multiplexer
+    if x > hi { r = hi }
+    r
+}
+```
+
+- Same subset as `attest`, plus `if`/`&&`/`||` on inputs (both sides are
+  built and selected between). A `return`/`break` under an input-dependent
+  condition, or a loop whose bound depends on an input, is refused; so is
+  anything outside the subset, which fails `codira build` with the reason.
+- Exact two's complement: every net is unsigned and exactly as wide as its
+  type; signed `<` is `$signed(a) < $signed(b)`, signed `>>` is `>>>`.
+- Validated by the netlist evaluator against native execution, and by Yosys
+  (the pip-installable YoWASP build) parsing, synthesising (`synth -noabc`)
+  and evaluating the output. No simulator such as Icarus or Verilator, and
+  no vendor FPGA flow, has run it. No clocks, registers or pipelining yet.
 
 ### C, C++ and assembly in a package: `[native]`
 
@@ -929,6 +1325,9 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
+- generic functions, structs and classes, monomorphised per instantiation
+  (see "Generics" above for the limits: no bounds, so a `T` can only be
+  moved and stored; generic functions are not exported to the host)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
 
@@ -936,6 +1335,13 @@ Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
 `codira check` and `codira build`; see "Contracts and verification" above for
 what the checker models and what it reports as uncheckable.
+`codira build --certify` writes a proof certificate per library (obligations
+as SMT-LIB2 queries, source and machine-code hashes) and `codira certify`
+re-checks it with Z3 alone; see "Proof certificates" for exactly what that
+establishes.
+`codira api-diff` classifies public API changes between two versions as
+major, minor or patch -- contract changes decided by Z3 implication -- and
+`--check` fails when the manifest's version is not bumped far enough.
 
 Runtime (hosts embedding `codira_runtime`):
 
@@ -960,6 +1366,20 @@ Runtime (hosts embedding `codira_runtime`):
   Running out prints a message and ends the call (a `FuelExhausted` fault a
   HERACLES guard catches, with `--heal`). Measured cost: about 2-12% in loops.
   Uninstrumented code is not metered.
+- Hot reload keeps object state across layout changes: fields are matched
+  by name, numeric fields that change type convert with saturating
+  semantics, and a renamed field keeps its value when marked
+  @renamed(from: "old"). Runtime::save_heap / restore_heap write the GC
+  heap to a file and rebuild it in a runtime running the same program.
+
+Circuits: `codira attest build|prove|verify` proves `oblivious` functions
+in zero knowledge (Groth16 over BN254, exact integer semantics, `.r1cs` and
+Circom output), and `codira build` writes `target/<function>.v` (Verilog) for
+`@target(fpga)` functions; see their sections above for the subset.
+
+`@noalloc`, `@nopanic`, `@noblock` and `@realtime` are checked statically in
+`codira check` and `codira build` (see their section above); `@deadline` is
+rejected.
 
 Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
 one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts
@@ -977,9 +1397,8 @@ types").
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
 postfix `!`, postfix `^`. Not available at
-all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
-instantiation (generic code type-checks but does not build), `String`, and
-using the standard library from a program.
+all yet: `enum`, `trait` (and so generic bounds), `T?`/`nil` at runtime,
+`String`, and using the standard library from a program.
 
 ---
 

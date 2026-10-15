@@ -297,3 +297,19 @@ pub struct TypeParamId {
     pub owner: GenericDefId,
     pub index: u32,
 }
+
+impl TypeParamId {
+    /// The name the parameter was declared with, for messages. `None` only
+    /// for an index past the owner's parameter list.
+    pub fn name(self, db: &dyn DefDatabase) -> Option<crate::Name> {
+        let index = self.index as usize;
+        match self.owner {
+            GenericDefId::FunctionId(id) => db.fn_data(id).generic_params().get(index).cloned(),
+            GenericDefId::StructId(id) => db.struct_data(id).generic_params.get(index).cloned(),
+            // An `extend` block's parameters are owned by the extended type
+            // (see `resolve::impl_generic_param`), so none is ever owned by
+            // the block itself.
+            GenericDefId::ImplId(_) => None,
+        }
+    }
+}

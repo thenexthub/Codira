@@ -7,7 +7,7 @@
 use super::{
     expressions, generics, name_ref, paths, CompletedMarker, Parser, TokenSet, ARRAY_TYPE,
     DUAL_TYPE, FUNCTION_TYPE, NEVER_TYPE, OPTIONAL_TYPE, PAREN_TYPE, PATH_TYPE, REFERENCE_TYPE,
-    REFINEMENT_TYPE, RET_TYPE, SECRET_TYPE, TUPLE_TYPE, VARIADIC_TYPE,
+    REFINEMENT_TYPE, RET_TYPE, SECRET_TYPE, TUPLE_TYPE, UNIT_TYPE, VARIADIC_TYPE,
 };
 
 pub(super) const TYPE_FIRST: TokenSet = paths::PATH_FIRST.union(TokenSet::new(&[
@@ -111,6 +111,16 @@ fn type_inner(p: &mut Parser<'_>, allow_refinement: bool) {
         let m = inner.precede(p);
         p.bump(T![?]);
         inner = m.complete(p, OPTIONAL_TYPE);
+    }
+    // `T unit(m / s)` -- a unit of measure. `unit` is contextual: only a
+    // `unit` directly followed by `(` after a type is the qualifier.
+    if p.at_contextual_kw("unit") && p.nth_at(1, T!['(']) {
+        let m = inner.precede(p);
+        p.bump_remap(T![unit]);
+        p.bump(T!['(']);
+        expressions::expr(p);
+        p.expect(T![')']);
+        inner = m.complete(p, UNIT_TYPE);
     }
     // Refinement type: `Type { binder | predicate }`, e.g.
     // `i32 { x | x > 0 && x < MAX_ID }` (see

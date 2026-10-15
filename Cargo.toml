@@ -88,3 +88,26 @@ rpath = true
 
 [profile.release]
 rpath = true
+
+# The arkworks field and curve arithmetic behind `codira attest` runs tens of
+# times slower unoptimised, and tests prove and verify real Groth16 proofs.
+# Most of it is generic, so it is compiled where it is instantiated: in
+# `codira_circuits`, which is optimised too.
+[profile.dev.package.codira_circuits]
+opt-level = 2
+[profile.dev.package.ark-ff]
+opt-level = 3
+[profile.dev.package.ark-ec]
+opt-level = 3
+[profile.dev.package.ark-bn254]
+opt-level = 3
+[profile.dev.package.ark-poly]
+opt-level = 3
+[profile.dev.package.ark-groth16]
+opt-level = 3
+[profile.dev.package.ark-relations]
+opt-level = 3
+[profile.dev.package.ark-serialize]
+opt-level = 3
+[profile.dev.package.ark-std]
+opt-level = 3

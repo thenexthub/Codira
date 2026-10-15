@@ -338,6 +338,16 @@ impl ExprValidator<'_> {
             );
             return;
         }
+        if function.is_generic(self.db) {
+            // A task starts through a trampoline made per function, and a
+            // generic function has one body per instantiation.
+            self.push_task_error(
+                call,
+                format!("`spawn` cannot run the generic function `{name}` yet"),
+                sink,
+            );
+            return;
+        }
         if !function.effects(self.db).is_empty() {
             self.push_task_error(
                 call,

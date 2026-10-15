@@ -199,7 +199,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
     fn task_trampoline(&self, function: codira_hir::Function) -> FunctionValue<'ink> {
         let target = *self
             .function_map
-            .get(&function)
+            .get(&codira_hir::mono::Instance::of(function))
             .expect("the task validator only allows functions of this module");
         let name = format!("{}.task", target.get_name().to_string_lossy());
         if let Some(existing) = self.module.get_function(&name) {

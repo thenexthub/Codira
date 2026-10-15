@@ -3037,6 +3037,7 @@ impl ast::NameOwner for RecordFieldDef {}
 impl ast::VisibilityOwner for RecordFieldDef {}
 impl ast::DocCommentsOwner for RecordFieldDef {}
 impl ast::TypeAscriptionOwner for RecordFieldDef {}
+impl ast::AttributeOwner for RecordFieldDef {}
 impl RecordFieldDef {}
 
 // RecordFieldDefList
@@ -4164,6 +4165,7 @@ impl AstNode for TypeRef {
                 | REFINEMENT_TYPE
                 | SECRET_TYPE
                 | DUAL_TYPE
+                | UNIT_TYPE
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -4191,6 +4193,7 @@ pub enum TypeRefKind {
     RefinementType(RefinementType),
     SecretType(SecretType),
     DualType(DualType),
+    UnitType(UnitType),
 }
 impl From<PathType> for TypeRef {
     fn from(n: PathType) -> TypeRef {
@@ -4252,6 +4255,11 @@ impl From<DualType> for TypeRef {
         TypeRef { syntax: n.syntax }
     }
 }
+impl From<UnitType> for TypeRef {
+    fn from(n: UnitType) -> TypeRef {
+        TypeRef { syntax: n.syntax }
+    }
+}
 
 impl TypeRef {
     pub fn kind(&self) -> TypeRefKind {
@@ -4278,12 +4286,45 @@ impl TypeRef {
             }
             SECRET_TYPE => TypeRefKind::SecretType(SecretType::cast(self.syntax.clone()).unwrap()),
             DUAL_TYPE => TypeRefKind::DualType(DualType::cast(self.syntax.clone()).unwrap()),
+            UNIT_TYPE => TypeRefKind::UnitType(UnitType::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }
     }
 }
 
 impl TypeRef {}
+
+// UnitType
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnitType {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for UnitType {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, UNIT_TYPE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(UnitType { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl UnitType {
+    pub fn base(&self) -> Option<TypeRef> {
+        super::child_opt(self)
+    }
+
+    pub fn dimension(&self) -> Option<Expr> {
+        super::child_opt(self)
+    }
+}
 
 // Use
 
