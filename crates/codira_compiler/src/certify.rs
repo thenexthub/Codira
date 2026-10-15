@@ -70,7 +70,15 @@ pub(crate) fn certificate(
             .count()
             > 1;
 
-        let (code, code_note) = if shared_name {
+        let (code, code_note) = if function.is_generic(db) {
+            (
+                None,
+                Some(
+                    "generic: it has no code of its own; each instantiation is compiled where it                      is used (named like `f[i64]`) and is not given a code range"
+                        .to_string(),
+                ),
+            )
+        } else if shared_name {
             (
                 None,
                 Some(format!(

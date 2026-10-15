@@ -142,6 +142,13 @@ impl TypeVariableTable {
         // First resolve both types as much as possible
         let a = self.replace_if_possible(db, a);
         let b = self.replace_if_possible(db, b);
+        // Equal once resolved: a variable bound to a generic parameter `T`
+        // unifies with `T`. `equals_ctor` does not list types without
+        // arguments that only match themselves (`T`, `str`), so without
+        // this a resolved variable compared against its own value failed.
+        if a == b {
+            return true;
+        }
         if a.equals_ctor(&b) {
             match (a.interned(), b.interned()) {
                 // Struct is here for the same reason as tuple: the

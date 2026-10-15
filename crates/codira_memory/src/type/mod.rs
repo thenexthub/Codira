@@ -446,6 +446,24 @@ impl TypeData {
         matches!(self.data, TypeDataKind::Array(_))
     }
 
+    /// Returns true if this is a pointer type.
+    pub(crate) fn is_pointer(&self) -> bool {
+        matches!(self.data, TypeDataKind::Pointer(_))
+    }
+
+    /// Returns the type and offset of every field if this is a struct type.
+    pub(crate) fn struct_fields(&self) -> Vec<(&TypeData, u16)> {
+        match &self.data {
+            // Safety: field types are kept alive by the type store.
+            TypeDataKind::Struct(s) => s
+                .fields
+                .iter()
+                .map(|f| (unsafe { f.type_info.as_ref() }, f.offset))
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
     /// Returns the byte offsets, relative to the start of a value of this
     /// type, of every GC reference stored inline in the value. References
     /// inside inline value structs are flattened in. Reference types
@@ -928,6 +946,7 @@ impl Type {
                 name,
                 type_info: ty.inner,
                 offset,
+                renamed_from: None,
             })
             .collect::<Vec<_>>();
         GLOBAL_TYPE_STORE.allocate(
@@ -1159,9 +1178,10 @@ impl StructData {
         let fields: Result<Vec<FieldData>, TryFromAbiError<'abi>> = izip!(
             struct_info.field_names(),
             struct_info.field_types(),
-            struct_info.field_offsets()
+            struct_info.field_offsets(),
+            struct_info.field_previous_names()
         )
-        .map(|(name, type_id, offset)| {
+        .map(|(name, type_id, offset, previous_name)| {
             type_table
                 .find_type_info_by_id(type_id)
                 .ok_or_else(|| TryFromAbiError::UnknownTypeId(type_id.clone()))
@@ -1169,6 +1189,7 @@ impl StructData {
                     name: name.to_owned(),
                     type_info: type_info.inner,
                     offset: *offset,
+                    renamed_from: previous_name.map(ToOwned::to_owned),
                 })
         })
         .collect();
@@ -1190,6 +1211,8 @@ pub struct FieldData {
     pub type_info: NonNull<TypeData>,
     /// The field's offset
     pub offset: u16,
+    /// The name the field had before (`@renamed(from: "old")`), if any.
+    pub renamed_from: Option<String>,
     // TODO: Field accessibility levels
     // const CodiraPrivacy_t *field_privacies,
 }
@@ -1207,6 +1230,15 @@ impl<'t> Field<'t> {
         't: 's,
     {
         self.inner.name.as_str()
+    }
+
+    /// Returns the name the field had before it was renamed with
+    /// `@renamed(from: "old")`, if it was.
+    pub fn renamed_from<'s>(&'s self) -> Option<&'t str>
+    where
+        't: 's,
+    {
+        self.inner.renamed_from.as_deref()
     }
 
     /// Returns the type of the field

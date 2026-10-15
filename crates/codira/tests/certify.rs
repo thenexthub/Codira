@@ -250,6 +250,10 @@ public func half(x: i64) -> i64
 {
     x / 2
 }
+
+public func same[T](x: T) -> T { x }
+
+public func uses_same() -> i64 { same(5) }
 "#,
     );
     let certificate = certificate_of(&library);
@@ -267,6 +271,23 @@ public func half(x: i64) -> i64
         "{report}"
     );
     assert!(report.obligations_proven >= 1, "{report}");
+
+    // A generic function has no code of its own to bind; its instances are
+    // compiled into their callers' libraries.
+    let same = certificate
+        .functions
+        .iter()
+        .find(|f| f.symbol == "same")
+        .unwrap();
+    assert!(same.code.is_none());
+    assert!(
+        same.code_note
+            .as_deref()
+            .unwrap_or("")
+            .starts_with("generic"),
+        "{:?}",
+        same.code_note
+    );
 
     // Accepted by default, refused on request.
     let library = library.to_str().unwrap();

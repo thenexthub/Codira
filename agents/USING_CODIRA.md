@@ -200,15 +200,53 @@ func area(shape: Shape) -> f64 {
 
 ### Generics
 
+Generic functions, structs and classes build and run. Each use at concrete
+types is compiled separately (monomorphisation): `id(1)` and `id(2.5)` run
+two functions, `Box[i32]` and `Box[f64]` are two types with their own
+layouts.
+
 ```codira
-struct Box[T] {
-    value: T
+struct Pair[A, B] { a: A, b: B }
+class Box[T] { value: T }
+
+extend Box[T] {                          // methods of every Box[T]
+    func get(self) -> T { self.value }
+    func new(value: T) -> Box[T] { Box { value: value } }
 }
 
-func first[T](items: [T]) -> T? {
-    if items.is_empty() { nil } else { items[0] }
+func pick[T](a: T, b: T, first: bool) -> T {
+    if first { a } else { b }
+}
+
+func main() -> f64 {
+    let b: Box[i32] = Box { value: 41 }  // explicit arguments, in type position
+    let p = Pair { a: 3, b: 0.5 }        // inferred: Pair[i64, f64]
+    let n = Box.new(p)                   // Box[Pair[i64, f64]]
+    pick(1.5, 2.5, b.get() > 40)
 }
 ```
+
+- Type arguments are written only in type position (`Box[i32]`); at calls
+  they are always inferred from the arguments and the expected type. A
+  parameter nothing determines (`func size[T]() -> i64` called as `size()`)
+  is an error at the call.
+- A value of type `T` can be moved, copied, passed, returned and stored.
+  Anything more -- `a + b`, `a < b`, `-a`, `a.len()` -- needs a bound
+  (`where T: ...`), and bounds are not supported yet: it is a type error
+  saying so.
+- A generic type needs its arguments outside its own declaration: `b: Box`
+  is an error, write `b: Box[i32]`.
+- Generics cross modules as source: a module calling another module's
+  generic function compiles the instance itself (and a private helper the
+  function calls, which its module does not export). A generic function has
+  no code of its own, so it is never exported to the host, even when
+  `public`; `codira start`/`invoke` can only call non-generic functions.
+  `@export`, `@asm` and `@test` cannot be put on a generic function, and a
+  generic function cannot have a `uses` clause or be `spawn`ed yet.
+- A function calling itself at an ever larger type (`f(Box { v: x })`
+  inside `f[T]`) has no finite set of instances and is reported.
+- The Cranelift backend (`codira run --jit`) does not compile generic
+  functions; a program using them runs on LLVM.
 
 ### Optional types
 
@@ -378,6 +416,13 @@ func sum_to(n: i64) -> i64
 - Integers are checked with the semantics the compiled code has: fixed
   width, wrapping. `ensures result > x` for `x + 1` fails at `x = i64::MAX`.
 - Inside `ensures`, a parameter means its value on entry.
+- Loops are checked from an arbitrary iteration: every local a loop assigns
+  is unknown at its head. A `while`/`loop` recovers facts through its
+  `invariant`s, which must hold at the end of the body and at every
+  `continue`; its `decreases` measure must drop on both paths too. A `for`
+  loop takes no clauses: inside it the variable is known to lie in its range
+  (an array element is unknown), and after it every local it assigns is
+  unknown.
 - A function with any contract must also prove its divisions safe (no zero
   divisor, no signed `MIN / -1`).
 - `ghost let` bindings and all clauses are erased before code generation;
@@ -455,6 +500,106 @@ public func equal(a: u64, b: u64) -> bool {
   lower a `select` to a branch (`!unpredictable` asks it not to); multiplies,
   shifts and loads at public addresses are assumed constant-time; speculative
   execution is out of scope.
+
+### Units of measure
+
+```codira
+type Speed = f64 unit(m / s);
+
+func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed { d / t }
+
+func area(w: f64 unit(m), h: f64 unit(m)) -> f64 unit(m * m) { w * h }
+
+func wrong(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+    d + t      // error: dimension mismatch: added or subtracted `s` where `m` is required
+}
+```
+
+- `T unit(<dimension>)` gives a number a dimension: a product of base units
+  with integer exponents, written with `*`, `/`, parentheses and `1`
+  (`kg * m / (s * s)`). Any identifier is a base unit; units are not declared.
+  `unit` is contextual (only directly after a type and before `(`).
+- `+`, `-`, comparisons, assignment, `if` arms, arguments and results need
+  equal dimensions; `*` adds exponents and `/` subtracts them. An unannotated
+  numeric parameter, `let` or result is dimensionless.
+- A literal takes the dimension it meets (`x + 1.0` is fine for any `x`) and
+  is dimensionless under `*` and `/` (`2.0 * x` keeps `x`'s dimension).
+- Values the checker cannot follow (fields, array elements, calls through
+  anything but a plain function) are unconstrained, so a mismatch through them
+  is not caught.
+- The qualifier lowers to its base type: units cost nothing at run time and
+  code generation never sees them. There are no unit conversions (`km` and
+  `m` are unrelated base units).
+
+### Allocation-, panic- and block-free code: `@noalloc`, `@nopanic`, `@noblock`, `@realtime`
+
+```codira
+class Particle {
+    x: i64
+}
+
+@realtime                                  // = @noalloc @nopanic @noblock + bounded
+func mean(total: i64, count: i64) -> i64
+    requires count > 0                     // proves the division safe
+{
+    total / count
+}
+
+@noalloc
+func tick(n: i64) -> i64 {
+    step(n)                                // error, see below
+}
+
+func step(n: i64) -> i64 {
+    let p = Particle { x: n }
+    p.x
+}
+```
+
+```
+error: `tick` is `@noalloc` but calls `step` (line 14), which allocates: class `Particle` constructed at line 18
+```
+
+The compiler computes, for every function, whether a call to it can
+allocate, block, panic or run unboundedly, through everything it calls
+(recursion included), and remembers one chain of calls that explains each.
+An attribute forbids effects: `@noalloc` allocation, `@nopanic` panics,
+`@noblock` blocking, `@realtime` all three and unbounded running time. Every
+place in an annotated function that has a forbidden effect, directly or
+through a call, is an error that prints the chain.
+
+What counts, exactly (today's code generator and runtime):
+
+- **Allocates** (and so may also block on the heap's lock and abort when the
+  heap limit or memory runs out): constructing a `class`, an array literal,
+  `print`/`println`, `channel(n)`, `scope`, `spawn`, a channel send, and a
+  call to a function of *another module* that takes or returns a value
+  struct (the cross-module calling convention boxes it). String literals,
+  value structs, tuples and effect handler records allocate nothing.
+- **Blocks**: channel send and receive, the end of a `scope`, and the
+  allocations above.
+- **Panics**: `a[i]` and `a[i] = v` (bounds check; `a.unchecked_get(i)` is
+  the unchecked escape hatch), integer `/` and `%` (and `/=`, `%=`), calling a
+  `@runtime_checked` function that has `requires`, and every allocation.
+  Integer division is not checked by the generated code at all -- a zero
+  divisor or `MIN / -1` is undefined behaviour -- so a division only counts
+  as safe when its divisor is a positive literal or the function has a
+  contract and Z3 proves the divisor non-zero (and, signed, not `MIN / -1`).
+- **May not terminate** (`@realtime` only): a `while` or `loop` without a
+  `decreases` measure, or whose measure the verifier does not prove, and
+  recursion, direct or mutual. `for` loops are bounded by construction.
+- **Everything at once**: a call to an `extern` function, a `perform` (its
+  handler is chosen at run time), and any call the analysis cannot resolve.
+  An `extern` declaration may carry the attributes as a *trusted
+  assertion* -- nothing checks it -- e.g. `@noalloc @nopanic extern func
+  c_mix(a: i64) -> i64;`, also inside `extern "C" { .. }` blocks.
+  `extern "codira-intrinsic"` operations have no effects.
+
+Limits: stack overflow is not ruled out (there is no stack bound). `@realtime`
+proves termination, not a time bound: `@deadline(..)` is rejected, because a
+worst-case execution time needs a cycle model of the target CPU that the
+compiler does not have. `codira build --fuel` lets any call stop when its fuel
+runs out, so such a build rejects `@nopanic` and `@realtime` functions.
 
 ### Modules & imports
 
@@ -630,7 +775,9 @@ What a passing check establishes, and what it does not:
   function's range runs to the next symbol, so it includes alignment padding.
   A certified build keeps every function's symbol (internal instead of
   private linkage, and `/DEBUG:SYMTAB` on Windows) -- the generated code is
-  the same. A function the optimizer inlined away has no code range (noted).
+  the same. A function the optimizer inlined away has no code range (noted),
+  and neither has a generic function: its instances are compiled into the
+  libraries that use them and are not given ranges.
 
 Cost: certifying verifies each function with a contract a second time and
 writes its queries; it is opt-in for that reason.
@@ -680,6 +827,9 @@ with the verifier's machine-integer semantics; a refuted implication prints
 the input that shows it. A clause that cannot be encoded (floats, fields,
 calls) or a check that exhausts the budget makes the change **undecided**:
 reported as such, never guessed, and counted as major by `--check`.
+A public generic function counts as API although it is never exported (its
+callers compile its instances from source); its type parameters are compared
+by position, so renaming `T` is no change and adding one is major.
 `--check` follows Cargo's reading of versions: below 1.0 the leftmost
 non-zero component is the breaking one (`0.4.0 -> 0.4.1` allows additions,
 `0.4 -> 0.5` allows breaks), and every `0.0.z` is incompatible. A git
@@ -767,6 +917,73 @@ addresses as `usize`:
 
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
 loads and stores). As with `load_*`/`store_*`, nothing checks the address.
+
+### Proven rewrite rules: `@rewrite`
+
+A library can teach the optimizer an equation over a function's parameters:
+
+```codira
+@rewrite(from: 3 * a + 2 * a, to: 5 * a)
+func five(a: i64) -> i64 { 5 * a }
+```
+
+`from` and `to` (or two positional arguments) are expressions over the
+parameters using literals and operators. The function only names the
+variables and their types. Each rule is proven by the translation validator
+(`codira_tv`) when the package is built, and only a proven rule is used.
+A false rule fails the build with a counterexample (`the two sides differ for
+a = 1`). So does a rule the validator cannot prove: it decides linear integer
+arithmetic, so a rule that multiplies two parameters, uses bitwise operators
+or uses floats is refused for now. A rule proven only in the absence of
+overflow is accepted when it uses nothing but `+`, `-` and `*` (it then holds
+for wrapping `i64` too) and refused otherwise. Proven rules are applied by the
+e-graph during Eidos optimization. Today that only feeds whole-function
+constant folding, so a rule cannot yet change the code that is generated.
+
+### GPU kernels: `@target(gpu)`
+
+A function marked `@target(gpu)` is also compiled for NVIDIA GPUs. `codira
+build` writes its PTX to `target/<module>.ptx`, next to the library, and the
+CUDA driver JIT-compiles that for whatever GPU it finds. A GPU function that
+returns nothing is a kernel, which the host launches. One that returns a value
+is a device function, which kernels can call. Buffers are `usize` device
+addresses, read and written with the `load_<t>`/`store_<t>` intrinsics. Each
+thread finds its work item with `gpu_thread_id_x/y/z`, `gpu_block_id_*`,
+`gpu_block_dim_*` and `gpu_grid_dim_*` (all `-> u32`), and
+`gpu_sync_threads()` is the block barrier:
+
+```codira
+extern "codira-intrinsic" {
+    func gpu_thread_id_x() -> u32;
+    func gpu_block_id_x() -> u32;
+    func gpu_block_dim_x() -> u32;
+    func load_f32(addr: usize) -> f32;
+    func store_f32(addr: usize, value: f32);
+}
+
+@target(gpu)
+public func vadd(a: usize, b: usize, c: usize, n: u32) {
+    let i = gpu_block_id_x() * gpu_block_dim_x() + gpu_thread_id_x()
+    if i < n {
+        let at = (i as usize) * 4
+        store_f32(c + at, load_f32(a + at) + load_f32(b + at))
+    }
+}
+```
+
+The GPU has no Codira runtime, so a GPU function may take and return only
+integers, floats and booleans, and may call only other `@target(gpu)`
+functions and intrinsics: no classes or other garbage-collected values, no
+host functions, no `extern` functions. Anything else fails the build with the
+reason. In the host library the same function is an ordinary function, and
+the geometry intrinsics describe a one-thread launch (ids 0, dimensions 1).
+
+Launching from Rust goes through the `codira_gpu` crate: `Gpu::open()`,
+`load_ptx`, `upload`, `launch`, `copy_to`. It opens the CUDA driver library at
+run time, so nothing links against CUDA, and a machine without a GPU gets an
+error instead of a crash. There is no launch syntax in Codira yet. A vector
+add over 100,000 elements is tested on an RTX 4080 against the host result;
+without a driver or device that test reports that it was skipped.
 
 ### Quantum kernels (`codira quantum`)
 
@@ -902,6 +1119,9 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
+- generic functions, structs and classes, monomorphised per instantiation
+  (see "Generics" above for the limits: no bounds, so a `T` can only be
+  moved and stored; generic functions are not exported to the host)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
 
@@ -940,6 +1160,15 @@ Runtime (hosts embedding `codira_runtime`):
   Running out prints a message and ends the call (a `FuelExhausted` fault a
   HERACLES guard catches, with `--heal`). Measured cost: about 2-12% in loops.
   Uninstrumented code is not metered.
+- Hot reload keeps object state across layout changes: fields are matched
+  by name, numeric fields that change type convert with saturating
+  semantics, and a renamed field keeps its value when marked
+  @renamed(from: "old"). Runtime::save_heap / restore_heap write the GC
+  heap to a file and rebuild it in a runtime running the same program.
+
+`@noalloc`, `@nopanic`, `@noblock` and `@realtime` are checked statically in
+`codira check` and `codira build` (see their section above); `@deadline` is
+rejected.
 
 Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
 one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts
@@ -954,9 +1183,8 @@ between tasks (scalars and channels only). No `select` yet.
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: `match`, closures,
 postfix `!`, postfix `^`. Not available at
-all yet: `enum`, `trait`, `T?`/`nil` at runtime, generic
-instantiation (generic code type-checks but does not build), `String`, and
-using the standard library from a program.
+all yet: `enum`, `trait` (and so generic bounds), `T?`/`nil` at runtime,
+`String`, and using the standard library from a program.
 
 ---
 

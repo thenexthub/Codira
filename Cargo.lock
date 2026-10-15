@@ -737,6 +737,7 @@ dependencies = [
  "codira_codegen_macros",
  "codira_comptime",
  "codira_egraph",
+ "codira_gpu",
  "codira_hir",
  "codira_hir_input",
  "codira_libloader",
@@ -744,8 +745,10 @@ dependencies = [
  "codira_mir",
  "codira_paths",
  "codira_runtime",
+ "codira_syntax",
  "codira_target",
  "codira_test",
+ "codira_tv",
  "inkwell",
  "insta",
  "itertools 0.12.1",
@@ -856,6 +859,14 @@ dependencies = [
  "codira_mir",
  "rustc-hash 1.1.0",
  "smallvec",
+]
+
+[[package]]
+name = "codira_gpu"
+version = "0.6.0-dev"
+dependencies = [
+ "libloading",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

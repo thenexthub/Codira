@@ -1528,9 +1528,10 @@ fn map_array_to_primitive_different() {
         a
     );
 
+    // The array's first element, converted: f64 to i64 rounds toward zero.
     assert_eq!(
         foo_struct.as_ref(&driver.runtime).get::<i64>("b").unwrap(),
-        0
+        1
     );
 
     assert_eq!(

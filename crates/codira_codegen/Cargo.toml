@@ -18,6 +18,7 @@ default = [
     "target-aarch64",
     "target-riscv",
     "target-webassembly",
+    "target-nvptx",
     "in-process-lld",
 ]
 # Each `target-*` feature forwards to the matching inkwell/LLVM target
@@ -32,6 +33,8 @@ target-x86 = ["inkwell/target-x86"]
 target-aarch64 = ["inkwell/target-aarch64"]
 target-riscv = ["inkwell/target-riscv"]
 target-webassembly = ["inkwell/target-webassembly"]
+# NVIDIA PTX, for `@target(gpu)` kernels (`gpu.rs`).
+target-nvptx = ["inkwell/target-nvptx"]
 # Links LLD into the compiler so the final link is a function call instead of
 # a spawned `lld-link` -- see `linker::run_lld` for what that is worth. This
 # needs LLD's headers and static libraries next to the LLVM build, which a
@@ -66,6 +69,9 @@ itertools = { workspace = true }
 llvm-sys = "221.0.1"
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
+# Proves `@rewrite` rules before Eidos may use them (`rewrite.rs`).
+codira_tv = { version = "0.6.0-dev", path = "../codira_tv" }
 # Reads the symbols a package's assembled native objects define (`native`),
 # and the objects `test_targets` builds for every target.
 object = "0.36.5"
@@ -93,4 +99,5 @@ codira_comptime = { path = "../codira_comptime" }
 codira_libloader = { path = "../codira_libloader" }
 codira_test = { path = "../codira_test" }
 codira_runtime = { path = "../codira_runtime" }
+codira_gpu = { path = "../codira_gpu" }
 wasmi = { version = "2", default-features = false, features = ["std", "validate", "stable", "auto-dispatch"] }

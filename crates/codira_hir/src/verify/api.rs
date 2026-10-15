@@ -12,6 +12,14 @@
 //! An item is public when it is declared `public`. Items are matched by
 //! their path (`geometry.area`, `Point`, a method as `Point.len`).
 //!
+//! A public generic function is API even though it never reaches the
+//! library's exports (it has no code of its own): a caller in another module
+//! compiles its instances from its source, so its signature and contract are
+//! what callers depend on. Its own type parameters are compared by position
+//! (renaming `T` to `U` is no change; adding one is a signature change), and a
+//! clause about a value of a type-parameter type cannot be encoded, so a
+//! change to it is undecided.
+//!
 //! | change | bump |
 //! |---|---|
 //! | public item removed | major |
@@ -294,19 +302,49 @@ fn normalize(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// The parts of a signature a caller depends on.
+/// `text` with each whole-word occurrence of `names[i]` replaced by `$i`, so
+/// that renaming a type parameter changes nothing.
+fn by_position(text: &str, names: &[String]) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut word = String::new();
+    let flush = |word: &mut String, out: &mut String| {
+        match names.iter().position(|n| n == word) {
+            Some(i) => out.push_str(&format!("${i}")),
+            None => out.push_str(word),
+        }
+        word.clear();
+    };
+    for c in text.chars() {
+        if c.is_alphanumeric() || c == '_' {
+            word.push(c);
+        } else {
+            flush(&mut word, &mut out);
+            out.push(c);
+        }
+    }
+    flush(&mut word, &mut out);
+    out
+}
+
+/// The parts of a signature a caller depends on. A generic function's own
+/// type parameters are compared by position.
 fn signature_shape(db: &dyn HirDatabase, f: Function) -> (Vec<String>, String, bool, usize) {
+    let data = f.data(db);
+    let names: Vec<String> = data
+        .generic_params()
+        .iter()
+        .map(ToString::to_string)
+        .collect();
     let params = f
         .params(db)
         .iter()
-        .map(|p| p.ty().display(db).to_string())
+        .map(|p| by_position(&p.ty().display(db).to_string(), &names))
         .collect();
-    let data = f.data(db);
     (
         params,
-        f.ret_type(db).display(db).to_string(),
+        by_position(&f.ret_type(db).display(db).to_string(), &names),
         data.has_self_param(),
-        data.generic_params().len(),
+        names.len(),
     )
 }
 

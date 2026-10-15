@@ -112,6 +112,7 @@ pub struct StructDefinition<'ink> {
     pub field_offsets: Value<'ink, *const u16>,
     pub num_fields: u16,
     pub memory_kind: abi::StructMemoryKind,
+    pub field_previous_names: Value<'ink, *const *const u8>,
 }
 
 #[derive(AsValue)]

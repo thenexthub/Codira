@@ -228,3 +228,19 @@ fn the_report_reads_as_one_sentence() {
         "weakens the postcondition of `decode()` and adds `Net` to `parse()`"
     );
 }
+
+#[test]
+fn generic_functions_compare_their_type_parameters_by_position() {
+    let d = diff(
+        "public func first[T](a: T, b: T) -> T { a }",
+        "public func first[U](a: U, b: U) -> U { a }",
+    );
+    assert!(d.changes.is_empty(), "renaming T: {:#?}", d.changes);
+
+    let d = diff(
+        "public func first[T](a: T, b: T) -> T { a }",
+        "public func first[T, V](a: T, b: V) -> T { a }",
+    );
+    assert_eq!(only(&d).bump, Some(Bump::Major));
+    assert_eq!(only(&d).summary, "changes the signature of `first()`");
+}

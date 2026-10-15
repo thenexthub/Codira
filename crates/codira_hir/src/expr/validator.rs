@@ -69,6 +69,7 @@ impl<'a> ExprValidator<'a> {
         self.validate_codegen_support(sink);
         self.validate_test_function(sink);
         crate::verify::contract_diagnostics(self.db, self.func, sink);
+        crate::realtime::realtime_diagnostics(self.db, self.func, sink);
     }
 
     pub fn validate_privacy(&self, sink: &mut DiagnosticSink<'_>) {

@@ -6,13 +6,16 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use std::collections::{BTreeMap, HashSet};
 
-use codira_hir::{HasVisibility, ModuleDef};
-use inkwell::module::Module;
+use codira_hir::{mono::Instance, HasVisibility, ModuleDef};
+use inkwell::{module::Module, values::FunctionValue};
 
 use super::body::ExternalGlobals;
 use crate::{
     code_gen::CodeGenContext,
-    ir::{body::BodyIrGenerator, file_group::FileGroupIr, function, type_table::TypeTable},
+    ir::{
+        body::BodyIrGenerator, file_group::FileGroupIr, function, type_table::TypeTable,
+        FunctionMap,
+    },
     module_group::ModuleGroup,
     value::Global,
 };
@@ -47,37 +50,44 @@ pub(crate) fn gen_file_ir<'ink>(
     // with them the LLVM intrinsic declarations their bodies pull in. That
     // is a reproducible-build defect, and it also makes any snapshot of the
     // emitted IR flap between runs.
-    let mut functions = BTreeMap::new();
+    //
+    // The code units (`ir::file_group::code_units`) are already in a
+    // deterministic order -- the group's own functions by id, then
+    // the instances and copies they reach in the order they are first
+    // called -- so bodies are emitted in that order.
+    let mut functions: FunctionMap<'ink> = FunctionMap::default();
+    let mut ordered: Vec<(usize, FunctionValue<'ink>)> = Vec::new();
     let mut type_definitions = HashSet::new();
     let mut wrapper_functions = BTreeMap::new();
-    // `all_functions` rather than filtering `declarations`: methods declared
-    // in an `extend` block are associated items, not module-level ones, and
-    // they need prototypes exactly as much as free functions do.
-    for f in module_group
-        .iter()
-        .flat_map(|module| module.all_functions(code_gen.db))
-    {
-        if !f.is_extern(code_gen.db) {
-            let fun = function::gen_prototype(code_gen.db, hir_types, f, &llvm_module);
-            functions.insert(f, fun);
+    for (index, unit) in group_ir.units.iter().enumerate() {
+        let fun = function::gen_prototype(
+            code_gen.db,
+            hir_types,
+            &unit.instance,
+            &llvm_module,
+            unit.local_copy,
+        );
+        functions.insert(unit.instance.clone(), fun);
+        ordered.push((index, fun));
 
-            let fn_sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
-            // A function taking hidden evidence parameters always gets a
-            // wrapper with the host-visible signature: the runtime finds a
-            // function through it, and must never call the internal one
-            // with too few arguments.
-            if (f.visibility(code_gen.db).is_externally_visible()
-                && !fn_sig.marshallable(code_gen.db))
-                || crate::ir::body::has_evidence(code_gen.db, f)
-            {
-                let wrapper_fun = function::gen_public_prototype(
-                    code_gen.db,
-                    &code_gen.hir_types,
-                    f,
-                    &llvm_module,
-                );
-                wrapper_functions.insert(f, wrapper_fun);
-            }
+        // An instance or a copy is internal to this module: it has no
+        // host-visible wrapper and is never exported.
+        if unit.instance.is_generic() || unit.local_copy {
+            continue;
+        }
+        let f = unit.instance.function();
+
+        let fn_sig = f.ty(code_gen.db).callable_sig(code_gen.db).unwrap();
+        // A function taking hidden evidence parameters always gets a
+        // wrapper with the host-visible signature: the runtime finds a
+        // function through it, and must never call the internal one
+        // with too few arguments.
+        if (f.visibility(code_gen.db).is_externally_visible() && !fn_sig.marshallable(code_gen.db))
+            || crate::ir::body::has_evidence(code_gen.db, f)
+        {
+            let wrapper_fun =
+                function::gen_public_prototype(code_gen.db, &code_gen.hir_types, f, &llvm_module);
+            wrapper_functions.insert(f, wrapper_fun);
         }
     }
 
@@ -86,9 +96,13 @@ pub(crate) fn gen_file_ir<'ink>(
         .flat_map(|module| module.declarations(code_gen.db))
     {
         if let ModuleDef::Struct(s) = def {
-            type_definitions.insert(s.ty(code_gen.db));
+            // A generic struct is defined per instantiation, below.
+            if !s.is_generic(code_gen.db) {
+                type_definitions.insert(s.ty(code_gen.db));
+            }
         }
     }
+    type_definitions.extend(group_ir.instance_types.iter().cloned());
 
     let external_globals = {
         let alloc_handle = group_ir
@@ -114,38 +128,44 @@ pub(crate) fn gen_file_ir<'ink>(
         }
     };
 
+    // What Eidos runs with, read once for every body below.
+    let eidos = code_gen.eidos_run();
+
     // Generate the function bodies
-    for (hir_function, llvm_function) in functions.iter() {
+    for (index, llvm_function) in ordered.iter() {
+        let unit = &group_ir.units[*index];
         let mut code_gen = BodyIrGenerator::new(
             code_gen.context,
             &llvm_module,
             code_gen.db,
-            (*hir_function, *llvm_function),
+            (unit.instance.clone(), unit.infer.clone(), *llvm_function),
             &functions,
             &group_ir.dispatch_table,
             &group_ir.type_table,
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
-            code_gen.eidos,
+            eidos.clone(),
         );
 
         code_gen.gen_fn_body();
     }
 
     for (hir_function, llvm_function) in wrapper_functions.iter() {
+        let instance = Instance::of(*hir_function);
+        let infer = instance.infer(code_gen.db);
         let mut code_gen = BodyIrGenerator::new(
             code_gen.context,
             &llvm_module,
             code_gen.db,
-            (*hir_function, *llvm_function),
+            (instance, infer, *llvm_function),
             &functions,
             &group_ir.dispatch_table,
             &group_ir.type_table,
             external_globals.clone(),
             &code_gen.hir_types,
             module_group,
-            code_gen.eidos,
+            eidos.clone(),
         );
 
         code_gen.gen_fn_wrapper();
@@ -162,10 +182,13 @@ pub(crate) fn gen_file_ir<'ink>(
         code_gen.optimization_level,
     );
 
-    // Filter private methods
-    let function_definitions: HashSet<codira_hir::Function> = functions
-        .keys()
-        .copied()
+    // Filter private methods. Only the group's own non-generic functions
+    // can be exported: an instance or a copy belongs to this module alone.
+    let function_definitions: HashSet<codira_hir::Function> = group_ir
+        .units
+        .iter()
+        .filter(|unit| !unit.instance.is_generic() && !unit.local_copy)
+        .map(|unit| unit.instance.function())
         .filter(|&f| module_group.should_export_fn(code_gen.db, f))
         .collect();
 

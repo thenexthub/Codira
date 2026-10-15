@@ -455,6 +455,16 @@ impl Driver {
 }
 
 impl Driver {
+    /// Every HIR diagnostic of `module`, plus the ones that depend on how
+    /// this driver builds: a fuel-instrumented build cannot keep the promise
+    /// of a `@nopanic` or `@realtime` function.
+    fn module_diagnostics(&self, module: Module, sink: &mut DiagnosticSink<'_>) {
+        module.diagnostics(&self.db, sink);
+        if self.db.fuel_instrumentation() {
+            codira_hir::realtime::fuel_diagnostics(&self.db, module, sink);
+        }
+    }
+
     /// Emits all diagnostic messages currently in the database; returns true if
     /// errors were emitted.
     pub fn emit_diagnostics(
@@ -488,8 +498,8 @@ impl Driver {
 
                     // Emit all HIR diagnostics
                     let mut error = None;
-                    module.diagnostics(
-                        &self.db,
+                    self.module_diagnostics(
+                        module,
                         &mut DiagnosticSink::new(|d| {
                             has_error = true;
                             if let Err(e) =
@@ -560,8 +570,8 @@ impl Driver {
                 }
 
                 let mut error = None;
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         counts.semantic += 1;
                         file_has_diagnostic = true;
@@ -616,8 +626,8 @@ impl Driver {
                     })
                     .collect();
 
-                module.diagnostics(
-                    &self.db,
+                self.module_diagnostics(
+                    module,
                     &mut DiagnosticSink::new(|d| {
                         diagnostics.push(CheckDiagnostic {
                             kind: DiagnosticKind::Semantic,
@@ -876,6 +886,23 @@ impl Driver {
             anyhow::bail!("{reason}");
         }
 
+        // A library rewrite rule that `codira_tv` could not prove fails the
+        // build: an unproven rule is never used, and silently dropping it
+        // would hide that (`codira_codegen::rewrite`).
+        let rewrite_rules = self.db.rewrite_rules();
+        if !rewrite_rules.refused.is_empty() {
+            anyhow::bail!("{}", rewrite_rules.refused.join("\n"));
+        }
+
+        // `@target(gpu)` functions are also compiled for the GPU, to PTX
+        // written next to the library (`codira_codegen::gpu`). A kernel that
+        // cannot run on a GPU fails the build with the reason.
+        let gpu_kernels = self.db.gpu_kernels(module_group_id);
+        let gpu_kernels = match &*gpu_kernels {
+            Err(reason) => anyhow::bail!("{reason}"),
+            Ok(kernels) => kernels.clone(),
+        };
+
         // Determine the filename of the group (`.codiralib`, or `.wasm` for
         // a WebAssembly target)
         let assembly_path = self
@@ -896,6 +923,9 @@ impl Driver {
 
         // It did change or we are forced, so write it to disk
         assembly.copy_to(&assembly_path)?;
+        if let Some(kernels) = gpu_kernels {
+            std::fs::write(assembly_path.with_extension("ptx"), kernels.ptx)?;
+        }
 
         // A certificate describes exactly one build of the library: write
         // this one's, or remove one left by an earlier certified build.
