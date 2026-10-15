@@ -967,6 +967,7 @@ dependencies = [
  "codira_gpu",
  "codira_hir",
  "codira_hir_input",
+ "codira_image",
  "codira_libloader",
  "codira_lld",
  "codira_mir",
@@ -1014,6 +1015,7 @@ dependencies = [
  "codira_diagnostics",
  "codira_hir",
  "codira_hir_input",
+ "codira_image",
  "codira_paths",
  "codira_project",
  "codira_smt",
@@ -1101,6 +1103,7 @@ dependencies = [
 name = "codira_healing"
 version = "0.6.0-dev"
 dependencies = [
+ "codira_compiler",
  "codira_runtime",
  "codira_smt",
  "codira_test",
@@ -1152,6 +1155,10 @@ dependencies = [
  "rustc-hash 1.1.0",
  "salsa",
 ]
+
+[[package]]
+name = "codira_image"
+version = "0.6.0-dev"
 
 [[package]]
 name = "codira_language_server"

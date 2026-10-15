@@ -118,13 +118,61 @@ impl TargetAssembly {
         self.extension
     }
 
-    /// Copies the assembly to the specified location
+    /// Copies the assembly to the specified location.
+    ///
+    /// The copy is written to a temporary file in the destination's
+    /// directory and renamed onto the destination, so the runtime, which
+    /// watches that directory and loads what it finds, can never read a file
+    /// that is half written. See [`replace_file`].
     pub fn copy_to<P: AsRef<Path>>(&self, destination: P) -> Result<(), std::io::Error> {
         match &self.file {
-            Ok(file) => std::fs::copy(file.path(), destination).map(|_| ()),
+            Ok(file) => replace_file(file.path(), destination.as_ref()),
             Err(reason) => Err(std::io::Error::other(reason.clone())),
         }
     }
+}
+
+/// Makes `destination` a copy of `source` in one step: the copy is written
+/// beside the destination under a name the runtime ignores
+/// ([`codira_abi::OUTPUT_TEMP_EXTENSION`]), then renamed over it.
+///
+/// A rename onto a file can fail on Windows while another process has the
+/// destination open without sharing deletes (a virus scanner, a loader in
+/// the middle of mapping it). That passes, so the rename is retried for a
+/// short while; if it never succeeds the destination is overwritten in
+/// place, which is what this function replaced, and the temporary file is
+/// removed either way.
+fn replace_file(source: &Path, destination: &Path) -> Result<(), std::io::Error> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    let name = destination
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let temporary = destination.with_file_name(format!(
+        ".{name}.{}-{}.{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed),
+        codira_abi::OUTPUT_TEMP_EXTENSION
+    ));
+    std::fs::copy(source, &temporary)?;
+
+    let mut result = std::fs::rename(&temporary, destination);
+    for attempt in 0..20 {
+        if result.is_ok() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1 + attempt));
+        result = std::fs::rename(&temporary, destination);
+    }
+    if result.is_err() {
+        let overwritten = std::fs::copy(&temporary, destination).map(|_| ());
+        let _ = std::fs::remove_file(&temporary);
+        return overwritten;
+    }
+    Ok(())
 }
 
 /// Builds an assembly for the specified module.

@@ -31,4 +31,5 @@ windows-sys = { version = "0.45.0", features = [
 libc = "0.2.167"
 
 [dev-dependencies]
+codira_compiler = { path = "../codira_compiler" }
 codira_test = { path = "../codira_test" }

@@ -769,6 +769,46 @@ options as `build`. If the build reports an error, nothing is run. After the
 entry point returns, `run`/`start` print its value if it is a primitive
 (`bool`, any integer or float type); a `()` entry point prints nothing.
 
+### How a library is linked
+
+A `.codiralib` has a handful of sections, imports nothing, exports a known
+list of functions and needs only absolute-address base relocations (calls
+between Codira functions go through the dispatch table), so on Windows the
+compiler writes the image itself instead of calling LLD: the `codira_image`
+crate turns the object LLVM emitted into the DLL in microseconds. It is the
+default for `x86_64-pc-windows-msvc` libraries on a Windows host.
+
+It never guesses. An object with anything it does not model -- an unknown
+relocation, a section it does not know (TLS, C runtime initializers, linker
+directives), an import, debug information, a package with `[native]` C, C++ or
+assembly sources -- is *declined*, and LLD links it exactly as before. Other
+targets always use LLD.
+
+- `CODIRA_LINK_MODE=direct` asks for the image writer (the default on Windows
+  hosts); `in-process` or `subprocess` forces LLD for everything, and
+  `CODIRA_DIRECT_LINK=0` does the same without naming how LLD runs.
+- x86-64 Linux shared objects can be written the same way
+  (`CODIRA_DIRECT_ELF=1`, with `CODIRA_LINK_MODE=direct`). It is opt-in
+  because it is newer: the library is checked by `llvm-readobj` and loaded
+  by a real dynamic loader in the tests, but it has not run under the Codira
+  runtime on Linux. It declines a program that calls one of its own public
+  functions directly (that would need a PLT). Its cross-check against LLD
+  compares what a program can observe -- the exported symbols and the
+  symbolic relocations -- not the bytes.
+- In builds of the compiler with debug assertions (what `cargo test` builds)
+  every library is also linked by LLD and the two images must be identical but
+  for the header time stamp; a difference stops the build with a report.
+  `CODIRA_LINK_VERIFY=0` turns that off, `=1` turns it on in a release build.
+  Every test of the workspace that builds a library is therefore a
+  differential test of the image writer.
+- `CODIRA_LINK_LOG=<file>` appends one line per link (`written`, `verified`,
+  `declined <reason>`); `CODIRA_DUMP_OBJECTS=<dir>` keeps the objects.
+- The compiler writes a finished library to a temporary file next to its
+  destination (`.<name>.<pid>-<n>.codira-tmp`) and renames it over the old one,
+  so a running program never loads a half-written file. The runtime ignores
+  `.codira-tmp` files and treats a file renamed onto a loaded library as a
+  change to it.
+
 ### Tests, counterexamples and semantic search
 
 ```bash
