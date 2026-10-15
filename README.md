@@ -331,3 +331,14 @@ codira language-server
 ```
 
 Alternatively, you can install editor-specific extensions.
+
+## Funis
+
+[`crates/funis*`](crates/funis/) is Codira's linker, forked from
+[mold](https://github.com/rui314/mold) (MIT licensed, by Rui Ueyama) for the way
+Codira links: a Codira library is a few kilobytes, so the cost is fixed overhead
+rather than volume. It is part of the Codira workspace (`funis`, `funis_common`,
+`funis_elf`, `funis_macho` and one crate per supported target) and keeps mold's
+MIT licence; see [`crates/funis/README.md`](crates/funis/README.md) and
+[`crates/funis/NOTICE`](crates/funis/NOTICE) for what it is, what has changed
+from mold, and what is still only a goal.

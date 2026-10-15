@@ -1,0 +1,5 @@
+# Keep line endings as LF: the shell-script tests and fixtures run on Linux.
+* text=auto eol=lf
+*.sh text eol=lf
+*.s text eol=lf
+*.ld text eol=lf

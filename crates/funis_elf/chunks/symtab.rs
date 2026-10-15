@@ -1,0 +1,351 @@
+//! `.symtab`, the non-dynamic symbol table.
+
+use rayon::prelude::*;
+
+use crate::arch::{Family, Target};
+use crate::chunks::{self, ChunkHeader, ChunkId, strtab};
+use crate::context::Context;
+use crate::elf::*;
+use crate::input_files::{SymtabBlock, SymtabEntries};
+use crate::input_sections::{InputSection, r_delta};
+use crate::symbol::{AddrFlags, OriginValue, Symbol};
+
+// .symtab contains non-dynamic symbols. The section is not needed at
+// runtime and can be stripped from an ELF file without affecting the
+// behavior of the program. Symbols in .symtab are mainly for debugging.
+pub fn new_header<E: Target>() -> ChunkHeader<E> {
+    let mut hdr = ChunkHeader::<E>::new(".symtab", SHT_SYMTAB, 0);
+    let entsize = size_of::<ElfSym<E>>() as u64;
+    hdr.shdr.sh_entsize.set(entsize);
+    hdr.shdr.sh_addralign.set(E::WORD_SIZE as u64);
+    hdr
+}
+
+pub fn update_shdr<E: Target>(ctx: &mut Context<E>) {
+    let mut nsyms = 1u32;
+
+    // Section symbols
+    nsyms += ctx.chunks.iter().filter(|&&id| ctx.chunk_header(id).shndx != 0).count() as u32;
+
+    // Linker-synthesized symbols
+    for i in 0..ctx.chunks.len() {
+        let id = ctx.chunks[i];
+        let hdr = ctx.chunk_header_mut(id);
+        hdr.local_symtab_idx = nsyms;
+        nsyms += hdr.num_local_symtab;
+    }
+
+    // File local symbols
+    for file in &mut ctx.objs {
+        file.base.local_symtab_idx = nsyms;
+        nsyms += file.base.num_local_symtab;
+    }
+
+    // File global symbols
+    for file in &mut ctx.objs {
+        file.base.global_symtab_idx = nsyms;
+        nsyms += file.base.num_global_symtab;
+    }
+    for file in &mut ctx.dsos {
+        file.base.global_symtab_idx = nsyms;
+        nsyms += file.base.num_global_symtab;
+    }
+
+    let first_global = ctx.objs.first().map_or(nsyms, |f| f.base.global_symtab_idx);
+    let size = if nsyms == 1 { 0 } else { nsyms as u64 * size_of::<ElfSym<E>>() as u64 };
+    ctx.symtab.shdr.sh_info.set(first_global);
+    ctx.symtab.shdr.sh_link.set(ctx.strtab.shndx);
+    ctx.symtab.shdr.sh_size.set(size);
+}
+
+/// Writes `.symtab`, `.strtab` and `.symtab_shndx`.
+pub fn copy_buf<E: Target>(
+    ctx: &Context<E>,
+    symtab: &mut [u8],
+    strtab: &mut [u8],
+    mut xindex: Option<&mut [u8]>,
+) {
+    let size = size_of::<ElfSym<E>>();
+    symtab[..size].fill(0);
+    if let Some(xindex) = xindex.as_deref_mut() {
+        xindex.fill(0);
+    }
+
+    // Create section symbols
+    for &id in &ctx.chunks {
+        let hdr = ctx.chunk_header(id);
+        if hdr.shndx == 0 {
+            continue;
+        }
+        let mut esym = ElfSym::<E>::default();
+        esym.set_st_value(hdr.shdr.sh_addr.get());
+        esym.set_type(STT_SECTION);
+        match xindex.as_deref_mut() {
+            Some(xindex) => {
+                E::write_u32(&mut xindex[hdr.shndx as usize * 4..], hdr.shndx);
+                esym.set_st_shndx(SHN_XINDEX);
+            }
+            None => esym.set_st_shndx(hdr.shndx),
+        }
+        esym.write(&mut symtab[hdr.shndx as usize * size..]);
+    }
+
+    strtab::copy_buf(ctx, strtab);
+
+    // Symbols synthesized by chunks, then symbols from input files.
+    // Each writer fills its own part of the tables. The local symbols
+    // come first, the chunks' before the files', followed by the global
+    // symbols. The names are laid out in the same order.
+    enum Writer {
+        Chunk(ChunkId),
+        Obj(crate::input_files::ObjId),
+        Dso(crate::input_files::DsoId),
+    }
+    struct Part {
+        writer: Writer,
+        locals: (u32, u32),
+        globals: (u32, u32),
+        strtab: (u64, u64),
+    }
+    let mut parts: Vec<Part> = Vec::new();
+
+    // Populate linker-synthesized symbols
+    for &id in &ctx.chunks {
+        let hdr = ctx.chunk_header(id);
+        if hdr.num_local_symtab != 0 {
+            let locals = (hdr.local_symtab_idx, hdr.num_local_symtab);
+            parts.push(Part {
+                writer: Writer::Chunk(id),
+                locals,
+                globals: (0, 0),
+                strtab: (hdr.strtab_offset, hdr.strtab_size),
+            });
+        }
+    }
+    // Copy symbols from input files
+    for file in &ctx.objs {
+        let base = &file.base;
+        let locals = (base.local_symtab_idx, base.num_local_symtab);
+        let globals = (base.global_symtab_idx, base.num_global_symtab);
+        parts.push(Part {
+            writer: Writer::Obj(file.id()),
+            locals,
+            globals,
+            strtab: (base.strtab_offset, base.strtab_size),
+        });
+    }
+    for file in &ctx.dsos {
+        let base = &file.base;
+        let globals = (base.global_symtab_idx, base.num_global_symtab);
+        parts.push(Part {
+            writer: Writer::Dso(file.id()),
+            locals: (0, 0),
+            globals,
+            strtab: (base.strtab_offset, base.strtab_size),
+        });
+    }
+
+    // Carve each part's slices off the buffers, which the parts cover
+    // in order.
+    let (mut rest, mut pos) = (symtab, 0);
+    let (mut xrest, mut xpos) = (xindex, 0);
+    let mut entries = |(start, count): (u32, u32)| {
+        let syms = carve(&mut rest, &mut pos, start as usize * size, count as usize * size);
+        let xindex =
+            xrest.as_mut().map(|x| carve(x, &mut xpos, start as usize * 4, count as usize * 4));
+        (syms, xindex)
+    };
+    let locals: Vec<_> = parts.iter().map(|p| entries(p.locals)).collect();
+    let (mut srest, mut spos) = (strtab, 0);
+    let work: Vec<_> = parts
+        .into_iter()
+        .zip(locals)
+        .map(|(part, (lsyms, lx))| {
+            let (gsyms, gx) = entries(part.globals);
+            let strtab =
+                carve(&mut srest, &mut spos, part.strtab.0 as usize, part.strtab.1 as usize);
+            let block = SymtabBlock::new(
+                SymtabEntries::new(lsyms, lx),
+                SymtabEntries::new(gsyms, gx),
+                strtab,
+                part.strtab.0,
+            );
+            (part.writer, block)
+        })
+        .collect();
+
+    work.into_par_iter().for_each(|(writer, mut block)| match writer {
+        Writer::Chunk(id) => chunks::populate_symtab(ctx, id, &mut block),
+        Writer::Obj(id) => ctx.objs[id.index()].populate_symtab(ctx, id, &mut block),
+        Writer::Dso(id) => ctx.dsos[id.index()].populate_symtab(ctx, id, &mut block),
+    });
+}
+
+/// Splits `len` bytes starting at `start` off `rest`, which begins
+/// at `pos` in the buffer; the pieces are taken in order.
+fn carve<'a>(rest: &mut &'a mut [u8], pos: &mut usize, start: usize, len: usize) -> &'a mut [u8] {
+    if len == 0 {
+        return &mut [];
+    }
+    rest.split_off_mut(..start - *pos).unwrap();
+    let piece = rest.split_off_mut(..len).unwrap();
+    *pos = start + len;
+    piece
+}
+
+// RISC-V and LoongArch have code-shrinking linker relaxation. If we
+// have removed instructions from a function, we need to update its
+// size as well.
+fn symbol_size<E: Target>(ctx: &Context<E>, sym: &Symbol) -> u64 {
+    let esym = &sym.esym(ctx);
+    if (E::IS_RISCV || E::IS_LOONGARCH)
+        && esym.st_size() != 0
+        && let Some(isec) = sym.input_section_ref(ctx)
+        && isec.sh_flags & SHF_EXECINSTR as u64 != 0
+    {
+        // Symbols in a section folded by ICF live in its leader.
+        let isec = isec.icf_leader().map_or(isec, |leader| ctx.section(leader));
+        let end = esym.st_value() + esym.st_size();
+        return (esym.st_size() as i64 + esym.st_value() as i64
+            - sym.value as i64
+            - r_delta(isec, end)) as u64;
+    }
+    esym.st_size()
+}
+
+/// Builds the output symbol table entry for a symbol. The returned index
+/// is nonzero if the section index doesn't fit in `st_shndx` and must go
+/// to `.symtab_shndx`.
+pub fn to_output_esym<E: Target>(ctx: &Context<E>, sym: &Symbol, st_name: u32) -> (ElfSym<E>, u32) {
+    let mut esym = ElfSym::<E>::default();
+    esym.set_st_name(st_name);
+    esym.set_st_size(symbol_size(ctx, sym));
+    esym.set_type(sym.ty());
+
+    let file = sym.file().expect("symbol without a file in symbol table");
+    esym.set_bind(if sym.is_local(ctx) {
+        STB_LOCAL
+    } else if sym.is_weak() {
+        STB_WEAK
+    } else if file.is_dso() {
+        STB_GLOBAL
+    } else {
+        sym.st_bind()
+    });
+
+    match E::FAMILY {
+        Family::Arm64 => esym.set_arm64_variant_pcs(sym.esym(ctx).arm64_variant_pcs()),
+        Family::RiscV => esym.set_riscv_variant_cc(sym.esym(ctx).riscv_variant_cc()),
+        Family::Ppc64V2 => esym.set_ppc64_local_entry(sym.esym(ctx).ppc64_local_entry()),
+        _ => {}
+    }
+
+    let st_shndx_of = |sym: &Symbol, isec: &InputSection<E>| -> u32 {
+        if E::FAMILY == Family::Ppc64V1 && sym.has_opd(&ctx.symbols) {
+            return ctx.ppc64_opd.as_ref().unwrap().hdr.shndx;
+        }
+        if isec.is_alive() {
+            return ctx.output_section(isec.output_section.unwrap()).hdr.shndx;
+        }
+        if isec.is_icf_removed() {
+            let leader = ctx.section(isec.icf_leader().unwrap());
+            return ctx.output_section(leader.output_section.unwrap()).hdr.shndx;
+        }
+        SHN_UNDEF
+    };
+
+    let mut shndx: Option<u32> = None;
+    let origin = sym.origin();
+
+    if sym.has_copyrel() {
+        // Symbol in .copyrel
+        shndx = Some(if sym.is_copyrel_readonly() {
+            ctx.copyrel_relro.hdr.shndx
+        } else {
+            ctx.copyrel.hdr.shndx
+        });
+        esym.set_st_value(sym.addr(ctx));
+    } else if file.is_dso() || sym.is_undef() {
+        // Undefined symbol, or symbol defined in a DSO
+        esym.set_st_shndx(SHN_UNDEF);
+        esym.set_st_size(0);
+        if sym.is_canonical() {
+            esym.set_st_value(sym.plt_addr(ctx));
+        }
+    } else {
+        match origin {
+            OriginValue::OutputChunk(chunk) => {
+                // Linker-synthesized symbol
+                shndx = Some(ctx.symbol_chunk_header(chunk).shndx);
+                esym.set_st_value(sym.addr(ctx));
+            }
+            OriginValue::Fragment(frag) => {
+                shndx = Some(ctx.merged_sections[frag.section.index()].hdr.shndx);
+                esym.set_st_value(sym.addr(ctx));
+            }
+            OriginValue::None | OriginValue::Symbol(_) => {
+                if sym.is_common() {
+                    // Common symbols are converted to .bss unless we are creating a
+                    // relocatable output, in which case they remain common symbols.
+                    // Their st_value is their alignment.
+                    debug_assert!(ctx.args.relocatable);
+                    esym.set_st_shndx(SHN_COMMON);
+                    esym.set_st_value(sym.value);
+                } else {
+                    // Absolute symbol
+                    esym.set_st_shndx(SHN_ABS);
+                    esym.set_st_value(sym.addr(ctx));
+                }
+            }
+            OriginValue::InputSection(section) => {
+                let isec = ctx.input_section(section);
+                if sym.ty() == STT_TLS && isec.sh_flags & SHF_TLS as u64 != 0 {
+                    // TLS symbol. Clang gives the STT_TLS type to TLSDESC labels
+                    // in .text, so we check the section too.
+                    shndx = Some(st_shndx_of(sym, isec));
+                    esym.set_st_value(sym.addr(ctx) - ctx.tls_begin);
+                } else if sym.is_pde_ifunc(ctx) && sym.has_plt(&ctx.symbols) {
+                    // IFUNC symbol in PDE that uses two GOT slots
+                    shndx = Some(st_shndx_of(sym, isec));
+                    esym.set_type(STT_FUNC);
+                    esym.set_visibility(sym.visibility());
+                    esym.set_st_value(sym.plt_addr(ctx));
+                } else if let Some(m) = ctx.objs[isec.file.index()].merge_info(isec.shndx as usize)
+                {
+                    // Symbol in a mergeable section that was split into fragments
+                    // but whose symbols were not attached to them, which is the
+                    // case for non-SHF_ALLOC sections such as .debug_str
+                    let (frag, addend) = m.fragment(sym.esym(ctx).st_value()).expect("fragment");
+                    let msec = &ctx.merged_sections[m.parent.index()];
+                    shndx = Some(msec.hdr.shndx);
+                    esym.set_visibility(sym.visibility());
+                    esym.set_st_value(
+                        (msec.hdr.shdr.sh_addr.get() + msec.fragments.get(frag).offset())
+                            .wrapping_add(addend as u64),
+                    );
+                } else {
+                    // Symbol in a regular section
+                    shndx = Some(st_shndx_of(sym, isec));
+                    esym.set_visibility(sym.visibility());
+                    esym.set_st_value(sym.addr_with(ctx, AddrFlags::NO_PLT));
+                }
+            }
+        }
+    }
+
+    // A symbol's st_shndx is only 16 bits wide, so we can't store a large
+    // section index there. If the section index is equal to or greater
+    // than SHN_LORESERVE (= 65280), the real index is stored in a
+    // SHT_SYMTAB_SHNDX section, which contains an array parallel to the
+    // symbol table.
+    let mut xindex = 0;
+    if let Some(shndx) = shndx {
+        if shndx < SHN_LORESERVE {
+            esym.set_st_shndx(shndx);
+        } else {
+            esym.set_st_shndx(SHN_XINDEX);
+            xindex = shndx;
+        }
+    }
+    (esym, xindex)
+}
