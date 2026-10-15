@@ -1291,7 +1291,7 @@ fn local_symbols<E: Target>(ctx: &Context<E>) -> Vec<LocalSymbol> {
     let mut counter = 0;
     for l in locals.iter_mut().filter(|l| l.hidden) {
         counter += 1;
-        l.name = format!("l{counter:03}").leak().as_bytes();
+        l.name = funis_common::mem::leak_bytes(format!("l{counter:03}").into_bytes());
     }
     locals
 }

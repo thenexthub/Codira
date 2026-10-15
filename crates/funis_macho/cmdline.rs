@@ -1819,7 +1819,7 @@ fn read_joined_option(cur: &mut ArgCursor, args: &mut Args, raw: &[u8]) {
         // deduplication, which here is on unless -no_deduplicate,
         // whatever the level.
     } else {
-        fatal!("unknown command line option: {}", display(raw));
+        funis_common::unsupported!("unknown command line option: {}", display(raw));
     }
 }
 
@@ -2737,11 +2737,11 @@ fn apply_target_triple(args: &mut Args, triple: &str) {
 fn exit_without_inputs(args: &Args) -> ! {
     if args.verbose {
         print_version();
-        std::process::exit(0);
+        funis_common::error::exit(0);
     }
     if args.version_details {
         print_version_details();
-        std::process::exit(0);
+        funis_common::error::exit(0);
     }
     fatal!("no object files specified");
 }

@@ -39,12 +39,33 @@ pub fn set_tmpfile(path: Option<&Path>) {
                 .expect("temporary path contains NUL")
                 .into_raw()
         });
-        TMPFILE.store(ptr, Ordering::Release);
+        let old = TMPFILE.swap(ptr, Ordering::AcqRel);
+        free_published_path(old);
     }
     #[cfg(windows)]
     {
         *TMPFILE.lock().unwrap() = path.map(Path::to_path_buf);
     }
+}
+
+/// Frees a path published by `set_tmpfile`, in a library session. The command
+/// line keeps them, because a signal handler may still be reading one; a
+/// session installs no signal handler, and it links thousands of times.
+#[cfg(not(windows))]
+fn free_published_path(path: *mut libc::c_char) {
+    if !path.is_null() && crate::session::is_library() {
+        // SAFETY: `path` came from `CString::into_raw` in `set_tmpfile`, was
+        // swapped out of `TMPFILE`, and no other thread has it.
+        drop(unsafe { std::ffi::CString::from_raw(path) });
+    }
+}
+
+/// Forgets the registered temporary file and the output buffer range at the
+/// end of a library session (see `session`).
+pub(crate) fn reset() {
+    set_tmpfile(None);
+    #[cfg(not(windows))]
+    set_output_buffer_range(0, 0);
 }
 
 #[cfg(not(windows))]
@@ -103,6 +124,7 @@ pub fn cleanup() {
             // must not lock, allocate or drop owned storage. unlink is
             // signal-safe.
             unsafe { libc::unlink(path) };
+            free_published_path(path);
         }
     }
     #[cfg(windows)]
@@ -456,7 +478,13 @@ impl OutputFile {
             // The descriptor is kept until the process exits.
             if let Ok(old) = File::open(&self.path) {
                 let _ = std::fs::remove_file(&self.path);
-                std::mem::forget(old);
+                if crate::session::is_library() {
+                    // A library session links thousands of times; do not
+                    // leave a descriptor behind for each.
+                    drop(old);
+                } else {
+                    std::mem::forget(old);
+                }
             }
             std::fs::rename(&tmp, &self.path).unwrap_or_else(|e| {
                 fatal!(

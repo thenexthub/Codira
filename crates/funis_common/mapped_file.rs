@@ -5,7 +5,8 @@
 //! are used until the output is written. Files are therefore leaked with a
 //! `'static` lifetime rather than tracked with reference counts, which
 //! keeps lifetimes out of every data structure that refers to file
-//! contents.
+//! contents. In a library session (see `session`) the leaked files are freed
+//! when the link is over.
 
 use std::borrow::Cow;
 use std::fs::File;
@@ -22,7 +23,7 @@ use rayon::prelude::*;
 
 use crate::error::strerror;
 use crate::fatal;
-use crate::mem::leak;
+use crate::mem::{leak, leak_mut, leak_vec};
 use crate::parallel::SyncUnsafeCell;
 use crate::path::clean_path;
 
@@ -44,6 +45,16 @@ pub fn file_pool() -> Vec<&'static MappedFile> {
     let mut files = FILE_POOL.lock().unwrap().clone();
     files.sort_by(|a, b| a.name.cmp(&b.name));
     files
+}
+
+/// Forgets every file opened by a library session (see `session`). The files
+/// themselves are freed with the session's other leaked allocations; this
+/// drops the references to them that the globals above hold.
+pub(crate) fn reset() {
+    FILE_POOL.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    MMAPPED_FILES.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    #[cfg(not(windows))]
+    MMAPPED_INODES.lock().unwrap_or_else(|e| e.into_inner()).clear();
 }
 
 /// Drops the page table entries of the mapped input files, in parallel.
@@ -147,7 +158,7 @@ impl MappedFile {
             if buf.len() as u64 != size {
                 fatal!("{display}: file is shorter than its reported size");
             }
-            SyncUnsafeCell::from_mut(Vec::leak(buf))
+            SyncUnsafeCell::from_mut(leak_vec(buf))
         } else {
             // C++ funis maps inputs MAP_PRIVATE with write permission so it
             // can redirect ordinary relocation records in place without
@@ -161,7 +172,7 @@ impl MappedFile {
             let map = unsafe { memmap2::MmapOptions::new().len(map_len).map_copy(&file) }
                 .unwrap_or_else(|e| fatal!("{display}: mmap failed: {}", strerror(&e)));
             is_mmapped = true;
-            SyncUnsafeCell::from_mut(Box::leak(Box::new(map)).as_mut())
+            SyncUnsafeCell::from_mut(leak_mut(map).as_mut())
         };
 
         let mf = leak(Self {

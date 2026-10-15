@@ -29,6 +29,11 @@ impl Counter {
         COUNTERS_ENABLED.store(true, Ordering::Relaxed);
     }
 
+    /// Stops counting, at the end of a library session (see `session`).
+    pub(crate) fn disable() {
+        COUNTERS_ENABLED.store(false, Ordering::Relaxed);
+    }
+
     #[inline]
     pub fn increment(&'static self) {
         self.add(1);

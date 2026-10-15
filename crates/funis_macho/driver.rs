@@ -37,11 +37,12 @@ fn target_traits<E: Target>() -> cmdline::TargetTraits {
 /// Links for the target `E`.
 pub fn link<E: Target>(parsed: ParsedArgs) {
     let args = cmdline::resolve_args(&target_traits::<E>(), parsed);
+    let library = funis_common::session::is_library();
 
     // Fork so exit latency (unmapping every input) hides behind the
     // parent's return, as in funis; FUNIS_NO_FORK=1 keeps one process
-    // for debuggers and profilers.
-    if std::env::var_os("FUNIS_NO_FORK").is_none() {
+    // for debuggers and profilers. A library session never forks.
+    if !library && std::env::var_os("FUNIS_NO_FORK").is_none() {
         funis_common::subprocess::fork_child();
     }
 
@@ -49,9 +50,49 @@ pub fn link<E: Target>(parsed: ParsedArgs) {
     funis_common::error::set_demangle(ctx.args.demangle);
     cmdline::set_search_paths(&mut ctx);
 
-    let t_all = ctx.timer("all");
+    if library {
+        // No fork, no signal handler, no global thread pool: the link runs on
+        // a pool of its own that is gone when it returns, and the caches that
+        // outlive a command-line link (they are keyed by addresses of mapped
+        // files) are emptied when the session ends.
+        funis_common::session::on_end(crate::reset_caches);
+        let threads = thread_count(&ctx.args);
+        funis_common::session::set_info(|info| {
+            info.output = Some(ctx.args.output.clone());
+            info.target = Some(E::NAME);
+            info.threads = threads;
+        });
+        return funis_common::session::run_in_pool(threads, move || link_in_pool(ctx));
+    }
+
     funis_common::subprocess::install_signal_handler();
     funis_common::error::install_panic_hook();
+    link_in_pool(ctx)
+}
+
+/// How many threads a link in a library session uses: about 1.5 * sqrt(MiB of
+/// input), as for ELF (see funis_common::parallel::adaptive_thread_count). A
+/// library the link names is counted as 6 MiB, the size of an SDK stub that it
+/// has to parse. Not measured against a real SDK on this host.
+fn thread_count(args: &cmdline::Args) -> usize {
+    use cmdline::InputArg;
+    const STUB: u64 = 6 << 20;
+    let limit = std::thread::available_parallelism().map_or(1, |n| n.get()).min(32);
+    let mut bytes = 0u64;
+    for input in &args.inputs {
+        bytes += match input {
+            InputArg::File(path) | InputArg::Listed(path) | InputArg::BundleLoader(path) => {
+                std::fs::metadata(path).map_or(0, |m| m.len())
+            }
+            InputArg::Library(..) => STUB,
+        };
+    }
+    funis_common::parallel::adaptive_thread_count(bytes, limit)
+}
+
+/// The passes, run on the thread pool the link has been given.
+fn link_in_pool<E: Target>(mut ctx: Context<E>) {
+    let t_all = ctx.timer("all");
 
     // Runs a pass under a -print_statistics timer.
     macro_rules! timed {

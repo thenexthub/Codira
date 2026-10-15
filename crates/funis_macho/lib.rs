@@ -62,3 +62,14 @@ pub(crate) mod tapi;
 pub(crate) mod thunks;
 pub(crate) mod tls;
 mod x86_64;
+
+/// Empties the caches that outlive a command-line link. They are keyed by the
+/// addresses of mapped files, so a link run inside another program (see
+/// funis_common::session) must not carry them to the next one: a new file
+/// mapped at an old file's address would read the old file's results.
+pub(crate) fn reset_caches() {
+    mapped_file::reset();
+    tapi::reset_cache();
+    input_files::reset_stub_cache();
+    reader::reset_file_exists();
+}

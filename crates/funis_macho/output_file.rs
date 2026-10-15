@@ -271,6 +271,18 @@ impl OutputFile {
     }
 }
 
+impl Drop for OutputFile {
+    /// Stops the writers before the buffer they read goes away. Reached on
+    /// the way out of a failed link in a library session (see
+    /// funis_common::session); `close` has already joined them otherwise.
+    fn drop(&mut self) {
+        drop(self.tx.take());
+        for thread in self.threads.drain(..) {
+            let _ = thread.join();
+        }
+    }
+}
+
 /// Writes a complete buffer: for output that is built in full before
 /// anything can be written (-r, an object, which is not executable).
 pub fn write(path: &Path, buf: &[u8]) {

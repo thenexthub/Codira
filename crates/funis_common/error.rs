@@ -9,6 +9,8 @@ use std::io::{self, Write};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::session::{self, Severity};
+
 /// Whether to demangle symbol names in diagnostics. This is process-wide
 /// state so that `Display` implementations, which have no access to the
 /// linker context, can consult it.
@@ -51,26 +53,51 @@ pub fn noinhibit_exec() -> bool {
 }
 
 // Format each message before taking the lock so diagnostics from different
-// threads cannot interleave.
-fn emit(prefix_mono: &str, prefix_color: &str, msg: fmt::Arguments) {
+// threads cannot interleave. In a library session (see `session`) the message
+// is kept, without its prefix, instead of being written.
+fn emit(severity: Severity, prefix_mono: &str, prefix_color: &str, msg: fmt::Arguments) {
+    if session::capture(severity, &msg, prefix_mono) {
+        return;
+    }
     let prefix = if COLOR.load(Ordering::Relaxed) { prefix_color } else { prefix_mono };
     let text = format!("{prefix}{msg}\n");
     let _guard = OUTPUT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let _ = io::stderr().write_all(text.as_bytes());
 }
 
-/// Reports an unrecoverable error and exits.
+/// Reports an unrecoverable error and exits. In a library session, ends the
+/// link and returns to the caller instead.
 pub fn fatal(msg: fmt::Arguments) -> ! {
-    emit("funis: fatal: ", "funis: \x1b[0;1;31mfatal:\x1b[0m ", msg);
+    emit(Severity::Fatal, "funis: fatal: ", "funis: \x1b[0;1;31mfatal:\x1b[0m ", msg);
     exit_after_cleanup(1);
+}
+
+/// Like [`fatal`], for something that this linker does not implement (an
+/// option, a target, link-time optimisation) rather than a problem in the
+/// inputs. On the command line the two are the same; a library session tells
+/// its caller, who may try another linker.
+pub fn unsupported(msg: fmt::Arguments) -> ! {
+    if session::is_library() {
+        session::mark_unsupported(msg.to_string());
+    }
+    fatal(msg)
+}
+
+/// Exits with `status`. In a library session, ends the link and returns to the
+/// caller instead.
+pub fn exit(status: i32) -> ! {
+    if session::is_library() {
+        session::terminate(status);
+    }
+    std::process::exit(status)
 }
 
 /// Reports an error. With `--noinhibit-exec` it is downgraded to a warning.
 pub fn error(msg: fmt::Arguments) {
     if NOINHIBIT_EXEC.load(Ordering::Relaxed) {
-        emit("funis: warning: ", "funis: \x1b[0;1;35mwarning:\x1b[0m ", msg);
+        emit(Severity::Warning, "funis: warning: ", "funis: \x1b[0;1;35mwarning:\x1b[0m ", msg);
     } else {
-        emit("funis: error: ", "funis: \x1b[0;1;31merror:\x1b[0m ", msg);
+        emit(Severity::Error, "funis: error: ", "funis: \x1b[0;1;31merror:\x1b[0m ", msg);
         HAS_ERROR.store(true, Ordering::Relaxed);
     }
 }
@@ -81,10 +108,10 @@ pub fn warn(msg: fmt::Arguments) {
         return;
     }
     if FATAL_WARNINGS.load(Ordering::Relaxed) {
-        emit("funis: error: ", "funis: \x1b[0;1;31merror:\x1b[0m ", msg);
+        emit(Severity::Error, "funis: error: ", "funis: \x1b[0;1;31merror:\x1b[0m ", msg);
         HAS_ERROR.store(true, Ordering::Relaxed);
     } else {
-        emit("funis: warning: ", "funis: \x1b[0;1;35mwarning:\x1b[0m ", msg);
+        emit(Severity::Warning, "funis: warning: ", "funis: \x1b[0;1;35mwarning:\x1b[0m ", msg);
     }
 }
 
@@ -92,11 +119,14 @@ pub fn warn(msg: fmt::Arguments) {
 /// link did (the Mach-O linker's -why_live, -why_load and text
 /// relocations) come in lines of their own.
 pub fn notice(msg: fmt::Arguments) {
-    emit("", "", msg);
+    emit(Severity::Notice, "", "", msg);
 }
 
 /// Prints an informational message to stdout.
 pub fn out(msg: fmt::Arguments) {
+    if session::capture_stdout(&msg) {
+        return;
+    }
     let text = format!("{msg}\n");
     let _guard = OUTPUT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let _ = io::stdout().write_all(text.as_bytes());
@@ -129,8 +159,14 @@ pub fn checkpoint() {
 
 /// Removes a partially-written output file, then terminates the process
 /// without running destructors. Input files are mapped for the process's
-/// lifetime, so there is nothing else to release.
+/// lifetime, so there is nothing else to release. In a library session the
+/// link unwinds to its caller instead, which frees the inputs.
 pub fn exit_after_cleanup(status: i32) -> ! {
+    if session::is_library() {
+        // The partial output is removed when the session ends, once the
+        // unwind has closed it: Windows cannot remove a file that is open.
+        session::terminate(status);
+    }
     crate::output_file::cleanup();
     let _ = io::stdout().flush();
     let _ = io::stderr().flush();
@@ -141,6 +177,17 @@ pub fn exit_after_cleanup(status: i32) -> ! {
     }
     #[cfg(windows)]
     std::process::exit(status)
+}
+
+/// Puts the diagnostic settings and the error state back to what a new
+/// process has, at the end of a library session.
+pub(crate) fn reset_state() {
+    DEMANGLE.store(true, Ordering::Relaxed);
+    COLOR.store(false, Ordering::Relaxed);
+    FATAL_WARNINGS.store(false, Ordering::Relaxed);
+    SUPPRESS_WARNINGS.store(false, Ordering::Relaxed);
+    NOINHIBIT_EXEC.store(false, Ordering::Relaxed);
+    HAS_ERROR.store(false, Ordering::Relaxed);
 }
 
 /// Makes a panic remove a partially-written output file, as a fatal error
@@ -158,6 +205,13 @@ pub fn install_panic_hook() {
 macro_rules! fatal {
     ($($arg:tt)*) => {
         $crate::error::fatal(format_args!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! unsupported {
+    ($($arg:tt)*) => {
+        $crate::error::unsupported(format_args!($($arg)*))
     };
 }
 

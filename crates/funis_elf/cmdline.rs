@@ -1222,7 +1222,7 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
 
         if cursor.read_flag("help") {
             out!("Usage: {} [options] file...\n{}", raw_cmdline[0].to_string_lossy(), HELP);
-            std::process::exit(0);
+            funis_common::error::exit(0);
         }
 
         if read_arg!("o", true) || read_arg!("--output", true) {
@@ -1236,7 +1236,7 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
             version_shown = true;
         } else if cursor.read_flag("version") {
             out!("{}", *VERSION);
-            std::process::exit(0);
+            funis_common::error::exit(0);
         } else if cursor.read_flag("V") {
             out!(
                 "{}\n  Supported emulations:\n   elf_x86_64\n   elf_i386\n   aarch64elf\n   \
@@ -1796,7 +1796,7 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
                      object file, use `objcopy -I binary -O default <input-file> <output-file.o>` instead."
                 );
             }
-            fatal!("unknown command line option: -b {arg}");
+            funis_common::unsupported!("unknown command line option: -b {arg}");
         } else if read_arg!("fuse-ld", true) {
         } else if cursor.read_flag("allow-shlib-undefined") {
             allow_shlib_undefined = Some(true);
@@ -1897,11 +1897,14 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
             );
             cursor.index += 2;
         } else if cursor.text() == "-dynamic" {
-            fatal!(
+            funis_common::unsupported!(
                 "unknown command line option: -dynamic; -dynamic is a macOS linker's option. funis does not support macOS."
             );
         } else {
-            fatal!("unknown command line option: {}", cursor.current().to_string_lossy());
+            funis_common::unsupported!(
+                "unknown command line option: {}",
+                cursor.current().to_string_lossy()
+            );
         }
     }
 
@@ -1920,6 +1923,11 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
     });
 
     if !directory.as_os_str().is_empty() {
+        if funis_common::session::is_library() {
+            funis_common::unsupported!(
+                "-C changes the working directory of the process, which an in-process link must not"
+            );
+        }
         a.orig_cwd = std::env::current_dir().ok();
         if let Err(e) = std::env::set_current_dir(&directory) {
             fatal!("chdir failed: {}: {}", directory.display(), strerror(&e));
@@ -2103,7 +2111,7 @@ pub fn parse_args(target: &TargetTraits, raw_cmdline: &[Cow<'_, OsStr>]) -> Pars
     a.overwrite_output_file = !a.shared && returns_etxtbsy();
 
     if version_shown && jobs.is_empty() {
-        std::process::exit(0);
+        funis_common::error::exit(0);
     }
 
     if rctx.is_static || a.relocatable {

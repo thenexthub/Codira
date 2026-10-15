@@ -468,7 +468,7 @@ impl<'a, E: Target> Builder<'a, E> {
             entry.name = Some(sym.name());
             entry.size = 8;
             entry.p2align = 3;
-            entry.content = Content::Pool(Box::leak(Box::new(sym.value.to_le_bytes())));
+            entry.content = Content::Pool(funis_common::mem::leak_mut(sym.value.to_le_bytes()));
             let idx = self.push_entry(entry, None);
             self.sym_entry.insert(sym_id, To::Entry(idx));
         }

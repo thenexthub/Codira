@@ -233,12 +233,12 @@ impl ObjectFile {
     /// it and no symbol table of its own; funis's
     /// ObjectFile::internal.
     pub fn internal() -> Self {
-        let mf: &'static MappedFile = Box::leak(Box::new(MappedFile {
+        let mf: &'static MappedFile = funis_common::mem::leak_mut(MappedFile {
             name: PathBuf::from("<synthesized>"),
             data: &[],
             parent: None,
             mtime: None,
-        }));
+        });
         Self {
             sect_hdrs: std::borrow::Cow::Owned(Vec::new()),
             mach_syms: std::borrow::Cow::Owned(Vec::new()),
@@ -613,7 +613,7 @@ pub(crate) fn add_cstring<E: Target>(ctx: &mut Context<E>, s: &[u8]) -> u32 {
     let (file, shndx) = add_synthetic_section(ctx, hdr);
     let mut bytes = s.to_vec();
     bytes.push(0);
-    let bytes: &'static [u8] = Vec::leak(bytes);
+    let bytes: &'static [u8] = funis_common::mem::leak_vec(bytes);
     ctx.isecs.push(InputSection {
         flags: InputSection::flags_alive_no_modulus(),
         ..InputSection::new(file, shndx, 0, bytes.len() as u32, bytes)
@@ -1525,7 +1525,7 @@ pub fn stage_object<E: Target>(
     // The section headers are complete; leak them so subsections can
     // reference (not copy) their parent header. The leak is bounded by
     // the object's section count and lives for the whole link.
-    let sect_hdrs: &'static [MachSection] = Vec::leak(cmds.sect_hdrs);
+    let sect_hdrs: &'static [MachSection] = funis_common::mem::leak_vec(cmds.sect_hdrs);
 
     let (mach_syms, strtab) = read_symtab(data, cmds.symtab.as_ref());
     let first_global = first_global_of(&mach_syms, cmds.dysymtab.as_ref());
@@ -2617,7 +2617,7 @@ impl StagedObject {
             [hdr.offset.get() as usize..(hdr.offset.get() as u64 + hdr.size.get()) as usize]
             .to_vec();
         apply_eh_frame_relocs::<E>(&mut contents, rels, &self.mach_syms, &mf.name);
-        let contents: &'static [u8] = Vec::leak(contents);
+        let contents: &'static [u8] = funis_common::mem::leak_vec(contents);
 
         // Split the section into records: a zero ID marks a CIE, anything
         // else is an FDE whose ID is how far back its CIE is from the ID.
@@ -3849,14 +3849,20 @@ impl StubLibrary {
     }
 }
 
+type StubCache = hashbrown::HashMap<(usize, &'static str, u32, u32), Option<Arc<Stub>>>;
+static CACHE: std::sync::Mutex<Option<StubCache>> = std::sync::Mutex::new(None);
+
+/// Forgets the stubs `read_stub` memoized (see `reset_caches`).
+pub(crate) fn reset_stub_cache() {
+    *CACHE.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
 /// A stub read for the link's target (see StubLibrary); None if it has
 /// no target on the architecture. Memoized by the file's address and
 /// the link's target, as tapi::parse_cached memoizes a parse.
 pub fn read_stub<E: Target>(ctx: &Context<E>, mf: &'static MappedFile) -> Option<Arc<Stub>> {
-    type Cache = hashbrown::HashMap<(usize, &'static str, u32, u32), Option<Arc<Stub>>>;
-    static CACHE: std::sync::Mutex<Option<Cache>> = std::sync::Mutex::new(None);
     let key = (mf.data().as_ptr() as usize, E::NAME, ctx.args.platform, ctx.args.platform_minos);
-    if let Some(stub) = CACHE.lock().unwrap().get_or_insert_with(Cache::new).get(&key) {
+    if let Some(stub) = CACHE.lock().unwrap().get_or_insert_with(StubCache::new).get(&key) {
         return stub.clone();
     }
     let stub = tapi::parse(mf, E::NAME, ctx.args.platform).map(|mut tbd| {
@@ -3864,7 +3870,7 @@ pub fn read_stub<E: Target>(ctx: &Context<E>, mf: &'static MappedFile) -> Option
         let read = |tbd| Arc::new(StubLibrary::read(ctx, tbd));
         Arc::new(Stub { main: read(tbd), documents: documents.into_iter().map(read).collect() })
     });
-    CACHE.lock().unwrap().get_or_insert_with(Cache::new).insert(key, stub.clone());
+    CACHE.lock().unwrap().get_or_insert_with(StubCache::new).insert(key, stub.clone());
     stub
 }
 

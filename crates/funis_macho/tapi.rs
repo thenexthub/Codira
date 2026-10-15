@@ -122,7 +122,7 @@ fn parse_json(
     // The parsed file lives as long as the link, like the input files,
     // so that the names in it can be borrowed.
     let root: &'static Value = match serde_json::from_str(text) {
-        Ok(root) => Box::leak(Box::new(root)),
+        Ok(root) => funis_common::mem::leak_mut(root),
         Err(e) => fatal!("{}: malformed .tbd JSON: {e}", file.display()),
     };
     if root["tapi_tbd_version"] != 5 {
@@ -253,18 +253,24 @@ fn parse_version(val: &str) -> u32 {
     crate::macho::encode_version(major, minor, patch)
 }
 
+type ParseCache = hashbrown::HashMap<(usize, &'static str, u32), Option<TbdFile>>;
+static CACHE: std::sync::Mutex<Option<ParseCache>> = std::sync::Mutex::new(None);
+
+/// Forgets the parses `parse_cached` memoized (see `reset_caches`).
+pub(crate) fn reset_cache() {
+    *CACHE.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
 /// Parses a .tbd file as `parse` does, memoized. Stub parsing is pure
 /// string work over the mapped file, so results are cached by the
 /// file's address and the link's architecture and platform.
 pub fn parse_cached(mf: &'static MappedFile, arch: &'static str, platform: u32) -> Option<TbdFile> {
-    type Cache = hashbrown::HashMap<(usize, &'static str, u32), Option<TbdFile>>;
-    static CACHE: std::sync::Mutex<Option<Cache>> = std::sync::Mutex::new(None);
     let key = (mf.data().as_ptr() as usize, arch, platform);
-    if let Some(tbd) = CACHE.lock().unwrap().get_or_insert_with(Cache::new).get(&key) {
+    if let Some(tbd) = CACHE.lock().unwrap().get_or_insert_with(ParseCache::new).get(&key) {
         return tbd.clone();
     }
     let tbd = parse(mf, arch, platform);
-    CACHE.lock().unwrap().get_or_insert_with(Cache::new).insert(key, tbd.clone());
+    CACHE.lock().unwrap().get_or_insert_with(ParseCache::new).insert(key, tbd.clone());
     tbd
 }
 

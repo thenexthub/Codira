@@ -322,6 +322,19 @@ impl<'a> Prober<'a> {
     }
 }
 
+type Found = hashbrown::HashMap<PathBuf, bool>;
+const SHARDS: usize = 64;
+static FOUND: [std::sync::Mutex<Option<Found>>; SHARDS] =
+    [const { std::sync::Mutex::new(None) }; SHARDS];
+
+/// Forgets what `file_exists` found (see `reset_caches`): a file may have
+/// been created or removed since.
+pub(crate) fn reset_file_exists() {
+    for shard in &FOUND {
+        *shard.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    }
+}
+
 /// Whether there is a file at `path`, memoized: a search made ahead of
 /// time looks for the files that the one it stands for looks for again
 /// (a library a stub re-exports, as the stub is prefetched and as it
@@ -329,10 +342,6 @@ impl<'a> Prober<'a> {
 /// components each time. The answers are kept in shards by the path's
 /// hash, as the threads of the parallel searches ask at once.
 fn file_exists(path: &Path) -> bool {
-    type Found = hashbrown::HashMap<PathBuf, bool>;
-    const SHARDS: usize = 64;
-    static FOUND: [std::sync::Mutex<Option<Found>>; SHARDS] =
-        [const { std::sync::Mutex::new(None) }; SHARDS];
     let shard = &FOUND[xxhash_rust::xxh3::xxh3_64(path_bytes(path)) as usize % SHARDS];
     if let Some(&found) = shard.lock().unwrap().get_or_insert_with(Found::new).get(path) {
         return found;

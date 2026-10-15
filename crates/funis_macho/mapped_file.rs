@@ -35,6 +35,12 @@ static FILE_CACHE: Mutex<Option<HashMap<PathBuf, &'static MappedFile>>> = Mutex:
 type Contents = HashMap<FileId, &'static OnceLock<&'static [u8]>>;
 static CONTENTS: Mutex<Option<Contents>> = Mutex::new(None);
 
+/// Forgets every file opened so far (see `reset_caches`).
+pub(crate) fn reset() {
+    *FILE_CACHE.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *CONTENTS.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
 /// A file is known by its device and inode, size and modification time
 /// (the inode of a file deleted since may be another's).
 #[cfg(not(windows))]
@@ -77,14 +83,14 @@ fn read_contents(file: &File, size: u64, path: &Path) -> &'static [u8] {
         if buf.len() as u64 != size {
             fatal!("{display}: file is shorter than its reported size");
         }
-        Vec::leak(buf)
+        funis_common::mem::leak_vec(buf)
     } else {
         // SAFETY: the mapping outlives every reference (it is
         // leaked), and linkers conventionally assume inputs are
         // not modified during the link.
         let map = unsafe { memmap2::Mmap::map(file) }
             .unwrap_or_else(|e| fatal!("{display}: mmap failed: {e}"));
-        Box::leak(Box::new(map))
+        funis_common::mem::leak_mut(map)
     }
 }
 
@@ -122,10 +128,14 @@ impl MappedFile {
             .unwrap()
             .get_or_insert_with(HashMap::new)
             .entry(id)
-            .or_insert_with(|| Box::leak(Box::new(OnceLock::new())));
+            .or_insert_with(|| funis_common::mem::leak_mut(OnceLock::new()));
         let data = *cell.get_or_init(|| read_contents(&file, metadata.len(), path));
-        let mf: &'static Self =
-            Box::leak(Box::new(Self { name: path.to_path_buf(), data, parent: None, mtime: None }));
+        let mf: &'static Self = funis_common::mem::leak_mut(Self {
+            name: path.to_path_buf(),
+            data,
+            parent: None,
+            mtime: None,
+        });
         FILE_CACHE.lock().unwrap().get_or_insert_with(HashMap::new).insert(path.to_path_buf(), mf);
         Ok(mf)
     }
@@ -157,12 +167,12 @@ impl MappedFile {
     /// Returns a view of a slice of this fat file.
     pub fn slice(&'static self, name: PathBuf, start: usize, size: usize) -> &'static Self {
         assert!(start <= self.size() && size <= self.size() - start);
-        Box::leak(Box::new(Self {
+        funis_common::mem::leak_mut(Self {
             name,
             data: &self.data[start..start + size],
             parent: Some(self),
             mtime: None,
-        }))
+        })
     }
 
     /// Returns a member of this archive, named "archive(member)" as ld64
@@ -172,19 +182,19 @@ impl MappedFile {
         name.push("(");
         name.push(os_str(member.name));
         name.push(")");
-        Box::leak(Box::new(Self {
+        funis_common::mem::leak_mut(Self {
             name: PathBuf::from(name),
             data: member.data,
             parent: Some(self),
             mtime: Some(member.date),
-        }))
+        })
     }
 
     /// A file the linker made in memory, under the name of the input it
     /// stands for (see mergeable::synthesize_object).
     pub fn synthesized(name: PathBuf, data: Vec<u8>) -> &'static Self {
-        let data = Vec::leak(data);
-        Box::leak(Box::new(Self { name, data, parent: None, mtime: None }))
+        let data = funis_common::mem::leak_vec(data);
+        funis_common::mem::leak_mut(Self { name, data, parent: None, mtime: None })
     }
 
     pub fn size(&self) -> usize {

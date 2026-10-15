@@ -1,16 +1,33 @@
 use rayon::prelude::*;
 
+/// The number of threads worth starting for `bytes` of input: about
+/// 1.5 * sqrt(MiB), at least one and at most `limit`.
+///
+/// Starting the thread pool costs more than a small link takes, and a link of
+/// a few megabytes slows down again once many threads compete for cores
+/// (measured on a 32-thread machine under load: 40 MiB of objects linked in
+/// 74 ms with 4 threads and 169 ms with 32). The square root keeps the count
+/// growing with the input, so a multi-gigabyte link still uses every core.
+/// The output is byte-identical for every thread count.
+pub fn adaptive_thread_count(bytes: u64, limit: usize) -> usize {
+    let mib = bytes as f64 / (1u64 << 20) as f64;
+    ((1.5 * mib.sqrt()).round() as usize).clamp(1, limit.max(1))
+}
+
 /// An owned Rayon job whose result is needed by a later linker pass.
 pub struct Background<T> {
-    receiver: std::sync::mpsc::Receiver<T>,
+    receiver: std::sync::mpsc::Receiver<std::thread::Result<T>>,
     name: &'static str,
 }
 
 impl<T: Send + 'static> Background<T> {
     pub fn spawn(name: &'static str, run: impl FnOnce() -> T + Send + 'static) -> Self {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        // A job that panics would abort the process if rayon caught it, so
+        // the panic is carried to `join` and resumed there. That is how a
+        // link in a library session ends from inside a background job.
         rayon::spawn(move || {
-            let _ = sender.send(run());
+            let _ = sender.send(std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)));
         });
         Self { receiver, name }
     }
@@ -19,7 +36,8 @@ impl<T: Send + 'static> Background<T> {
         use std::sync::mpsc::TryRecvError;
         loop {
             match self.receiver.try_recv() {
-                Ok(value) => return value,
+                Ok(Ok(value)) => return value,
+                Ok(Err(payload)) => std::panic::resume_unwind(payload),
                 Err(TryRecvError::Disconnected) => panic!("{} task failed", self.name),
                 Err(TryRecvError::Empty) => {
                     // A blocking receive would deadlock a one-worker pool.

@@ -271,7 +271,7 @@ fn add_dof_section<E: Target>(ctx: &mut Context<E>, name: &[u8], dof: Dof, sites
         relocs.push(pair(E::RELOC_UNSIGNED, to, site.offset as i64, true));
     }
     let nrels = relocs.len() as u32 - rel_offset;
-    let bytes: &'static [u8] = Vec::leak(dof.bytes);
+    let bytes: &'static [u8] = funis_common::mem::leak_vec(dof.bytes);
     ctx.isecs.push(InputSection {
         rel_offset,
         nrels,

@@ -865,11 +865,11 @@ pub fn do_lto<E: Target>(ctx: &mut Context<E>) {
 
     let first = ctx.objs.len();
     for crate::lto::LtoObject { name, mtime, data } in objects {
-        let data = Vec::leak(data);
+        let data = funis_common::mem::leak_vec(data);
         let mf = crate::mapped_file::MappedFile { name, data, parent: None, mtime };
         // An output of x86_64h bitcode is an x86_64h object: ld-prime
         // warns of it in an x86_64 link as of an input.
-        let mf = Box::leak(Box::new(mf));
+        let mf = funis_common::mem::leak_mut(mf);
         if !crate::reader::is_foreign(ctx, mf) {
             let i = input_files::parse_object(ctx, mf);
             ctx.objs[i].lto_output = true;
@@ -3540,7 +3540,7 @@ fn place_sectcreate_inputs<E: Target>(ctx: &mut Context<E>) {
         let sc = &ctx.args.sectcreate[i];
         let name = map.renamed(&ctx.args, (static_name(&sc.segname), static_name(&sc.sectname)));
         let data: &'static [u8] = match &sc.path {
-            Some(path) => Vec::leak(std::fs::read(path).unwrap_or_else(|e| {
+            Some(path) => funis_common::mem::leak_vec(std::fs::read(path).unwrap_or_else(|e| {
                 fatal!("cannot open -sectcreate file {}: {}", path.display(), error::strerror(&e))
             })),
             None => &[],
@@ -3564,7 +3564,7 @@ fn place_sectcreate_inputs<E: Target>(ctx: &mut Context<E>) {
     }
     for (sec, data) in ctx.sectcreate_sections.iter_mut().zip(contents) {
         sec.hdr.size = data.len() as u64;
-        sec.contents = Vec::leak(data);
+        sec.contents = funis_common::mem::leak_vec(data);
     }
 }
 

@@ -869,6 +869,9 @@ pub fn live_bitcode_modules<E: Target>(ctx: &Context<E>) -> impl Iterator<Item =
 /// passes::links_only_bitcode). ld-prime warns, then fails, if libLTO
 /// can't.
 pub fn write_merged_bitcode<E: Target>(ctx: &Context<E>) {
+    if funis_common::session::is_library() {
+        funis_common::unsupported!("link-time optimisation (bitcode inputs) is not supported");
+    }
     let plugin = ctx.lto_plugin.unwrap();
     let modules: Vec<_> = live_bitcode_modules(ctx).collect();
     let roots = lto_roots(ctx);
@@ -1050,6 +1053,9 @@ pub struct LtoObject {
 /// bitcode files. Both compilations see the same symbols to preserve.
 /// -flto-codegen-only has ThinLTO compile every module, unoptimized.
 pub fn run_plugin<E: Target>(ctx: &Context<E>) -> Vec<LtoObject> {
+    if funis_common::session::is_library() {
+        funis_common::unsupported!("link-time optimisation (bitcode inputs) is not supported");
+    }
     let plugin = ctx.lto_plugin.unwrap();
 
     let mut objects = Vec::new();

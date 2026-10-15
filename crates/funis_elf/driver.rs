@@ -22,7 +22,8 @@ use crate::passes;
 pub type Cmdline = Arc<[Cow<'static, OsStr>]>;
 
 /// Runs the linker with the given command line. A link that fails exits
-/// in the middle (see funis_common::error::checkpoint).
+/// in the middle (see funis_common::error::checkpoint); in a library session
+/// it unwinds to the caller instead.
 ///
 /// `initial_target` is an enabled target used for the initial argument
 /// parsing. `link_for_target` links for a named target, or returns the
@@ -33,16 +34,24 @@ pub fn main(
     initial_target: &str,
     link_for_target: impl Fn(&str, Cmdline) -> Option<&'static str>,
 ) {
+    // In a library session (see funis_common::session) the linker runs inside
+    // somebody else's process: it must not change the process's settings,
+    // working directory or signal handlers, and never exits.
+    let library = funis_common::session::is_library();
+
     // A parent's transparent huge page disable flag is inherited. Restore
     // the system's default policy so large links can use huge pages.
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    unsafe {
+    if !library {
         // SAFETY: this changes only the current process's THP setting.
-        libc::prctl(libc::PR_SET_THP_DISABLE, 0, 0, 0, 0);
+        unsafe { libc::prctl(libc::PR_SET_THP_DISABLE, 0, 0, 0, 0) };
     }
 
     // Process -run option first. process_run_subcommand() does not return.
     if argv.get(1).is_some_and(|a| a == "-run" || a == "--run") {
+        if library {
+            funis_common::unsupported!("-run starts a program and does not return");
+        }
         crate::run::process_run_subcommand(&argv);
     }
 
@@ -58,7 +67,7 @@ pub fn main(
     // be different, start over with the right one.
     let mut target = initial_target;
     loop {
-        if let Some(cwd) = &orig_cwd {
+        if !library && let Some(cwd) = &orig_cwd {
             let _ = std::env::set_current_dir(cwd);
         }
         match link_for_target(target, Arc::clone(&cmdline)) {
@@ -91,18 +100,10 @@ fn thread_count(args: &Args, jobs: &[ReaderJob]) -> usize {
     }
 }
 
-/// The number of threads worth starting for `bytes` of input: about
-/// 1.5 * sqrt(MiB), at least one and at most `limit`.
-///
-/// Starting the thread pool costs more than a small link takes, and a link of
-/// a few megabytes slows down again once many threads compete for cores
-/// (measured on a 32-thread machine under load: 40 MiB of objects linked in
-/// 74 ms with 4 threads and 169 ms with 32). The square root keeps the count
-/// growing with the input, so a multi-gigabyte link still uses every core.
-/// The output is byte-identical for every thread count.
+/// The number of threads worth starting for `bytes` of input (see
+/// `funis_common::parallel::adaptive_thread_count`).
 pub fn adaptive_thread_count(bytes: u64, limit: usize) -> usize {
-    let mib = bytes as f64 / (1u64 << 20) as f64;
-    ((1.5 * mib.sqrt()).round() as usize).clamp(1, limit.max(1))
+    funis_common::parallel::adaptive_thread_count(bytes, limit)
 }
 
 /// The combined size of the inputs, or `None` if any of them is something
@@ -149,7 +150,26 @@ pub fn link<E: Target>(cmdline: Cmdline) -> Option<&'static str> {
         return Some(ctx.args.emulation);
     }
 
-    let t_all = ctx.timer("all");
+    let threads = thread_count(&ctx.args, &jobs);
+
+    if funis_common::session::is_library() {
+        // No fork, no early exit, no signal handler, no global thread pool:
+        // the link runs on a pool of its own that is gone when it returns.
+        // Link-time optimisation loads a plugin that has global state of its
+        // own and may exec; it is not available here.
+        if !ctx.args.plugin.as_os_str().is_empty() {
+            funis_common::unsupported!("--plugin (link-time optimisation) is not supported");
+        }
+        ctx.args.fork = false;
+        ctx.args.quick_exit = false;
+        funis_common::session::set_info(|info| {
+            info.output = Some(ctx.args.output.clone());
+            info.target = Some(E::NAME);
+            info.threads = threads;
+        });
+        return funis_common::session::run_in_pool(threads, move || link_in_pool(ctx, jobs));
+    }
+
     funis_common::subprocess::install_signal_handler();
     error::install_panic_hook();
 
@@ -160,12 +180,18 @@ pub fn link<E: Target>(cmdline: Cmdline) -> Option<&'static str> {
 
     funis_common::jobs::acquire_global_lock();
 
-    let threads = thread_count(&ctx.args, &jobs);
     rayon::ThreadPoolBuilder::new()
         .num_threads(threads)
         .use_current_thread()
         .build_global()
         .unwrap_or_else(|err| fatal!("failed to build linker thread pool: {err}"));
+
+    link_in_pool(ctx, jobs)
+}
+
+/// The passes, run on the thread pool the link has been given.
+fn link_in_pool<E: Target>(mut ctx: Context<E>, jobs: Vec<ReaderJob>) -> Option<&'static str> {
+    let t_all = ctx.timer("all");
 
     // Handle --wrap options if any.
     for name in &ctx.args.wrap {
@@ -476,7 +502,7 @@ pub fn link<E: Target>(cmdline: Cmdline) -> Option<&'static str> {
     // .debug_info section. That order is now fixed, so build the table while the
     // remaining layout passes continue. This stage stops scaling after about 12
     // workers, so limit its concurrency to avoid competing with foreground work.
-    let gdb_table_workers = (threads * 3 / 8).clamp(1, 12);
+    let gdb_table_workers = (rayon::current_num_threads() * 3 / 8).clamp(1, 12);
     let mut gdb_table_job = if ctx.gdb_index.is_some() && ctx.gnu_debuglink.is_none() {
         let timer = t_all.handle();
         let mut data = ctx.gdb_index_data.take().expect("missing .gdb_index input data");

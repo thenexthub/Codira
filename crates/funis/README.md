@@ -15,14 +15,36 @@ this fork, in order:
 1. **Measure honestly.** Build and benchmark mold on the workloads we link,
    starting with the Codira compiler's own test binaries.
 2. **A library mode** with no process start and no thread-pool spin-up for
-   small inputs, callable from a compiler in-process.
+   small inputs, callable from a compiler in-process. This exists: see
+   below.
 3. **Incremental, patch-in-place linking**, which mold does not have: relink
    only what changed and rewrite only the affected parts of the output.
 4. **A PE/COFF backend** for Windows hosts, which mold does not have.
 
-None of these exist yet. Everything below this line that makes a claim about
-speed, platforms or production use describes upstream mold, not Funis, and
-the figures are the upstream authors' own.
+Goals 3 and 4 do not exist yet. Everything below the next heading that makes a
+claim about speed, platforms or production use describes upstream mold, not
+Funis, and the figures are the upstream authors' own.
+
+## Library mode
+
+```rust
+let report = funis::link(vec!["funis".into(), "--shared".into(), "-o".into(), out.into(), obj.into()])?;
+```
+
+`funis::link` (also `link_elf`, `link_macho`, `link_with`) is the same linker as
+the command line, as a function that can be called any number of times in one
+process. It never exits the process (`--version` comes back as
+`Outcome::Informational` with the text in `stdout`; a failed link as
+`LinkError::Failed` with the diagnostics as data), it does not fork, install
+signal handlers or change the working directory, it runs on a thread pool of its
+own that is sized to the input and gone when the call returns, and it frees
+everything it maps and allocates (`tests/no_leak.rs` links a thousand times and
+checks memory, handles and threads). What it cannot do is refused as
+`LinkError::Unsupported`: unknown options, `-run`, `-C`, link-time optimisation.
+
+The linker keeps process-wide state, so links are serialised: two threads that
+link at once take turns. The library ends a link by unwinding, so it needs
+`panic = "unwind"` and reports `Unsupported` in a build that aborts.
 
 ## Why does linking speed matter?
 
