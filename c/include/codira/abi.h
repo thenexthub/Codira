@@ -6,7 +6,7 @@
 /**
  * Defines the current ABI version
  */
-#define CODIRA_ABI_VERSION 300
+#define CODIRA_ABI_VERSION 400
 
 /**
  * Represents the kind of memory management a struct uses.
@@ -189,6 +189,12 @@ typedef struct CodiraStructDefinition {
      * Struct memory kind
      */
     CodiraStructMemoryKind memory_kind;
+    /**
+     * Struct fields' previous names (`@renamed(from: "old")`): null if no
+     * field was renamed, otherwise one entry per field that is null for a
+     * field that was not.
+     */
+    const char *const *field_previous_names;
 } CodiraStructDefinition;
 
 /**

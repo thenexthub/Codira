@@ -17,9 +17,10 @@
 //! ```
 //!
 //! The string case is no longer among them: a literal lowers to
-//! `{ ptr, usize }` over constant bytes. What is left is `nil`, which still
-//! has no representation to produce, and generic instantiation, which type
-//! inference now handles but code generation does not. A sixth gap was
+//! `{ ptr, usize }` over constant bytes, and generic functions are
+//! monomorphised (see `crate::mono`). What is left is `nil`, which still
+//! has no representation to produce, and the few generic declarations
+//! monomorphisation does not cover (see `validate_generics`). A sixth gap was
 //! found later: every construct that parses but lowers to `Expr::Missing`
 //! (`match`, closures, postfix `!` and postfix `^`) passed
 //! every check and then hit `gen_expr`'s `unimplemented!`. Those are now
@@ -53,8 +54,9 @@ use codira_syntax::{ast::NameOwner, AstNode, SyntaxNodePtr};
 
 use super::ExprValidator;
 use crate::{
-    diagnostics::{DiagnosticSink, UnsupportedByCodegen},
-    ty::Ty,
+    diagnostics::{DiagnosticSink, ExprError, UnsupportedByCodegen},
+    mono,
+    ty::{Ty, TypeWalk},
     Expr, HasSource, HirDisplay, TyKind,
 };
 
@@ -78,42 +80,11 @@ impl ExprValidator<'_> {
 
         let file = self.func.source(self.db).file_id;
 
-        // A generic declaration is reported once, against the function
-        // itself, rather than once per mention of `T`. The gap is
-        // instantiation, not any individual expression, and one diagnostic
-        // naming the function is what the reader can act on.
-        if let Some(ty) = self.first_type_parameter() {
-            let source = self.func.source(self.db);
-            // The function's *name*, not its whole syntax node. The whole
-            // node is often many lines -- every method here that needs this
-            // diagnostic at all has a body -- and the renderer this feeds
-            // (`annotate_snippets` with `fold: true`) can panic on a
-            // multi-line annotation range that extends past whatever window
-            // it decides to fold to: confirmed against
-            // `std/collections/binary_heap.code`'s `iter_next`, an 8-line
-            // function whose whole-node span crashed rendering with
-            // "SourceAnnotation range is beyond the end of buffer" the
-            // moment `contains_type_parameter` started looking inside a
-            // struct's substitution and so started firing on it. The name
-            // is a single short, single-line node that still points the
-            // reader at the right function.
-            let node = source.value.name().map_or_else(
-                || SyntaxNodePtr::new(source.value.syntax()),
-                |name| SyntaxNodePtr::new(name.syntax()),
-            );
-            sink.push(UnsupportedByCodegen {
-                file,
-                node,
-                what: format!(
-                    "a generic function (`{}` is not instantiated)",
-                    ty.display(self.db)
-                ),
-                because: "monomorphisation is not implemented yet, so there is no concrete type \
-                          to generate code for"
-                    .to_string(),
-            });
-            // One report is enough; the expression walk below would add
-            // nothing but noise for the same root cause.
+        // A problem with the declaration's generics is reported once,
+        // against the function itself, rather than once per mention of `T`:
+        // the expression walk below would add nothing but noise for the same
+        // root cause.
+        if self.validate_generics(sink) {
             return;
         }
 
@@ -181,17 +152,65 @@ impl ExprValidator<'_> {
         });
     }
 
-    /// The first type parameter appearing in this function's signature,
-    /// if any.
+    /// The function's *name*, where a diagnostic about the whole declaration
+    /// goes.
     ///
-    /// The signature is enough: a type parameter can only enter a body
-    /// through a parameter, the return type, or a generic type mentioned in
-    /// them, so a function whose signature is concrete has no uninstantiated
-    /// parameter to trip over. Checking the signature also means the
-    /// diagnostic lands on the declaration, which is where the reader can
-    /// do something about it.
-    fn first_type_parameter(&self) -> Option<Ty> {
-        self.func
+    /// Not its whole syntax node. The whole node is often many lines, and
+    /// the renderer this feeds (`annotate_snippets` with `fold: true`) can
+    /// panic on a multi-line annotation range that extends past whatever
+    /// window it decides to fold to: confirmed against
+    /// `std/collections/binary_heap.code`'s `iter_next`, an 8-line function
+    /// whose whole-node span crashed rendering with "`SourceAnnotation` range
+    /// is beyond the end of buffer". The name is a single short,
+    /// single-line node that still points the reader at the right function.
+    fn name_node(&self) -> SyntaxNodePtr {
+        let source = self.func.source(self.db);
+        source.value.name().map_or_else(
+            || SyntaxNodePtr::new(source.value.syntax()),
+            |name| SyntaxNodePtr::new(name.syntax()),
+        )
+    }
+
+    /// Checks what monomorphisation needs of this function's generics, and
+    /// returns whether it reported anything.
+    ///
+    /// * Every type parameter the signature or body mentions must be one of the
+    ///   function's own (its `[T]` or its `extend Box[T]`'s). Another one can
+    ///   only come from a generic type written without its arguments -- `b:
+    ///   Box` for `struct Box[T]` means `Box[T]` with `Box`'s own `T` -- and no
+    ///   instance of this function says what that `T` is.
+    /// * A generic function has one body per instance and so no single symbol:
+    ///   `@export`, `@asm` and `@test` need one, and are refused. A `uses`
+    ///   clause is refused too, as a gap: evidence passing has not been taught
+    ///   to instances yet.
+    /// * Instantiation must terminate. Starting from a non-generic function,
+    ///   the instances it reaches are collected exactly as the code generator
+    ///   collects them; a call that asks for an ever larger type (polymorphic
+    ///   recursion) is reported instead of looping.
+    fn validate_generics(&self, sink: &mut DiagnosticSink<'_>) -> bool {
+        let file = self.func.source(self.db).file_id;
+        let environment = self.func.generic_environment(self.db);
+        let report = |message: String, sink: &mut DiagnosticSink<'_>| {
+            sink.push(ExprError {
+                file,
+                node: self.name_node(),
+                message,
+            });
+        };
+
+        let foreign_param = |ty: &Ty| {
+            let mut found = None;
+            ty.walk(&mut |inner| {
+                if let TyKind::TypeParam(id, name) = inner.interned() {
+                    if found.is_none() && !environment.contains(id) {
+                        found = Some(name.clone());
+                    }
+                }
+            });
+            found.map(|name| (ty.clone(), name))
+        };
+        let signature = self
+            .func
             .self_param_ty(self.db)
             .into_iter()
             .chain(
@@ -200,24 +219,83 @@ impl ExprValidator<'_> {
                     .into_iter()
                     .map(|p| p.ty().clone()),
             )
-            .chain(std::iter::once(self.func.ret_type(self.db)))
-            .find(contains_type_parameter)
-    }
-}
-
-/// Whether `ty` is, or contains, a generic type parameter.
-pub(crate) fn contains_type_parameter(ty: &Ty) -> bool {
-    match ty.interned() {
-        TyKind::TypeParam(..) => true,
-        TyKind::Array(element) => contains_type_parameter(element),
-        // `Box[T]` is `TyKind::Struct` with `T` inside its substitution, not
-        // a bare `TyKind::TypeParam` itself -- a parameter of type `Box[T]`
-        // is exactly as uninstantiated as one of type `T` directly, and
-        // missing that here would let a struct-wrapped type parameter slip
-        // past this check into a codegen path that still cannot handle it.
-        TyKind::Tuple(_, substs) | TyKind::Struct(_, substs) => {
-            substs.iter().any(contains_type_parameter)
+            .chain(std::iter::once(self.func.ret_type(self.db)));
+        let body_types = self
+            .body
+            .exprs()
+            .map(|(expr, _)| self.infer[expr].clone())
+            .chain(self.body.pats().map(|(pat, _)| self.infer[pat].clone()));
+        if let Some((ty, name)) = signature
+            .chain(body_types)
+            .find_map(|ty| foreign_param(&ty))
+        {
+            report(
+                format!(
+                    "the type `{}` mentions the generic parameter `{name}`, which `{}` does not \
+                     declare: a generic type needs its arguments written out, e.g. `Box[i32]` \
+                     rather than `Box`",
+                    ty.display(self.db),
+                    self.func.name(self.db),
+                ),
+                sink,
+            );
+            return true;
         }
-        _ => false,
+
+        if !environment.is_empty() {
+            let name = self.func.name(self.db);
+            let refusal = if self.func.export_abi(self.db).is_some() {
+                Some(format!(
+                    "`@export` cannot be applied to the generic function `{name}`: it has one \
+                     body per instantiation and so no single symbol to export; export a \
+                     non-generic function that calls it at the types the host needs"
+                ))
+            } else if self.func.is_inline_asm(self.db) {
+                Some(format!(
+                    "`@asm` cannot be applied to the generic function `{name}`: inline assembly \
+                     has fixed operand types"
+                ))
+            } else if self.func.is_test(self.db) {
+                Some(format!(
+                    "the `@test` function `{name}` cannot be generic: the test runner calls it \
+                     with no arguments, so nothing says what its parameters are"
+                ))
+            } else {
+                None
+            };
+            if let Some(message) = refusal {
+                report(message, sink);
+                return true;
+            }
+            if !self.func.effects(self.db).is_empty() {
+                sink.push(UnsupportedByCodegen {
+                    file,
+                    node: self.name_node(),
+                    what: format!("the generic function `{name}` with a `uses` clause"),
+                    because: "effect evidence is passed to one body per function, and a generic \
+                              function has one per instantiation"
+                        .to_string(),
+                });
+                return true;
+            }
+            return false;
+        }
+
+        if let Err(overflow) = mono::collect_instances(self.db, [self.func], |_| false) {
+            report(
+                format!(
+                    "instantiating the generic functions `{}` calls does not terminate: `{}` \
+                     calls `{}` at an ever larger type (its type arguments nest more than {} \
+                     deep and keep growing), so there is no finite set of instances to generate",
+                    self.func.name(self.db),
+                    overflow.caller.name(self.db),
+                    overflow.instance.function().name(self.db),
+                    mono::MAX_INSTANCE_TYPE_DEPTH,
+                ),
+                sink,
+            );
+            return true;
+        }
+        false
     }
 }

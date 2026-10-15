@@ -363,7 +363,7 @@ fn test_enum_declaration_errors() {
     class Holder { list: Fine }
     "#,
     ), @"
-    0..35: generic enums are not supported yet: `Option` cannot take type parameters until generic code can be instantiated
+    0..35: generic enums are not supported yet: `Option` cannot take type parameters (generic functions, structs and classes can)
     53..54: `Dup` already has a variant called `A`
     71..83: a variant with braced fields is not supported yet; write `A(label: Type, ..)` instead
     86..122: `List` contains itself by value, so it would have no finite size; hold the recursive part through a `class`

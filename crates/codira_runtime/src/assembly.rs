@@ -403,17 +403,22 @@ impl Assembly {
             }
 
             let old_types: Option<(&Assembly, Vec<Type>)> = old_assembly.map(|old_assembly| {
-                // Remove the old assemblies' types from the type table
+                // Remove the old assemblies' types from the type table.
+                //
+                // A type can be defined by more than one assembly: every
+                // module that uses an instantiation of a generic struct
+                // (`Box[i32]`) defines it, with the same GUID, and the
+                // table holds one of them. When two such assemblies reload
+                // together, the first removes the shared entry -- and its
+                // mapping migrates the objects of that type, which all share
+                // the table's one `Type` -- so the second finds it gone.
+                // That is expected, not an inconsistency.
                 let old_types = old_assembly
                     .info()
                     .symbols
                     .types()
                     .iter()
-                    .map(|type_info| {
-                        type_table.remove_type_by_type_info(type_info).expect(
-                            "All types from a loaded assembly must exist in the type table.",
-                        )
-                    })
+                    .filter_map(|type_info| type_table.remove_type_by_type_info(type_info))
                     .collect();
 
                 (old_assembly, old_types)

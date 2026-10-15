@@ -161,6 +161,106 @@ impl Context {
         self.rlimit.get()
     }
 
+    /// Writes `assumptions` followed by `formula` as a self-contained
+    /// SMT-LIB2 benchmark: a declaration for every free constant, one
+    /// `(assert ..)` per assumption and one for `formula`, then
+    /// `(check-sat)`.
+    ///
+    /// Any SMT-LIB2 solver can decide the text without this crate or the
+    /// code that built the terms; [`Context::parse_smtlib2`] reads it back.
+    /// That is what a proof certificate stores for each obligation: the
+    /// premise as the assumption and the negated goal as the formula, so
+    /// `unsat` means the obligation holds.
+    pub fn to_smtlib2(&self, assumptions: &[BoolExpr<'_>], formula: BoolExpr<'_>) -> String {
+        let raws: Vec<ffi::Z3_ast> = assumptions.iter().map(|a| a.raw).collect();
+        let empty = CString::new("").unwrap();
+        let status = CString::new("unknown").unwrap();
+        // Safety: every string is NUL-terminated and outlives the call, and
+        // `raws` holds `raws.len()` live ASTs of this context. The returned
+        // buffer belongs to the context and is copied out immediately.
+        unsafe {
+            let text = ffi::Z3_benchmark_to_smtlib_string(
+                self.raw,
+                empty.as_ptr(),
+                empty.as_ptr(),
+                status.as_ptr(),
+                empty.as_ptr(),
+                raws.len() as std::ffi::c_uint,
+                raws.as_ptr(),
+                formula.raw,
+            );
+            if text.is_null() {
+                String::new()
+            } else {
+                CStr::from_ptr(text).to_string_lossy().into_owned()
+            }
+        }
+    }
+
+    /// Reads the assertions of an SMT-LIB2 script, in order. Commands
+    /// other than declarations and assertions (`check-sat`, options) are
+    /// not executed: the caller decides what to do with the formulas, under
+    /// its own resource budget.
+    ///
+    /// The text may come from anywhere, so a parse error is returned as
+    /// `Err` with Z3's message instead of reaching Z3's default error
+    /// handler, which would end the process. To that end this switches the
+    /// context to report errors through `Z3_get_error_code`, for the rest of
+    /// its life.
+    pub fn parse_smtlib2(&self, text: &str) -> Result<Vec<BoolExpr<'_>>, String> {
+        let source = CString::new(text)
+            .map_err(|e| format!("the SMT-LIB2 text contains a NUL byte: {e}"))?;
+        // Safety: a null handler is Z3's documented way to opt out of the
+        // default one; `source` is NUL-terminated and outlives the call; the
+        // vector is reference-counted and released below on every path.
+        unsafe {
+            ffi::Z3_set_error_handler(self.raw, None);
+            let vector = ffi::Z3_parse_smtlib2_string(
+                self.raw,
+                source.as_ptr(),
+                0,
+                std::ptr::null(),
+                std::ptr::null(),
+                0,
+                std::ptr::null(),
+                std::ptr::null(),
+            );
+            let code = ffi::Z3_get_error_code(self.raw);
+            if code != ffi::Z3_OK || vector.0.is_null() {
+                let message = ffi::Z3_get_error_msg(self.raw, code);
+                let message = if message.is_null() {
+                    "the SMT-LIB2 text could not be parsed".to_string()
+                } else {
+                    CStr::from_ptr(message).to_string_lossy().trim().to_string()
+                };
+                return Err(message);
+            }
+            ffi::Z3_ast_vector_inc_ref(self.raw, vector);
+            let count = ffi::Z3_ast_vector_size(self.raw, vector);
+            let mut assertions = Vec::with_capacity(count as usize);
+            for i in 0..count {
+                let raw = ffi::Z3_ast_vector_get(self.raw, vector, i);
+                let sort = ffi::Z3_get_sort(self.raw, raw);
+                if ffi::Z3_get_sort_kind(self.raw, sort) != ffi::Z3_BOOL_SORT {
+                    ffi::Z3_ast_vector_dec_ref(self.raw, vector);
+                    return Err("an assertion is not a boolean formula".to_string());
+                }
+                // The vector holds the only reference to what it returns:
+                // in a context without user reference counting, an AST is
+                // kept alive by being the result of a constructor call, so
+                // each assertion is rebuilt as the one-argument conjunction
+                // (which is itself) while the vector still owns it.
+                let kept = ffi::Z3_mk_and(self.raw, 1, &raw);
+                assertions.push(BoolExpr {
+                    ctx: self,
+                    raw: kept,
+                });
+            }
+            ffi::Z3_ast_vector_dec_ref(self.raw, vector);
+            Ok(assertions)
+        }
+    }
+
     fn bv_sort(&self, width: u32) -> ffi::Z3_sort {
         assert!(width > 0, "a bitvector must be at least one bit wide");
         unsafe { ffi::Z3_mk_bv_sort(self.raw, width) }
@@ -648,6 +748,19 @@ impl<'ctx> BoolExpr<'ctx> {
         BoolExpr {
             ctx,
             raw: unsafe { ffi::Z3_mk_and(ctx.raw, raws.len() as c_int, raws.as_ptr()) },
+        }
+    }
+}
+
+/// The linked Z3's own version string, e.g. `Z3 4.13.0.0`.
+pub fn z3_version() -> String {
+    // Safety: a static string owned by the library.
+    unsafe {
+        let text = ffi::Z3_get_full_version();
+        if text.is_null() {
+            String::new()
+        } else {
+            CStr::from_ptr(text).to_string_lossy().into_owned()
         }
     }
 }
@@ -1217,6 +1330,47 @@ mod tests {
                 CheckOutcome::Unknown(UnknownReason::ResourceLimit)
             );
         }
+    }
+
+    /// A query written as SMT-LIB2 and read back into a *different*
+    /// context decides the same way, and names survive the trip.
+    #[test]
+    fn smtlib2_text_round_trips_into_a_fresh_context() {
+        let ctx = Context::new();
+        let x = ctx.bv_var("x!1", 64);
+        let zero = ctx.bv_lit(0, 64);
+        let premise = x.sgt(zero);
+        // x > 0 implies x + 0 > 0: the negation is unsat.
+        let text = ctx.to_smtlib2(&[premise], x.add(zero).sgt(zero).not());
+        assert!(text.contains("(check-sat)"), "{text}");
+
+        let other = Context::new();
+        let assertions = other.parse_smtlib2(&text).unwrap();
+        assert_eq!(assertions.len(), 2);
+        let solver = other.solver();
+        for a in &assertions {
+            solver.assert(*a);
+        }
+        assert_eq!(solver.check_detailed(), CheckOutcome::Unsat);
+        // The premise alone is satisfiable.
+        let premise_only = other.solver();
+        premise_only.assert(assertions[0]);
+        assert_eq!(premise_only.check_detailed(), CheckOutcome::Sat);
+    }
+
+    /// Malformed text is an error value, not a call to Z3's default error
+    /// handler (which would end the process).
+    #[test]
+    fn malformed_smtlib2_is_an_error_not_an_exit() {
+        let ctx = Context::new();
+        assert!(ctx.parse_smtlib2("(assert (> x 0))").is_err());
+        assert!(ctx.parse_smtlib2("(assert").is_err());
+        // The context is still usable afterwards.
+        let ok = ctx
+            .parse_smtlib2("(declare-fun b () Bool)(assert b)")
+            .unwrap();
+        assert_eq!(ok.len(), 1);
+        assert!(z3_version().starts_with("Z3"));
     }
 
     #[test]

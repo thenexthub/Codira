@@ -7,7 +7,7 @@
 use std::{collections::HashSet, convert::TryFrom, ffi::CString};
 
 use codira_abi as abi;
-use codira_hir::{HirDatabase, TyKind};
+use codira_hir::{mono, HirDatabase, TyKind};
 use inkwell::{attributes::Attribute, module::Linkage, types::AnyType};
 use ir_type_builder::TypeIdBuilder;
 use itertools::Itertools;
@@ -119,14 +119,14 @@ fn get_type_definition_array<'ink>(
 ) -> Value<'ink, *const ir::TypeDefinition<'ink>> {
     types
         .sorted_by_cached_key(|type_info| match type_info.interned() {
-            TyKind::Struct(s, _) => s.full_name(db),
+            TyKind::Struct(s, args) => mono::struct_name(db, *s, args),
             TyKind::Enum(e, _) => e.full_name(db),
             _ => type_info.guid_string(db).unwrap_or_default(),
         })
         .map(|type_info| match type_info.interned() {
-            TyKind::Struct(s, _) => {
-                let inkwell_type = hir_types.get_struct_type(*s);
-                let struct_name = s.full_name(db);
+            TyKind::Struct(s, args) => {
+                let inkwell_type = hir_types.get_struct_type(&type_info);
+                let struct_name = mono::struct_name(db, *s, args);
                 ir::TypeDefinition {
                     name: CString::new(struct_name.clone())
                         .expect("typename is not a valid CString")
@@ -146,7 +146,7 @@ fn get_type_definition_array<'ink>(
                         .expect("could not convert alignment to smaller size"),
                     data: ir::TypeDefinitionData::Struct(gen_struct_info(
                         db,
-                        *s,
+                        &type_info,
                         context,
                         hir_types,
                         ir_type_builder,
@@ -263,6 +263,8 @@ fn gen_structural_definition<'ink>(
             field_names: field_names_value,
             field_types: field_types_value,
             field_offsets,
+            // Structural fields are never renamed.
+            field_previous_names: Value::<*const *const u8>::null(context),
             num_fields: field_types
                 .len()
                 .try_into()
@@ -274,14 +276,21 @@ fn gen_structural_definition<'ink>(
 
 fn gen_struct_info<'ink>(
     db: &dyn HirDatabase,
-    hir_struct: codira_hir::Struct,
+    struct_ty: &codira_hir::Ty,
     context: &IrValueContext<'ink, '_, '_>,
     hir_types: &HirTypeCache<'_, 'ink>,
     ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
 ) -> ir::StructDefinition<'ink> {
-    let struct_ir = hir_types.get_struct_type(hir_struct);
-    let name = hir_struct.full_name(db);
+    let TyKind::Struct(hir_struct, args) = struct_ty.interned() else {
+        unreachable!("a struct type");
+    };
+    let hir_struct = *hir_struct;
+    let struct_ir = hir_types.get_struct_type(struct_ty);
+    let name = mono::struct_name(db, hir_struct, args);
     let fields = hir_struct.fields(db);
+    // Read through the type's arguments: a field `value: T` of `Box[i32]`
+    // is an `i32`, and the GC traces it as one.
+    let field_tys = mono::struct_field_types(db, struct_ty);
 
     // Construct an array of field names (or null if there are no fields)
     let field_names = fields
@@ -296,10 +305,10 @@ fn gen_struct_info<'ink>(
         .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_names"), context);
 
     // Construct an array of field types (or null if there are no fields)
-    let field_types = fields
+    let field_types = field_tys
         .iter()
-        .map(|field| {
-            let field_type_info = hir_types.type_id(&field.ty(db));
+        .map(|field_ty| {
+            let field_type_info = hir_types.type_id(field_ty);
             ir_type_builder.construct_from_type_id(&field_type_info)
         })
         .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_types"), context);
@@ -320,11 +329,38 @@ fn gen_struct_info<'ink>(
             context,
         );
 
+    // Previous names from `@renamed(from: "old")`: a null array when no field
+    // was renamed, otherwise one entry per field (null where not renamed).
+    let previous_names: Vec<Option<String>> =
+        fields.iter().map(|field| field.renamed_from(db)).collect();
+    let field_previous_names = if previous_names.iter().all(Option::is_none) {
+        Value::<*const *const u8>::null(context)
+    } else {
+        previous_names
+            .iter()
+            .enumerate()
+            .map(|(idx, previous)| match previous {
+                Some(previous) => CString::new(previous.clone())
+                    .expect("previous field name is not a valid CString")
+                    .intern(
+                        format!("struct_info::<{name}>::field_previous_names.{idx}"),
+                        context,
+                    )
+                    .as_value(context),
+                None => Value::<*const u8>::null(context),
+            })
+            .into_const_private_pointer_or_null(
+                format!("struct_info::<{name}>::field_previous_names"),
+                context,
+            )
+    };
+
     ir::StructDefinition {
-        guid: guid_from_struct(db, hir_struct),
+        guid: guid_from_struct(db, struct_ty),
         field_names,
         field_types,
         field_offsets,
+        field_previous_names,
         num_fields: fields
             .len()
             .try_into()

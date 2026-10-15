@@ -13,8 +13,8 @@ mod resolve;
 
 use std::{fmt, iter::FromIterator, mem, ops::Deref, sync::Arc};
 
-pub(crate) use infer::infer_query;
 pub use infer::InferenceResult;
+pub(crate) use infer::{infer_query, substitute_type_params};
 pub use lower::TypableDef;
 pub(crate) use lower::{
     callable_item_sig, fn_sig_for_fn, type_for_def, type_for_impl_self, CallableDef,
@@ -258,8 +258,19 @@ impl Ty {
     /// This name needs to be unique as it is used to generate a type's `Guid`.
     pub fn guid_string(&self, db: &dyn HirDatabase) -> Option<String> {
         match self.interned() {
-            &TyKind::Struct(s, _) => {
-                let name = s.name(db).to_string();
+            TyKind::Struct(s, args) => {
+                let s = *s;
+                // An instantiated generic struct is named with its
+                // arguments, so that `Box[i32]` and `Box[f64]` -- different
+                // layouts -- are different types to the runtime.
+                let mut name = s.name(db).to_string();
+                if !args.is_empty() {
+                    let args = args
+                        .iter()
+                        .map(|arg| arg.guid_string(db))
+                        .collect::<Option<Vec<_>>>()?;
+                    name = format!("{name}[{}]", args.join(", "));
+                }
 
                 Some(if s.data(db).memory_kind == StructMemoryKind::Gc {
                     format!("struct {name}")
@@ -267,9 +278,9 @@ impl Ty {
                     let fields: Vec<String> = s
                         .fields(db)
                         .into_iter()
-                        .map(|f| {
-                            let ty_string = f
-                                .ty(db)
+                        .zip(crate::mono::struct_field_types(db, self))
+                        .map(|(f, ty)| {
+                            let ty_string = ty
                                 .guid_string(db)
                                 .expect("type should be convertible to a string");
                             format!("{}: {}", f.name(db), ty_string)

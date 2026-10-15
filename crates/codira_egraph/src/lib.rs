@@ -83,11 +83,13 @@
 mod cost;
 mod egraph;
 mod extract;
+mod pattern;
 mod rules;
 
 use codira_mir::{verify_body, Body};
 pub use cost::CostTable;
 pub use egraph::{EClassId, EGraph};
+pub use pattern::{Pattern, PatternRule, MAX_BINDINGS};
 use rustc_hash::FxHashSet;
 
 /// What the caller knows about the types of a body's free references.
@@ -251,6 +253,18 @@ impl EGraphOptimizer {
     /// the input. Bodies nested inside opaque ops are optimized
     /// recursively before their parent is added to the graph.
     pub fn optimize_body_with(&self, body: &Body, env: &TypeEnv) -> (Body, SaturationReport) {
+        self.optimize_body_with_rules(body, env, &std::sync::Arc::from(Vec::new()))
+    }
+
+    /// [`EGraphOptimizer::optimize_body_with`], also applying `rules` --
+    /// rewrite rules supplied as data, which the caller vouches for (see
+    /// [`PatternRule`]). Bodies nested in opaque ops get the same rules.
+    pub fn optimize_body_with_rules(
+        &self,
+        body: &Body,
+        env: &TypeEnv,
+        rules: &std::sync::Arc<[PatternRule]>,
+    ) -> (Body, SaturationReport) {
         // An empty body has no result to preserve and nothing to rewrite.
         if body.is_empty() {
             return (
@@ -266,6 +280,7 @@ impl EGraphOptimizer {
         }
 
         let mut graph = EGraph::with_types(env.clone());
+        graph.rules = rules.clone();
         let root = match graph.add_body(body, self) {
             Some(root) => root,
             // A body whose result op cannot be represented (e.g. a bare

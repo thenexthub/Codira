@@ -8,6 +8,7 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use codira_abi::Guid;
 use codira_hir::{
+    mono::{self, Instance},
     FloatBitness, HirDatabase, HirDisplay, IntBitness, ResolveBitness, Signedness, Ty, TyKind,
 };
 use inkwell::{
@@ -34,7 +35,9 @@ pub struct HirTypeCache<'db, 'ink> {
     types: RefCell<HashMap<codira_hir::TyKind, StructType<'ink>>>,
     array_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     tuple_ty_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
-    struct_to_type_id: RefCell<HashMap<codira_hir::Struct, Arc<TypeId>>>,
+    /// Keyed by the whole struct type, arguments included: `Box[i32]` and
+    /// `Box[f64]` are different types with different ids.
+    struct_to_type_id: RefCell<HashMap<codira_hir::TyKind, Arc<TypeId>>>,
     enum_to_type_id: RefCell<HashMap<codira_hir::Enum, Arc<TypeId>>>,
 
     /// There is exactly one `str` type, so its id is a single cell rather
@@ -97,18 +100,20 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         &self.target_data
     }
 
-    /// Returns the type of the specified integer type
-    pub fn get_struct_type(&self, struct_ty: codira_hir::Struct) -> StructType<'ink> {
+    /// Returns the IR type of the specified struct type.
+    ///
+    /// `struct_ty` is the whole type, arguments included: an instantiated
+    /// generic struct (`Box[i32]`) gets a layout of its own, built from its
+    /// fields read through its arguments (see `codira_hir::mono`).
+    pub fn get_struct_type(&self, struct_ty: &Ty) -> StructType<'ink> {
         // TODO: This assumes the contents of the codira_hir::Struct does not change. It
         // definitely does  between compilations. We have to have a way to
         // uniquely identify the `codira_hir::Struct` and  its contents.
-
-        // The substitution is empty rather than the struct's own
-        // parameters because this key is only ever compared against keys
-        // this same function builds, and code generation rejects a generic
-        // struct before it gets here -- there is no instantiation to
-        // distinguish.
-        let ty = TyKind::Struct(struct_ty, codira_hir::Substitution::empty());
+        let ty = struct_ty.interned().clone();
+        assert!(
+            matches!(ty, TyKind::Struct(..)),
+            "`get_struct_type` takes a struct type"
+        );
 
         // Get the type from the cache
         if let Some(ir_ty) = self.types.borrow().get(&ty) {
@@ -118,14 +123,12 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
         // Opaquely construct the struct type and store it in the cache
         let ir_ty = self
             .context
-            .opaque_struct_type(&struct_ty.name(self.db).to_string());
+            .opaque_struct_type(&struct_ty.display(self.db).to_string());
         self.types.borrow_mut().insert(ty, ir_ty);
 
         // Fill the struct members
-        let field_types: Vec<_> = struct_ty
-            .fields(self.db)
+        let field_types: Vec<_> = mono::struct_field_types(self.db, struct_ty)
             .into_iter()
-            .map(|field| field.ty(self.db))
             .map(|ty| {
                 self.get_basic_type(&ty)
                     .expect("could not convert struct field to basic type")
@@ -226,9 +229,10 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// to a `GCHandle` which holds a pointer to a struct, or, in case of a
     /// value struct, the struct type itself. Returns the type of the struct
     /// that should be used for variables.
-    pub fn get_struct_reference_type(&self, struct_ty: codira_hir::Struct) -> BasicTypeEnum<'ink> {
+    pub fn get_struct_reference_type(&self, struct_ty: &Ty) -> BasicTypeEnum<'ink> {
         let ir_ty = self.get_struct_type(struct_ty);
-        match struct_ty.data(self.db).memory_kind {
+        let strukt = struct_ty.as_struct().expect("a struct type");
+        match strukt.data(self.db).memory_kind {
             codira_hir::StructMemoryKind::Gc => {
                 // GC values are pointers to pointers
                 // struct Foo {}
@@ -244,10 +248,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
 
     /// Returns the type of the struct that should be used in the public API. In
     /// the public API we don't deal with value types, only with pointers.
-    pub fn get_public_struct_reference_type(
-        &self,
-        struct_ty: codira_hir::Struct,
-    ) -> BasicTypeEnum<'ink> {
+    pub fn get_public_struct_reference_type(&self, struct_ty: &Ty) -> BasicTypeEnum<'ink> {
         let ir_ty = self.get_struct_type(struct_ty);
 
         // GC values are pointers to pointers
@@ -269,7 +270,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// than falling out of the signature.
     fn receiver_and_param_tys<'a>(
         &self,
-        func: codira_hir::Function,
+        func: &Instance,
         sig: &'a codira_hir::FnSig,
     ) -> impl Iterator<Item = Ty> + use<'a> {
         func.self_param_ty(self.db)
@@ -283,9 +284,9 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// effect after its ordinary parameters (see `ir::body::effects`). Only
     /// this internal signature has them; the host-visible one
     /// (`get_public_function_type`) never does.
-    pub fn get_function_type(&self, func: codira_hir::Function) -> FunctionType<'ink> {
-        let ty = self.db.callable_sig(func.into());
-        let evidence = func.effects(self.db).len();
+    pub fn get_function_type(&self, func: &Instance) -> FunctionType<'ink> {
+        let ty = func.sig(self.db);
+        let evidence = func.function().effects(self.db).len();
         let param_tys: Vec<_> = self
             .receiver_and_param_tys(func, &ty)
             .map(|p| {
@@ -312,8 +313,8 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     /// Returns the type of a specified function definition that is callable
     /// from the outside of the Codira code. This function should be C ABI
     /// compatible.
-    pub fn get_public_function_type(&self, func: codira_hir::Function) -> FunctionType<'ink> {
-        let ty = self.db.callable_sig(func.into());
+    pub fn get_public_function_type(&self, func: &Instance) -> FunctionType<'ink> {
+        let ty = func.sig(self.db);
         let param_tys: Vec<_> = self
             .receiver_and_param_tys(func, &ty)
             .map(|p| {
@@ -375,7 +376,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty, _) => Some(self.get_struct_reference_type(*struct_ty)),
+            TyKind::Struct(..) => Some(self.get_struct_reference_type(ty)),
             TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
@@ -396,7 +397,7 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty, _) => Some(self.get_public_struct_reference_type(*struct_ty)),
+            TyKind::Struct(..) => Some(self.get_public_struct_reference_type(ty)),
             // Passed by value even across the host boundary, like a tuple or
             // an optional.
             TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
@@ -417,13 +418,13 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
             TyKind::Tuple(_, substs) => Some(self.get_tuple_type(substs).into()),
             TyKind::Float(float_ty) => Some(self.get_float_type(*float_ty).into()),
             TyKind::Int(int_ty) => Some(self.get_int_type(*int_ty).into()),
-            TyKind::Struct(struct_ty, _) => Some(self.get_struct_type(*struct_ty).into()),
+            TyKind::Struct(..) => Some(self.get_struct_type(ty).into()),
             TyKind::Enum(hir_enum, _) => Some(self.get_enum_type(*hir_enum).into()),
             TyKind::FnDef(codira_hir::CallableDef::Function(fn_ty), type_params) => {
                 if !type_params.is_empty() {
                     unimplemented!("cannot yet deal with type parameters in functions");
                 }
-                Some(self.get_function_type(*fn_ty).into())
+                Some(self.get_function_type(&Instance::of(*fn_ty)).into())
             }
             TyKind::Bool => Some(self.get_bool_type().into()),
             TyKind::Str => Some(self.get_str_type().into()),
@@ -508,17 +509,19 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
                     })
                 })
                 .clone(),
-            &TyKind::Struct(s, _) => self
-                .struct_to_type_id
-                .borrow_mut()
-                .entry(s)
-                .or_insert_with(|| {
-                    Arc::new(TypeId {
-                        name: s.full_name(self.db),
-                        data: TypeIdData::Concrete(guid_from_struct(self.db, s)),
-                    })
-                })
-                .clone(),
+            TyKind::Struct(s, args) => {
+                if let Some(id) = self.struct_to_type_id.borrow().get(ty.interned()) {
+                    return id.clone();
+                }
+                let id = Arc::new(TypeId {
+                    name: mono::struct_name(self.db, *s, args),
+                    data: TypeIdData::Concrete(guid_from_struct(self.db, ty)),
+                });
+                self.struct_to_type_id
+                    .borrow_mut()
+                    .insert(ty.interned().clone(), id.clone());
+                id
+            }
             // Named like a struct (hot reloading matches types by name), and
             // identified by the GUID of its layout, so a re-laid-out enum is
             // a changed type.
@@ -592,14 +595,22 @@ impl<'db, 'ink> HirTypeCache<'db, 'ink> {
     }
 }
 
-pub fn guid_from_struct(db: &dyn HirDatabase, s: codira_hir::Struct) -> Guid {
-    let name = s.full_name(db);
+/// The GUID of the struct type `ty`: its name -- with its arguments, for an
+/// instantiated generic struct -- and the name and type of every field, read
+/// through those arguments. A change to the layout of `Box[i32]` changes the
+/// GUID of `Box[i32]`, which is what tells hot reloading to migrate its
+/// objects.
+pub fn guid_from_struct(db: &dyn HirDatabase, ty: &Ty) -> Guid {
+    let TyKind::Struct(s, args) = ty.interned() else {
+        panic!("`guid_from_struct` takes a struct type");
+    };
+    let name = mono::struct_name(db, *s, args);
     let fields: Vec<String> = s
         .fields(db)
         .into_iter()
-        .map(|f| {
-            let ty_string = f
-                .ty(db)
+        .zip(mono::struct_field_types(db, ty))
+        .map(|(f, field_ty)| {
+            let ty_string = field_ty
                 .guid_string(db)
                 .expect("type should be convertible to a string");
             format!("{}: {}", f.name(db), ty_string)

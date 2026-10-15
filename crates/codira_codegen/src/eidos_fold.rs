@@ -73,14 +73,14 @@ use inkwell::values::{BasicValueEnum, FunctionValue};
 /// reference runtime arguments, may fail to evaluate, or may produce a
 /// value that does not fit the declared return type.
 ///
-/// `optimizer` carries the build's e-graph bounds and the target's cost
-/// table (`crate::EidosOptions::optimizer`); a build that skips Eidos never
-/// calls this at all.
+/// `eidos` carries the build's e-graph bounds, the target's cost table and
+/// the package's proven rewrite rules (`crate::EidosRun`); a build that skips
+/// Eidos never calls this at all.
 pub(crate) fn fold_to_constant<'ink>(
     db: &dyn HirDatabase,
     function: codira_hir::Function,
     fn_value: FunctionValue<'ink>,
-    optimizer: &codira_egraph::EGraphOptimizer,
+    eidos: &crate::EidosRun,
 ) -> Option<BasicValueEnum<'ink>> {
     // A function with runtime parameters cannot be constant -- `core.arg`
     // would survive evaluation. (The interpreter would refuse anyway;
@@ -121,7 +121,11 @@ pub(crate) fn fold_to_constant<'ink>(
     // 2. Equality saturation: explore every rewrite simultaneously and extract the
     //    cheapest form. Catches reassociations the ordered pipeline above cannot
     //    reach.
-    let (body, _report) = optimizer.optimize_body(&body);
+    let (body, _report) = eidos.optimizer.optimize_body_with_rules(
+        &body,
+        &codira_egraph::TypeEnv::unknown(),
+        &eidos.rules,
+    );
 
     // 3. Evaluate. Anything referencing a runtime value, or exceeding the
     //    interpreter's fuel, declines here.

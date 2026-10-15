@@ -121,6 +121,7 @@ pub(crate) fn fake_struct_definition<'a>(
         field_offsets: field_offsets.as_ptr(),
         num_fields: field_names.len() as u16,
         memory_kind,
+        field_previous_names: std::ptr::null(),
     }
 }
 

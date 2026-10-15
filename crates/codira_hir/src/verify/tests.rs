@@ -1106,3 +1106,345 @@ fn an_impossible_contract_is_not_synthesized() {
     .unwrap_err();
     assert!(err.contains("no candidate"), "{err}");
 }
+
+/// The queries a certificate records decide every obligation the same way
+/// when read back into a context that shares nothing with the verifier: a
+/// postcondition checked at two returns has two queries, all `unsat`; a
+/// refuted one has a `sat` query.
+#[test]
+fn recorded_queries_re_decide_each_obligation_on_their_own() {
+    use codira_smt::{CheckOutcome, Context};
+
+    let source = r#"
+    func clamp(x: i64) -> i64
+        ensures result >= 0 && result <= 100
+    {
+        if x < 0 { return 0 }
+        if x > 100 { 100 } else { x }
+    }
+    func abs(x: i64) -> i64
+        ensures result >= 0
+    {
+        if x < 0 { -x } else { x }
+    }
+    "#;
+    let (db, _) = MockDatabase::with_single_file(source);
+    let function = |name: &str| {
+        Package::all(&db)
+            .iter()
+            .flat_map(|pkg| pkg.modules(&db))
+            .flat_map(|module| module.declarations(&db))
+            .find_map(|def| match def {
+                ModuleDef::Function(f) if f.name(&db).to_string() == name => Some(f),
+                _ => None,
+            })
+            .unwrap()
+    };
+    let decide = |text: &str| {
+        let ctx = Context::new();
+        let solver = ctx.solver();
+        for assertion in ctx.parse_smtlib2(text).unwrap() {
+            solver.assert(assertion);
+        }
+        solver.check_detailed()
+    };
+
+    let clamp = super::certify_function(&db, function("clamp"));
+    assert_eq!(clamp.len(), 1);
+    assert_eq!(clamp[0].obligation.verdict, Verdict::Proven);
+    assert_eq!(clamp[0].queries.len(), 2, "one per return point");
+    for query in &clamp[0].queries {
+        assert_eq!(decide(query), CheckOutcome::Unsat);
+    }
+
+    let abs = super::certify_function(&db, function("abs"));
+    assert!(matches!(abs[0].obligation.verdict, Verdict::Refuted(_)));
+    assert_eq!(decide(abs[0].queries.last().unwrap()), CheckOutcome::Sat);
+}
+
+// ---- units of measure (`verify::units`)
+// --------------------------------------
+
+#[test]
+fn dimensions_are_checked_and_erased() {
+    let diags = diagnostics(
+        r#"
+    type Speed = f64 unit(m / s);
+    func speed(d: f64 unit(m), t: f64 unit(s)) -> Speed {
+        d / t
+    }
+    func travel(v: Speed, t: f64 unit(s)) -> f64 unit(m) {
+        var total = 0.0;
+        total += v * t;
+        total
+    }
+    func wrong_sum(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+        d + t
+    }
+    func wrong_result(d: f64 unit(m), t: f64 unit(s)) -> f64 unit(m) {
+        d * t
+    }
+    func wrong_call(t: f64 unit(s)) -> Speed {
+        speed(t, t)
+    }
+    func scaled(d: f64 unit(m)) -> f64 unit(m) {
+        2.0 * d + 1.0
+    }
+    func area(w: f64 unit(m), h: f64 unit(m)) -> f64 unit(m * m) {
+        w * h
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("dimension mismatch: added or subtracted `s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("dimension mismatch: returned `m*s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("dimension mismatch: argument of `speed` is `s` where `m` is required"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(diags.lines().count(), 3, "{diags}");
+}
+
+/// Whether every obligation of `kind` in `report` is proven, and there is at
+/// least one.
+fn proven_all(report: &VerificationReport, kind: &ObligationKind) -> bool {
+    let mut of_kind = report.obligations.iter().filter(|o| &o.kind == kind);
+    let mut any = false;
+    of_kind.all(|o| {
+        any = true;
+        matches!(o.verdict, Verdict::Proven)
+    }) && any
+}
+
+#[test]
+fn a_range_loop_index_lies_in_its_range() {
+    let r = report(
+        r#"
+    func f(n: i64) -> i64
+        requires n > 0
+    {
+        var s = 0
+        for i in 0..n { s = 100 / (i + 1) }
+        s
+    }
+    "#,
+        "f",
+    );
+    assert!(proven_all(&r, &ObligationKind::DivisionByZero), "{r:?}");
+
+    let r = report(
+        r#"
+    func inclusive(n: i64) -> i64
+        requires n >= 1
+    {
+        var s = 0
+        for i in 1..=n { s = 10 / i }
+        s
+    }
+    "#,
+        "inclusive",
+    );
+    assert!(proven_all(&r, &ObligationKind::DivisionByZero), "{r:?}");
+
+    let r = report(
+        r#"
+    func from_zero(n: i64) -> i64
+        requires n >= 1
+    {
+        var s = 0
+        for i in 0..=n { s = 10 / i }
+        s
+    }
+    "#,
+        "from_zero",
+    );
+    let cex = refuted(&r, &ObligationKind::DivisionByZero).expect("i = 0 divides by zero");
+    assert!(input(cex, "n") >= 1, "{cex:?}");
+}
+
+#[test]
+fn a_range_loop_body_runs_from_an_arbitrary_iteration() {
+    // The first iteration divides by 1, the second by 0. Evaluating the body
+    // once from the entry state used to prove this.
+    let r = report(
+        r#"
+    func second_iteration(n: i64, x: i64) -> i64
+        requires n > 1
+    {
+        var d = 1
+        var s = 0
+        for i in 0..n {
+            s = x / d
+            d = 0
+        }
+        s
+    }
+    "#,
+        "second_iteration",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::DivisionByZero).is_some(),
+        "{r:?}"
+    );
+}
+
+#[test]
+fn a_range_loop_may_run_no_times() {
+    // With `n = 0` the body never runs and `d` stays 0. Evaluating the body
+    // once unconditionally used to prove this.
+    let r = report(
+        r#"
+    func maybe_never(n: i64) -> i64
+        requires n >= 0
+    {
+        var d = 0
+        for i in 0..n { d = 1 }
+        10 / d
+    }
+    "#,
+        "maybe_never",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::DivisionByZero).is_some(),
+        "{r:?}"
+    );
+}
+
+#[test]
+fn an_array_loop_element_is_unknown() {
+    let r = report(
+        r#"
+    func by_each(xs: [i64]) -> i64
+        requires true
+    {
+        var s = 0
+        for x in xs { s = 10 / x }
+        s
+    }
+    "#,
+        "by_each",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::DivisionByZero).is_some(),
+        "{r:?}"
+    );
+}
+
+#[test]
+fn break_leaves_only_the_innermost_loop() {
+    // The `break` ends the `for`, not the `while`: the `while` still runs to
+    // `i == n`. When the `break` was recorded against the `while`, the
+    // postcondition could not be proven.
+    let r = report(
+        r#"
+    func counts(n: i64) -> i64
+        requires n >= 0
+        ensures result == n
+    {
+        var i = 0
+        while i < n
+            invariant i >= 0 && i <= n
+            decreases n - i
+        {
+            for j in 0..3 { break }
+            i += 1
+        }
+        i
+    }
+    "#,
+        "counts",
+    );
+    assert!(all_proven(&r), "{r:?}");
+}
+
+#[test]
+fn continue_must_decrease_the_measure() {
+    // At `i == 3` the loop continues without incrementing: it never ends.
+    // `continue` used to fall through to `i += 1`, which proved the measure.
+    let r = report(
+        r#"
+    func stuck(n: i64) -> i64
+        requires n >= 0
+    {
+        var i = 0
+        while i < n
+            invariant i >= 0 && i <= n
+            decreases n - i
+        {
+            if i == 3 { continue }
+            i += 1
+        }
+        i
+    }
+    "#,
+        "stuck",
+    );
+    let cex = refuted(&r, &ObligationKind::MeasureDecreases).expect("must be refuted");
+    assert!(input(cex, "n") > 3, "{cex:?}");
+}
+
+#[test]
+fn continue_must_re_establish_the_invariant() {
+    let r = report(
+        r#"
+    func broken(n: i64) -> i64
+        requires n >= 0
+    {
+        var i = 0
+        var s = 0
+        while i < n
+            invariant i >= 0 && i <= n
+            invariant s >= 0
+            decreases n - i
+        {
+            i += 1
+            s = -1
+            if i == 2 { continue }
+            s = 0
+        }
+        s
+    }
+    "#,
+        "broken",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::InvariantPreserved).is_some(),
+        "{r:?}"
+    );
+}
+
+#[test]
+fn a_loop_with_a_sound_continue_is_proven() {
+    let r = report(
+        r#"
+    func evens(n: i64) -> i64
+        requires n >= 0 && n <= 1000
+        ensures result >= 0
+    {
+        var i = 0
+        var s = 0
+        while i < n
+            invariant i >= 0 && i <= n
+            invariant s >= 0 && s <= i
+            decreases n - i
+        {
+            i += 1
+            if i % 2 == 0 { continue }
+            s += 1
+        }
+        s
+    }
+    "#,
+        "evens",
+    );
+    assert!(all_proven(&r), "{r:?}");
+}

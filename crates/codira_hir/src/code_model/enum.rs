@@ -333,7 +333,7 @@ impl Enum {
                 node: enum_node.clone(),
                 message: format!(
                     "generic enums are not supported yet: `{name}` cannot take type parameters \
-                     until generic code can be instantiated"
+                     (generic functions, structs and classes can)"
                 ),
             });
         }
