@@ -416,6 +416,47 @@ impl Function {
         db.infer(self.id.into())
     }
 
+    /// Every generic parameter this function's signature and body are
+    /// written in terms of, in a fixed order: first those of the type its
+    /// `extend` block is about (the `T` of `extend Box[T]`), then its own
+    /// (`func map[U]`).
+    ///
+    /// An instance of the function gives one type per entry, in this order
+    /// (see [`crate::mono::Instance`]); a function with no entries is not
+    /// generic and has exactly one body to generate. `extend Box[i32]`
+    /// contributes nothing: its `Box[i32]` is already concrete.
+    pub fn generic_environment(self, db: &dyn HirDatabase) -> Vec<crate::ids::TypeParamId> {
+        use crate::{
+            ids::{GenericDefId, ItemContainerId, TypeParamId},
+            ty::TypeWalk,
+            TyKind,
+        };
+
+        let mut environment = Vec::new();
+        if let ItemContainerId::ImplId(impl_id) = self.id.lookup(db).container {
+            db.type_for_impl_self(impl_id).walk(&mut |ty| {
+                if let TyKind::TypeParam(id, _) = ty.interned() {
+                    if !environment.contains(id) {
+                        environment.push(*id);
+                    }
+                }
+            });
+        }
+        let own = self.data(db).generic_params().len();
+        environment.extend((0..own).map(|index| TypeParamId {
+            owner: GenericDefId::FunctionId(self.id),
+            index: index as u32,
+        }));
+        environment
+    }
+
+    /// Whether this function is generic: whether it has a body per
+    /// instantiation rather than one body. See
+    /// [`Function::generic_environment`].
+    pub fn is_generic(self, db: &dyn HirDatabase) -> bool {
+        !self.generic_environment(db).is_empty()
+    }
+
     pub fn is_extern(self, db: &dyn HirDatabase) -> bool {
         db.fn_data(self.id).flags.is_extern()
     }

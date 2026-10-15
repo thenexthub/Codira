@@ -1,0 +1,10 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r\"\n    struct Box[T] { v: T }\n\n    struct Holder { b: Box }\n\n    func unwrap(b: Box) -> i64 { 1 }\",)"
+snapshot_kind: text
+---
+24..48: the field type `Box[T]` mentions the generic parameter `T`, which `Holder` does not declare: a generic type needs its arguments written out, e.g. `Box[i32]` rather than `Box`
+55..61: the type `Box[T]` mentions the generic parameter `T`, which `unwrap` does not declare: a generic type needs its arguments written out, e.g. `Box[i32]` rather than `Box`
+62..63 'b': Box[T]
+77..82 '{ 1 }': i64
+79..80 '1': i64

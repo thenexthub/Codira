@@ -2289,7 +2289,7 @@ fn infer_generic_function_parameter() {
 /// the field's parameter and the return type's parameter are the *same*
 /// one. Writing the equivalent free function `func unwrap[T](b: Box[T]) -> T`
 /// would cross from `Box`'s `T` to `unwrap`'s own, and that is what needs
-/// substitution -- see `generic_instantiation_is_not_yet_supported`.
+/// substitution -- see `generic_calls_record_their_instantiation`.
 #[test]
 fn infer_generic_struct_field() {
     insta::assert_snapshot!(infer(
@@ -2331,10 +2331,9 @@ fn infer_generic_extend_binds_the_extended_types_parameters() {
 /// a different type from the `T` of another, even though both are spelled
 /// `T`. Each body checks against its own, and neither leaks into the other.
 ///
-/// Identity is (owner, index) precisely so these cannot be confused. The
-/// visible consequence -- that `one(x)` inside `two` does not type-check
-/// until instantiation exists -- is recorded separately in
-/// `generic_instantiation_is_not_yet_supported`.
+/// Identity is (owner, index) precisely so these cannot be confused: `two`
+/// calling `one(x)` instantiates `one`'s `T` with `two`'s, which is what
+/// `generic_calls_record_their_instantiation` checks.
 #[test]
 fn infer_generic_parameters_are_scoped_to_their_declaration() {
     insta::assert_snapshot!(infer(
@@ -2355,10 +2354,8 @@ fn infer_generic_parameters_are_scoped_to_their_declaration() {
 /// variable for `T`, `7` unifies it with `i64` through `main`'s return
 /// type, and `b.v` reads back as `i64` rather than as `T`.
 ///
-/// The remaining diagnostic is the code generator's, not the type
-/// checker's: inference is complete here, and monomorphisation -- emitting
-/// a concrete layout per instantiation -- is the separate step still to
-/// come.
+/// There is no diagnostic: inference is complete, and monomorphisation
+/// gives `Box[i64]` a layout of its own (see `crate::mono`).
 #[test]
 fn generic_instantiation_binds_parameters_to_arguments() {
     insta::assert_snapshot!(infer(
@@ -2369,6 +2366,151 @@ fn generic_instantiation_binds_parameters_to_arguments() {
         let b = Box { v: 7 };
         b.v
     }",
+    ));
+}
+
+/// Every call of a generic function records what its parameters stand for
+/// at that call, which is what monomorphisation reads to name the instance.
+///
+/// `id` is called at three types in one body; each call gets its own
+/// instantiation rather than forcing them to agree. A method's receiver
+/// decides the parameters of the type it belongs to (`b.get()` on a
+/// `Box[i64]` is an `i64`), as does an associated function called on the
+/// type (`Box.new(2.5)` is a `Box[f64]`), and inside a generic body a call
+/// instantiates its callee with the caller's own parameter.
+#[test]
+fn generic_calls_record_their_instantiation() {
+    let db = MockDatabase::with_files(
+        r"
+    struct Box[T] { v: T }
+
+    extend Box[T] {
+        func get(self) -> T { self.v }
+        func new(v: T) -> Box[T] { Box { v: v } }
+    }
+
+    func id[T](x: T) -> T { x }
+
+    func twice[U](x: U) -> U { id(id(x)) }
+
+    func main() -> i64 {
+        let a = id(1);
+        let f = id(2.5);
+        let t = id(true);
+        let b = Box { v: 7 };
+        let c = Box.new(2.5);
+        let u = twice(false);
+        b.get()
+    }",
+    );
+
+    let mut out = String::new();
+    for package in Package::all(&db).iter() {
+        for module in package.modules(&db).iter() {
+            for function in module.all_functions(&db) {
+                let infer = function.infer(&db);
+                let body = function.body(&db);
+                let mut calls: Vec<_> = body
+                    .exprs()
+                    .filter_map(|(expr, _)| Some((expr, infer.instantiation(expr)?)))
+                    .collect();
+                calls.sort_by_key(|(expr, _)| u32::from(expr.into_raw()));
+                for (expr, args) in calls {
+                    let args: Vec<String> =
+                        args.iter().map(|ty| ty.display(&db).to_string()).collect();
+                    writeln!(
+                        out,
+                        "{}: {} -> [{}]",
+                        function.name(&db),
+                        infer[expr].display(&db),
+                        args.join(", ")
+                    )
+                    .unwrap();
+                }
+            }
+        }
+    }
+    insta::assert_snapshot!(out);
+}
+
+/// A value of generic type `T` can be moved, copied, passed, returned and
+/// stored -- and nothing more until bounds exist. Each operation that would
+/// need one says so, naming the type, instead of the generic "cannot apply
+/// binary operator".
+#[test]
+fn operations_on_a_type_parameter_need_bounds() {
+    insta::assert_snapshot!(infer(
+        r"
+    func ops[T](a: T, b: T) -> T {
+        let s = a + b;
+        let c = a < b;
+        let n = -a;
+        let m = a.len();
+        var x = a;
+        x = b;
+        x
+    }",
+    ));
+}
+
+/// A generic parameter nothing at a call determines is an error at that
+/// call: there is no type to generate the instance at.
+#[test]
+fn undetermined_generic_parameter_is_an_error() {
+    insta::assert_snapshot!(infer(
+        r"
+    struct Box[T] { v: T }
+
+    func size[T]() -> i64 { 8 }
+
+    func main() -> i64 {
+        size()
+    }",
+    ));
+}
+
+/// A generic type written without its arguments outside its own
+/// declaration has a parameter nothing determines, in a function or in a
+/// struct field alike.
+#[test]
+fn generic_type_without_arguments_is_an_error() {
+    insta::assert_snapshot!(infer(
+        r"
+    struct Box[T] { v: T }
+
+    struct Holder { b: Box }
+
+    func unwrap(b: Box) -> i64 { 1 }",
+    ));
+}
+
+/// What a generic function cannot be: exported, inline assembly, a test --
+/// each needs one symbol -- or (for now) a function with a `uses` clause.
+/// And instantiation must terminate: a function that calls itself at an
+/// ever larger type has no finite set of instances, which is reported at
+/// the non-generic function that starts it.
+#[test]
+fn generic_declarations_that_cannot_be_monomorphised() {
+    insta::assert_snapshot!(infer(
+        r#"
+    struct Box[T] { v: T }
+
+    effect Ask {
+        func ask(hint: i32) -> i32
+    }
+
+    @export("C")
+    public func exported[T](x: T) -> T { x }
+
+    func asks[T](x: T) uses Ask -> T { x }
+
+    func grow[T](x: T, n: i64) -> i64 {
+        if n == 0 { 0 } else { grow(Box { v: x }, n - 1) }
+    }
+
+    func main() -> i64 {
+        grow(1, 3)
+    }"#,
     ));
 }
 

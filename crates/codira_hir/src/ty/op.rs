@@ -31,6 +31,9 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
             | TyKind::Bool
             | TyKind::Struct(..)
             | TyKind::Array(_)
+            // Storing is one of the few things every type supports, so a
+            // `T` can be assigned like anything else.
+            | TyKind::TypeParam(..)
             | TyKind::InferenceVar(InferTy::Float(_) | InferTy::Int(_)) => lhs_ty,
             _ => TyKind::Unknown.intern(),
         },

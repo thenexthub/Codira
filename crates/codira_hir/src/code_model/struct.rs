@@ -110,6 +110,12 @@ impl Struct {
         .collect()
     }
 
+    /// Whether the struct declares generic parameters, and so has a layout
+    /// per instantiation rather than one of its own.
+    pub fn is_generic(self, db: &dyn HirDatabase) -> bool {
+        !db.struct_data(self.id).generic_params.is_empty()
+    }
+
     pub fn fields(self, db: &dyn HirDatabase) -> Vec<Field> {
         self.data(db)
             .fields
@@ -143,41 +149,54 @@ impl Struct {
         self.validate_codegen_support(db, sink);
     }
 
-    /// Reports a generic struct as unsupported by the code generator.
+    /// Reports a field whose type mentions a generic parameter that is not
+    /// one of this struct's own.
     ///
-    /// The same gap `expr::validator::codegen_support` reports for generic
-    /// functions, on the other declaration that can carry parameters. A
-    /// generic struct reaches codegen through the type table -- its `TypeId`
-    /// is built from its fields' types -- and a field typed `T` has no GUID
-    /// to hash, so this crashed in `HirTypeCache::type_id` rather than in
-    /// any expression.
+    /// A generic struct has a layout per instantiation (see `crate::mono`),
+    /// read from its fields through the instantiation's arguments, so a
+    /// field typed by one of the struct's own parameters is fine. Any other
+    /// parameter can only come from a generic type written without its
+    /// arguments -- `b: Box` for `struct Box[T]` means `Box[T]` with
+    /// `Box`'s own `T` -- and nothing ever says what that `T` is, so the
+    /// field would have no layout.
     fn validate_codegen_support(self, db: &dyn HirDatabase, sink: &mut DiagnosticSink<'_>) {
         use codira_syntax::{ast::AstNode, SyntaxNodePtr};
 
         use crate::{
-            code_model::src::HasSource, diagnostics::UnsupportedByCodegen,
-            expr::validator::codegen_support::contains_type_parameter, HirDisplay,
+            code_model::src::HasSource,
+            diagnostics::ExprError,
+            ids::GenericDefId,
+            ty::{TyKind, TypeWalk},
+            HirDisplay,
         };
 
-        let Some(ty) = self
-            .fields(db)
-            .into_iter()
-            .map(|field| field.ty(db))
-            .find(contains_type_parameter)
-        else {
+        let own = GenericDefId::from(self.id);
+        let Some((ty, name)) = self.fields(db).into_iter().find_map(|field| {
+            let ty = field.ty(db);
+            let mut foreign = None;
+            ty.walk(&mut |inner| {
+                if let TyKind::TypeParam(id, name) = inner.interned() {
+                    if foreign.is_none() && id.owner != own {
+                        foreign = Some(name.clone());
+                    }
+                }
+            });
+            foreign.map(|name| (ty, name))
+        }) else {
             return;
         };
 
         let src = self.source(db);
-        sink.push(UnsupportedByCodegen {
+        sink.push(ExprError {
             file: src.file_id,
             node: SyntaxNodePtr::new(src.value.syntax()),
-            what: format!(
-                "a generic struct (`{}` is not instantiated)",
-                ty.display(db)
+            message: format!(
+                "the field type `{}` mentions the generic parameter `{name}`, which `{}` does not \
+                 declare: a generic type needs its arguments written out, e.g. `Box[i32]` rather \
+                 than `Box`",
+                ty.display(db),
+                self.name(db),
             ),
-            because: "monomorphisation is not implemented yet, so the struct has no concrete layout to generate"
-                .to_string(),
         });
     }
 }
