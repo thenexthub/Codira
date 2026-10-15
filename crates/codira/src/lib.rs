@@ -13,7 +13,7 @@ use clap::{Parser, Subcommand};
 /// `codira-launcher` binary runs.
 pub use ops::exe;
 use ops::{
-    api_diff, bindgen, build, certify, check, daemon, import_c, init, language_server, new,
+    api_diff, attest, bindgen, build, certify, check, daemon, import_c, init, language_server, new,
     quantum, query, run, start, synth, test,
 };
 
@@ -67,6 +67,10 @@ enum Command {
     /// Quantum kernels: build to QIR/OpenQASM, simulate, import circuits
     Quantum(quantum::Args),
 
+    /// Zero-knowledge proofs of `oblivious` functions: build the circuit and
+    /// keys, prove a result on private inputs, verify a proof
+    Attest(attest::Args),
+
     /// Build the package with its `tests/` and run every `@test` function,
     /// each in its own process
     Test(test::Args),
@@ -119,6 +123,7 @@ where
         Command::Start(args) => start::start(args),
         Command::Run(args) => run::run(args),
         Command::Quantum(args) => quantum::quantum(args),
+        Command::Attest(args) => attest::attest(args),
         Command::Test(args) => test::test(args),
         Command::Query(args) => query::query(args),
         Command::Synth(args) => synth::synth(args),

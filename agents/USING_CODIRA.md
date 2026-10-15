@@ -1045,6 +1045,77 @@ From Python, `bindings/python/codira_quantum` converts kernels to and from
 Qiskit circuits and produces QIR bitcode; see `crates/codira_quantum/README.md`
 for the full surface, the profile limits, and what is verified.
 
+### Zero-knowledge proofs: `codira attest`
+
+An `oblivious func` never branches on, indexes by or loops over its inputs,
+so it is a fixed circuit. `codira attest` proves, in zero knowledge, that the
+function returns a given value on inputs only the prover knows -- the
+roadmap's `attest score(x, y) reveal r`, as a command:
+
+```codira
+oblivious func score(x: i64, y: i64) -> i64 {
+    var total = 0
+    for i in 0..3 {
+        total += x * (i + 1) - (y >> i)
+    }
+    total + ct_select(x > y, 10i64, -10i64)
+}
+```
+
+```bash
+codira attest build score.code::score --out-dir keys   # score.r1cs .circom .pk .vk
+codira attest prove score.code::score --input x=-7 --input y=1234 --pk keys/score.pk -o score.proof
+codira attest verify --vk keys/score.vk --proof score.proof              # valid
+codira attest verify --vk keys/score.vk --proof score.proof --reveal 5   # INVALID
+```
+
+- The result is the one public value (`reveal`); every input stays private.
+  `verify` needs only the verifying key and the proof file.
+- Integer semantics are exact: `i64 + i64` wraps at 2^64 in the proof as it
+  does natively (values are bit-decomposed and reduced; the field's own wrap
+  never shows). Per-operator constraint costs are in
+  `crates/codira_circuits/README.md` (64-bit `+` is free until reduced, `*`
+  costs 1 plus a 130-constraint reduction, `<` costs 66).
+- The circuit subset: integers of 8 to 64 bits and `bool`; `+ - * & | ^ ~ !
+  << >>`, comparisons, `as`, `ct_select`, `declassify`; `let`/`var`; calls to
+  other oblivious/`@constant_time` functions (inlined); `while`/`loop`/`for`
+  with compile-time bounds (unrolled); `/` and `%` on compile-time values
+  only. Floats, `i128`, arrays, structs, objects, effects, `print` and any
+  branch on an input are refused with the line and the reason.
+- Proofs are Groth16 over BN254 (arkworks). `build` runs a one-party setup:
+  whoever runs it could forge proofs for that circuit. The `.r1cs` (iden3
+  format) and `.circom` files work with circom/snarkjs for anything else.
+- Shifting by the width or more is undefined natively; circuits give 0 (or
+  all sign bits for signed `>>`).
+
+### FPGA: `@target(fpga)`
+
+A function marked `@target(fpga)` is also compiled to a synthesizable
+Verilog-2001 module: `codira build` writes `target/<function>.v`, one
+combinational module with an input port per parameter and an output port
+`result`. The function stays an ordinary host function too.
+
+```codira
+@target(fpga)
+public func clamp(x: i32, lo: i32, hi: i32) -> i32 {
+    var r = x
+    if x < lo { r = lo }        // an `if` on an input becomes a multiplexer
+    if x > hi { r = hi }
+    r
+}
+```
+
+- Same subset as `attest`, plus `if`/`&&`/`||` on inputs (both sides are
+  built and selected between). A `return`/`break` under an input-dependent
+  condition, or a loop whose bound depends on an input, is refused; so is
+  anything outside the subset, which fails `codira build` with the reason.
+- Exact two's complement: every net is unsigned and exactly as wide as its
+  type; signed `<` is `$signed(a) < $signed(b)`, signed `>>` is `>>>`.
+- Validated by the netlist evaluator against native execution, and by Yosys
+  (the pip-installable YoWASP build) parsing, synthesising (`synth -noabc`)
+  and evaluating the output. No simulator such as Icarus or Verilator, and
+  no vendor FPGA flow, has run it. No clocks, registers or pipelining yet.
+
 ### C, C++ and assembly in a package: `[native]`
 
 ```toml
@@ -1165,6 +1236,11 @@ Runtime (hosts embedding `codira_runtime`):
   semantics, and a renamed field keeps its value when marked
   @renamed(from: "old"). Runtime::save_heap / restore_heap write the GC
   heap to a file and rebuild it in a runtime running the same program.
+
+Circuits: `codira attest build|prove|verify` proves `oblivious` functions
+in zero knowledge (Groth16 over BN254, exact integer semantics, `.r1cs` and
+Circom output), and `codira build` writes `target/<function>.v` (Verilog) for
+`@target(fpga)` functions; see their sections above for the subset.
 
 `@noalloc`, `@nopanic`, `@noblock` and `@realtime` are checked statically in
 `codira check` and `codira build` (see their section above); `@deadline` is

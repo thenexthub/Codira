@@ -903,6 +903,17 @@ impl Driver {
             Ok(kernels) => kernels.clone(),
         };
 
+        // `@target(fpga)` functions are also written as Verilog modules,
+        // `<function>.v` next to the library (`codira_circuits`). A function
+        // outside the circuit subset fails the build with the reason.
+        let fpga_modules = codira_circuits::fpga_modules(
+            &self.db,
+            module_group
+                .iter()
+                .flat_map(|module| module.all_functions(&self.db)),
+        )
+        .map_err(|e| anyhow::anyhow!("cannot compile an @target(fpga) function to Verilog: {e}"))?;
+
         // Determine the filename of the group (`.codiralib`, or `.wasm` for
         // a WebAssembly target)
         let assembly_path = self
@@ -925,6 +936,9 @@ impl Driver {
         assembly.copy_to(&assembly_path)?;
         if let Some(kernels) = gpu_kernels {
             std::fs::write(assembly_path.with_extension("ptx"), kernels.ptx)?;
+        }
+        for (name, verilog) in fpga_modules {
+            std::fs::write(assembly_path.with_file_name(format!("{name}.v")), verilog)?;
         }
 
         // A certificate describes exactly one build of the library: write

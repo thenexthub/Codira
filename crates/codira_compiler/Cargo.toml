@@ -14,6 +14,7 @@ license.workspace = true
 
 [dependencies]
 codira_codegen = { version = "0.6.0-dev", path = "../codira_codegen" }
+codira_circuits = { version = "0.6.0-dev", path = "../codira_circuits" }
 codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
 codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
 codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }

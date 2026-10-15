@@ -5,6 +5,7 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 pub mod api_diff;
+pub mod attest;
 pub mod bindgen;
 pub mod build;
 pub mod certify;
