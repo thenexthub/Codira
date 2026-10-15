@@ -184,19 +184,54 @@ extend Actor {
 
 ```codira
 enum Shape {
-    Circle(radius: f64)
+    Circle(radius: f64)                  // labels are documentation
     Rectangle(width: f64, height: f64)
+    Point
 }
 
 func area(shape: Shape) -> f64 {
     match shape {
         Shape.Circle(radius) -> 3.14159 * radius * radius
         Shape.Rectangle(width, height) -> width * height
+        Shape.Point -> 0.0
     }
 }
+
+let s = Shape.Circle(2.0)                // construct: `Enum.Variant(payload..)`
+let p = Shape.Point                      // a unit variant has no parentheses
+if let Shape.Circle(r) = s { println(r) }
+while let Step.Next(n) = current { .. }
+let same = Shape.Point == p              // `==`/`!=`: see below
 ```
 
-`match` must be exhaustive (or include a `_` wildcard arm).
+- An enum is a **value** type (copied like a `struct`): a `u32` tag plus one
+  typed slot per payload field, where variants share slots of the same type
+  (`Circle.radius` and `Rectangle.width` are the same `f64` slot). No
+  allocation. It can be a field of a `struct` or `class`, an array element,
+  a parameter or result (also across modules), a payload of another enum,
+  and hold class references (traced by the collector).
+- Payloads are positional: `Shape.Rectangle(w, h)` builds and matches.
+  Patterns nest: `Token.Wrapped(Shape.Circle(r))`, `Token.Pair(0, y)`,
+  `Token.Maybe(nil)`.
+- `match` must be exhaustive, through nested payload patterns too; the error
+  names a value no arm covers (`` `Wrap.Two(false, Shape.Rectangle(_, _))` is
+  not covered ``).
+- `==`/`!=` compare enums whose payloads are all numbers or `bool`s (tag and
+  payload); others are an error (`match` instead). Enums are not ordered.
+- `extend Shape { func area(self) -> f64 { .. } }` adds methods and
+  associated functions (`Shape.unit()` when `unit` is not a variant name).
+- A `let` or parameter pattern must be irrefutable: use `if let`/`match`.
+- Not supported (each a clear error): generic enums (`enum Option[T]`),
+  braced variants (`Circle { radius: f64 }`), an enum containing itself by
+  value (hold the recursion through a `class`), variants as function values
+  (`let f = Shape.Circle`), printing an enum, and enums in
+  `codira run --jit`, the MIR/e-graph path and quantum kernels. The verifier
+  treats a payload a pattern binds as an unknown value.
+- Hot reload: a stored enum keeps its tag and the slots whose names (`f64.0`,
+  `i64.0`, ..) survive; new slots start at zero. Append new variants at the
+  end: the tag is the declaration index, so reordering variants changes what
+  stored values mean, and a value whose variant was removed makes a later
+  `match` stop with "no `match` arm matches this value".
 
 ### Generics
 
@@ -251,17 +286,49 @@ func main() -> f64 {
 ### Optional types
 
 ```codira
-func find(items: [Value], target: i32) -> i32? {
+func find(items: [i32], target: i32) -> i32? {
     for item in items {
-        if item == target { return item }
+        if item == target { return item }   // an `i32` becomes an `i32?` here
     }
     nil
 }
 
-if let value = find(xs, 7) {
-    print(value)
+if let value = find(xs, 7) {      // binds the value when present
+    println(value)
+} else {
+    println("not found")
 }
+
+let forced = find(xs, 7)!         // panics with its location on `nil`
+let missing = find(xs, 8) == nil  // `==`/`!=` work; optionals are not ordered
+while let v = next() { }          // loops while present
 ```
+
+`T?` is a value -- a present flag plus the payload, no allocation. A `T` is
+accepted wherever a `T?` is expected. `nil` needs an optional type from
+context (`let x = nil` alone is an error: annotate it).
+
+### `match`
+
+```codira
+match n {
+    0 -> "zero",
+    1 -> "one",
+    _ -> "many",
+}
+
+match (a, b) { (0, _) -> 0, (1, y) -> y, (x, y) -> x + y }
+match name { "alice" -> 1, _ -> 2 }      // string literals compare bytes
+match maybe { nil -> 0, 1 -> 10, v -> v } // other patterns match the value inside
+```
+
+Patterns: literals (integer, float, `bool`, string, `nil`), names, `_`,
+tuples, and enum variants (`Shape.Circle(r)`, `Shape.Point`), nested. A
+`match` must be exhaustive -- both `bool`s, `nil` plus the present values of
+an optional, every variant of an enum, and a `_`/name arm for integers,
+floats and strings -- and the error names a value that is not covered. A
+value no arm matches at run time (only possible for an enum after a hot
+reload removed its variant) stops the program with its location.
 
 ### Algebraic effects: `effect`, `uses`, `perform`, `handle`, `resume`
 
@@ -622,9 +689,11 @@ public func equal(a: u64, b: u64) -> bool {
 
 - `secret T` marks a parameter, result or `let`. A secret may not reach a
   non-secret result, parameter, `let`, field/array store or `print` without
-  `declassify(..)`; values assigned under a secret `if`/`while` are secret too.
+  `declassify(..)`; values assigned under a secret `if`/`while`/`match` are
+  secret too, and so are the names a pattern binds from a secret.
 - In `@constant_time` / `oblivious` functions the compiler rejects branching on
-  a secret (`if`, `while`, the left side of `&&`/`||`), indexing by a secret,
+  a secret (`if`, `while`, `match`/`if let`/`while let`, the left side of
+  `&&`/`||`), indexing by a secret,
   `/` or `%` on a secret, and passing a secret to a function that is not
   constant-time. `ct_select(c, a, b)` chooses without a branch.
 - What is guaranteed: those source rules, and that `ct_select` becomes one
@@ -1325,6 +1394,12 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
+- optionals (`T?`, `nil`, `if let`, `while let`, postfix `!`, `== nil`) and
+  `match` over literals, tuples, strings and optionals, checked exhaustive
+- `enum` with payloads: construction, `match`/`if let`/`while let` with
+  nested variant patterns (checked exhaustive), `==`, methods via `extend`,
+  enums in fields, arrays, parameters and results, across modules and hot
+  reload (see "Enums & pattern matching" for the limits)
 - generic functions, structs and classes, monomorphised per instantiation
   (see "Generics" above for the limits: no bounds, so a `T` can only be
   moved and stored; generic functions are not exported to the host)
@@ -1395,10 +1470,9 @@ tasks following dual protocols, checked at compile time; see "Session
 types").
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
-supported by the code generator yet" naming the construct: `match`, closures,
-postfix `!`, postfix `^`. Not available at
-all yet: `enum`, `trait` (and so generic bounds), `T?`/`nil` at runtime,
-`String`, and using the standard library from a program.
+supported by the code generator yet" naming the construct: closures,
+postfix `^`. Not available at all yet: generic enums, `trait` (and so
+generic bounds), `String`, and using the standard library from a program.
 
 ---
 

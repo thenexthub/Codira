@@ -244,7 +244,8 @@ impl PerNs<(ItemDefinitionId, Visibility)> {
             | ItemDefinitionId::PrimitiveType(_)
             | ItemDefinitionId::ModuleId(_)
             | ItemDefinitionId::EffectId(_)
-            | ItemDefinitionId::SessionId(_) => PerNs::types((def, vis)),
+            | ItemDefinitionId::SessionId(_)
+            | ItemDefinitionId::EnumId(_) => PerNs::types((def, vis)),
         }
     }
 }

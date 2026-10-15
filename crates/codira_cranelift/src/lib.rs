@@ -527,6 +527,11 @@ impl<'a, 'db> Translator<'a, 'db> {
     }
 
     fn expr(&mut self, id: ExprId) -> Lowered {
+        // A `T` used where a `T?` is expected changes representation, and
+        // this backend has no optional representation to change it into.
+        if self.infer.optional_wrap(id).is_some() {
+            return self.unsupported("an optional (`T?`) value");
+        }
         let body = self.body.clone();
         match &body[id] {
             Expr::Literal(literal) => self.literal(id, literal),

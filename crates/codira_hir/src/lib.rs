@@ -17,8 +17,9 @@ pub use codira_hir_input::ModuleId;
 pub use salsa;
 
 pub use self::code_model::{
-    Effect, EffectData, EffectOpSig, Field, Function, FunctionData, HasSource, Module, ModuleDef,
-    Package, PrimitiveType, Protocol, ProtocolStep, Session, Struct, StructMemoryKind, TypeAlias,
+    Effect, EffectData, EffectOpSig, Enum, EnumLayout, EnumSlot, EnumVariant, Field, Function,
+    FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Protocol, ProtocolStep,
+    Session, Struct, StructMemoryKind, TypeAlias, VariantKind,
 };
 pub use crate::{
     builtin::BuiltinFn,
@@ -30,8 +31,8 @@ pub use crate::{
     display::HirDisplay,
     expr::{
         opened_session, ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes,
-        HandlerArm, Literal, LogicOp, LoopContract, Ordering, Pat, PatId, RecordLitField,
-        SelectArm, SelectOp, SessionFlow, Statement, UnaryOp,
+        HandlerArm, Literal, LogicOp, LoopContract, MatchArm, MatchSource, Ordering, Pat, PatId,
+        RecordLitField, SelectArm, SelectOp, SessionFlow, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,

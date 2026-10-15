@@ -27,7 +27,7 @@ use crate::{
     display::{HirDisplay, HirFormatter},
     ids::TypeParamId,
     ty::{infer::InferTy, lower::fn_sig_for_struct_constructor},
-    HasVisibility, HirDatabase, Name, Struct, StructMemoryKind, TypeAlias, Visibility,
+    Enum, HasVisibility, HirDatabase, Name, Struct, StructMemoryKind, TypeAlias, Visibility,
 };
 
 #[cfg(test)]
@@ -43,9 +43,13 @@ pub enum TyKind {
     /// types. Without it they were the same `Ty`, so a field of type `T`
     /// had no concrete type to be read as, and unifying the two succeeded.
     /// It is empty for a non-generic struct, which is the common case.
-    ///
-    /// TODO: Add enumerations
     Struct(Struct, Substitution),
+
+    /// An `enum` type. A value type, laid out as a tag and payload slots
+    /// (see `code_model::EnumLayout`). The substitution is always empty:
+    /// generic enums are reported as unsupported, and the field is there so
+    /// that instantiating one later needs no new variant.
+    Enum(crate::Enum, Substitution),
 
     /// The primitive floating point type. Written as `float`.
     Float(FloatTy),
@@ -104,6 +108,9 @@ pub enum TyKind {
     /// its protocol it has reached is tracked by `expr::session`, not by
     /// the type.
     Session(crate::code_model::Session, bool),
+    /// `T?`: a `T`, or `nil`. Represented as a present flag and a payload,
+    /// with no allocation -- see `codira_codegen`'s `get_optional_type`.
+    Optional(Ty),
 
     /// A bound generic type parameter: the `T` of `func map[T](..)` or
     /// `struct Box[T]`.
@@ -145,6 +152,7 @@ impl HasVisibility for TyKind {
     fn visibility(&self, db: &dyn HirDatabase) -> Visibility {
         match self {
             TyKind::Struct(strukt, _) => strukt.visibility(db),
+            TyKind::Enum(e, _) => e.visibility(db),
             TyKind::TypeAlias(type_alias) => type_alias.visibility(db),
             TyKind::FnDef(callable_def, _) => callable_def.visibility(db),
             _ => Visibility::Public,
@@ -193,6 +201,14 @@ impl Ty {
     pub fn as_struct(&self) -> Option<Struct> {
         match self.interned() {
             TyKind::Struct(s, _) => Some(*s),
+            _ => None,
+        }
+    }
+
+    /// If this type represents an enum type, returns the enum.
+    pub fn as_enum(&self) -> Option<Enum> {
+        match self.interned() {
+            TyKind::Enum(e, _) => Some(*e),
             _ => None,
         }
     }
@@ -283,6 +299,26 @@ impl Ty {
                     )
                 })
             }
+            // Like a value struct, the name spells out the layout -- here
+            // the tag and every payload slot -- so that the GUID changes
+            // when the enum changes shape, which is what hot reloading keys
+            // a re-layout on.
+            &TyKind::Enum(e, _) => {
+                let slots = e
+                    .layout(db)
+                    .slots
+                    .iter()
+                    .map(|slot| Some(format!("{}: {}", slot.name, slot.ty.guid_string(db)?)))
+                    .collect::<Option<Vec<_>>>()?;
+                Some(format!(
+                    "enum {}{{tag: core::u32{}}}",
+                    e.full_name(db),
+                    slots
+                        .iter()
+                        .map(|slot| format!(",{slot}"))
+                        .collect::<String>()
+                ))
+            }
             TyKind::Bool => Some("core::bool".to_string()),
             // `str` is structural, like a tuple: there is one `str` type and
             // its layout -- a pointer and a length -- is fixed by the
@@ -299,6 +335,8 @@ impl Ty {
                 session.module(db).name(db).unwrap_or_default(),
                 session.name(db)
             )),
+            // Structural like a tuple, so the name is built from the payload.
+            TyKind::Optional(ty) => Some(format!("{}?", ty.guid_string(db)?)),
             // A tuple is a structural type: two tuples are the same type
             // exactly when their element types match, so the name is built
             // from the elements rather than from a declaration site. `()`
@@ -336,9 +374,10 @@ impl Ty {
     /// `u32`
     pub fn type_parameters(&self) -> Option<&Substitution> {
         match self.interned() {
-            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) | TyKind::Struct(_, substs) => {
-                Some(substs)
-            }
+            TyKind::Tuple(_, substs)
+            | TyKind::FnDef(_, substs)
+            | TyKind::Struct(_, substs)
+            | TyKind::Enum(_, substs) => Some(substs),
             _ => None,
         }
     }
@@ -348,9 +387,10 @@ impl Ty {
     /// `Option<u32>`, this returns the `u32`
     pub fn type_parameters_mut(&mut self) -> Option<&mut Substitution> {
         match self.interned_mut() {
-            TyKind::Tuple(_, substs) | TyKind::FnDef(_, substs) | TyKind::Struct(_, substs) => {
-                Some(substs)
-            }
+            TyKind::Tuple(_, substs)
+            | TyKind::FnDef(_, substs)
+            | TyKind::Struct(_, substs)
+            | TyKind::Enum(_, substs) => Some(substs),
             _ => None,
         }
     }
@@ -359,6 +399,7 @@ impl Ty {
     pub fn equals_ctor(&self, other: &Ty) -> bool {
         match (self.interned(), other.interned()) {
             (TyKind::Struct(s1, _), TyKind::Struct(s2, _)) => s1 == s2,
+            (TyKind::Enum(e1, _), TyKind::Enum(e2, _)) => e1 == e2,
             // Arity only: the elements are the constructor's *arguments*,
             // which the caller unifies one by one. Comparing them here made
             // `(1, 2)` fail to unify with `(3, 4)` while both elements were
@@ -367,6 +408,7 @@ impl Ty {
             (TyKind::Tuple(arity1, _), TyKind::Tuple(arity2, _)) => arity1 == arity2,
             (TyKind::Array(_), TyKind::Array(_))
             | (TyKind::Channel(_), TyKind::Channel(_))
+            | (TyKind::Optional(_), TyKind::Optional(_))
             | (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Session(s1, d1), TyKind::Session(s2, d2)) => s1 == s2 && d1 == d2,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
@@ -489,6 +531,7 @@ impl HirDisplay for Ty {
                 }
                 write!(f, "]")
             }
+            TyKind::Enum(e, _) => write!(f, "{}", e.name(f.db)),
             TyKind::Float(ty) => write!(f, "{ty}"),
             TyKind::Int(ty) => write!(f, "{ty}"),
             TyKind::Bool => write!(f, "bool"),
@@ -533,6 +576,7 @@ impl HirDisplay for Ty {
                 let prefix = if *dual { "dual " } else { "" };
                 write!(f, "{prefix}{}", session.name(f.db))
             }
+            TyKind::Optional(inner) => write!(f, "{}?", inner.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }
     }
@@ -572,7 +616,9 @@ impl TypeWalk for Ty {
         match self.interned() {
             // Recurse, not just visit: an element type can itself contain
             // types (`[(T, U)]`), which a resolution pass must reach too.
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk(f),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) | TyKind::Optional(elem_ty) => {
+                elem_ty.walk(f);
+            }
             _ => {
                 if let Some(substs) = self.type_parameters() {
                     substs.walk(f);
@@ -584,7 +630,9 @@ impl TypeWalk for Ty {
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Ty)) {
         match self.interned_mut() {
-            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) => elem_ty.walk_mut(f),
+            TyKind::Array(elem_ty) | TyKind::Channel(elem_ty) | TyKind::Optional(elem_ty) => {
+                elem_ty.walk_mut(f);
+            }
             _ => {
                 if let Some(substs) = self.type_parameters_mut() {
                     substs.walk_mut(f);

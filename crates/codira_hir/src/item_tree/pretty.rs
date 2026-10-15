@@ -85,7 +85,34 @@ impl Printer<'_> {
                 self.print_visibility(*visibility)?;
                 writeln!(self, "session {name} {{ .. }}")
             }
+            ModItem::Enum(it) => self.print_enum(it),
         }
+    }
+
+    /// Prints an enum declaration: its name and the names of its variants
+    /// (payload types are resolved later, see `item_tree::Enum`).
+    fn print_enum(&mut self, it: LocalItemTreeId<super::Enum>) -> fmt::Result {
+        let super::Enum {
+            name,
+            visibility,
+            generic_params,
+            variants,
+            ast_id: _,
+        } = &self.tree[it];
+        self.print_visibility(*visibility)?;
+        write!(self, "enum {name}")?;
+        if !generic_params.is_empty() {
+            let names: Vec<String> = generic_params.iter().map(ToString::to_string).collect();
+            write!(self, "[{}]", names.join(", "))?;
+        }
+        write!(self, " {{")?;
+        for (idx, variant) in variants.iter().enumerate() {
+            if idx > 0 {
+                write!(self, ",")?;
+            }
+            write!(self, " {variant}")?;
+        }
+        writeln!(self, " }}")
     }
 
     /// Prints an effect declaration: its name and the names of its

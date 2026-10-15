@@ -1,0 +1,10 @@
+---
+source: crates/codira_hir/src/item_tree/tests.rs
+expression: "print_item_tree(r#\"\n    public enum Shape {\n        Circle(radius: f64)\n        Rectangle(width: f64, height: f64)\n        Point\n    }\n    enum Option[T] { Some(T), None }\n    func area(shape: Shape) -> f64 { 0.0 }\n    \"#).unwrap()"
+snapshot_kind: text
+---
+pub enum Shape { Circle, Rectangle, Point }
+enum Option[T] { Some, None }
+fn area(
+  Shape,
+) -> f64;

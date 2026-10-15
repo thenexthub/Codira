@@ -64,7 +64,7 @@ impl<'a> Render<'a> {
         resolution: &ScopeDef,
     ) -> Option<CompletionItem> {
         use codira_hir::ModuleDef::{
-            Effect, Function, Module, PrimitiveType, Session, Struct, TypeAlias,
+            Effect, Enum, Function, Module, PrimitiveType, Session, Struct, TypeAlias,
         };
 
         let kind = match resolution {
@@ -80,6 +80,7 @@ impl<'a> Render<'a> {
                 CompletionItemKind::SymbolKind(SymbolKind::TypeAlias)
             }
             ScopeDef::ModuleDef(Effect(_)) => CompletionItemKind::SymbolKind(SymbolKind::Effect),
+            ScopeDef::ModuleDef(Enum(_)) => CompletionItemKind::SymbolKind(SymbolKind::Enum),
             ScopeDef::ImplSelfType(_) => CompletionItemKind::SymbolKind(SymbolKind::SelfParam),
             ScopeDef::Local(_) => CompletionItemKind::SymbolKind(SymbolKind::Local),
             ScopeDef::Unknown => {
@@ -105,6 +106,7 @@ impl<'a> Render<'a> {
         match resolution {
             ScopeDef::Local(local) => set_item_relevance(local.ty(self.ctx.db())),
             ScopeDef::ModuleDef(ModuleDef::Struct(st)) => set_item_relevance(st.ty(self.ctx.db())),
+            ScopeDef::ModuleDef(ModuleDef::Enum(e)) => set_item_relevance(e.ty()),
             ScopeDef::ModuleDef(ModuleDef::PrimitiveType(pt)) => {
                 set_item_relevance(pt.ty(self.ctx.db()));
             }

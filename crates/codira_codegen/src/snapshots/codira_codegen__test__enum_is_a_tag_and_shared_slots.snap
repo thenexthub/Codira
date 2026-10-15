@@ -1,0 +1,64 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    enum Shape {\n        Circle(radius: f64)\n        Rectangle(width: f64, height: f64)\n        Point\n    }\n\n    func area(shape: Shape) -> f64 {\n        match shape {\n            Shape.Circle(r) -> 3.0 * r * r,\n            Shape.Rectangle(w, h) -> w * h,\n            Shape.Point -> 0.0,\n        }\n    }\n\n    public func main(w: f64) -> f64 {\n        area(Shape.Rectangle(w, 2.0)) + area(Shape.Point)\n    }"
+snapshot_kind: text
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+%DispatchTable = type { ptr, ptr }
+%Shape = type { i32, double, double }
+
+@dispatchTable = external local_unnamed_addr global %DispatchTable
+@codira.str = private unnamed_addr constant [34 x i8] c"no `match` arm matches this value\00"
+@codira.str.1 = private unnamed_addr constant [9 x i8] c"mod.code\00"
+
+define double @area(%Shape %0) local_unnamed_addr {
+body:
+  %.fca.0.extract = extractvalue %Shape %0, 0
+  %.fca.1.extract = extractvalue %Shape %0, 1
+  switch i32 %.fca.0.extract, label %match.next20 [
+    i32 0, label %match.arm
+    i32 1, label %match.arm6
+    i32 2, label %match.end
+  ]
+
+match.end:                                        ; preds = %body, %match.arm6, %match.arm
+  %match = phi double [ %mul5, %match.arm ], [ %mul16, %match.arm6 ], [ 0.000000e+00, %body ]
+  ret double %match
+
+match.arm:                                        ; preds = %body
+  %mul = fmul double %.fca.1.extract, 3.000000e+00
+  %mul5 = fmul double %.fca.1.extract, %mul
+  br label %match.end
+
+match.arm6:                                       ; preds = %body
+  %.fca.2.extract = extractvalue %Shape %0, 2
+  %mul16 = fmul double %.fca.1.extract, %.fca.2.extract
+  br label %match.end
+
+match.next20:                                     ; preds = %body
+  %codira.panic_ptr = load ptr, ptr @dispatchTable, align 8
+  tail call void %codira.panic_ptr(ptr nonnull @codira.str, i64 33, ptr nonnull @codira.str.1, i64 8, i32 8, i32 5)
+  unreachable
+}
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)
+define double @main(double %0) local_unnamed_addr #0 {
+body:
+  %mul16.i = fmul double %0, 2.000000e+00
+  %1 = fadd double %mul16.i, 0.000000e+00
+  ret double %1
+}
+
+attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) }
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+%DispatchTable = type { ptr, ptr }
+
+@dispatchTable = global %DispatchTable zeroinitializer
+@global_type_lookup_table = global [2 x ptr] zeroinitializer

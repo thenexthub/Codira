@@ -987,6 +987,13 @@ fn opt_loop_contract_clauses(p: &mut Parser<'_>) {
 
 fn cond(p: &mut Parser<'_>) {
     let m = p.start();
+    // `if let pat = expr` and `while let pat = expr`: the pattern and the
+    // value it is matched against both live in the condition.
+    if p.at(T![let]) {
+        p.bump(T![let]);
+        patterns::pattern(p);
+        p.expect(T![=]);
+    }
     expr_no_struct(p);
     m.complete(p, CONDITION);
 }

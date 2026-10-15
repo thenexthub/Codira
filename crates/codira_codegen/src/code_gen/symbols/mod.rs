@@ -120,7 +120,8 @@ fn get_type_definition_array<'ink>(
     types
         .sorted_by_cached_key(|type_info| match type_info.interned() {
             TyKind::Struct(s, args) => mono::struct_name(db, *s, args),
-            _ => unreachable!("unsupported export type"),
+            TyKind::Enum(e, _) => e.full_name(db),
+            _ => type_info.guid_string(db).unwrap_or_default(),
         })
         .map(|type_info| match type_info.interned() {
             TyKind::Struct(s, args) => {
@@ -152,9 +153,125 @@ fn get_type_definition_array<'ink>(
                     )),
                 }
             }
+            TyKind::Tuple(..) | TyKind::Optional(_) | TyKind::Enum(..) | TyKind::Str => {
+                gen_structural_definition(&type_info, context, hir_types, ir_type_builder, db)
+            }
             _ => unreachable!("unsupported export type"),
         })
         .into_const_private_pointer_or_null("fn.get_info.types", context)
+}
+
+/// The definition of a tuple, optional or enum type, exported as a value
+/// struct: a tuple's fields are named `0`, `1`, ..; an optional's are
+/// `is_some` and `value`; an enum's are `tag` and its payload slots (see
+/// `codira_hir::EnumLayout`). Its GUID is the hash of the same name
+/// `HirTypeCache::type_id` uses, so references to it resolve to this. A
+/// tuple or optional is also *named* by that structural name; an enum is
+/// named by its path, as a struct is, which is what hot reloading matches
+/// an old and a new layout by.
+fn gen_structural_definition<'ink>(
+    ty: &codira_hir::Ty,
+    context: &IrValueContext<'ink, '_, '_>,
+    hir_types: &HirTypeCache<'_, 'ink>,
+    ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
+    db: &dyn HirDatabase,
+) -> ir::TypeDefinition<'ink> {
+    let guid_name = ty
+        .guid_string(db)
+        .expect("only types with a structural name are exported");
+    let name = match ty.interned() {
+        TyKind::Enum(e, _) => e.full_name(db),
+        _ => guid_name.clone(),
+    };
+    let inkwell_type = hir_types
+        .get_basic_type(ty)
+        .expect("a tuple, optional or enum is a basic type")
+        .into_struct_type();
+    let (field_names, field_types): (Vec<String>, Vec<codira_hir::Ty>) = match ty.interned() {
+        TyKind::Tuple(_, elements) => (
+            (0..elements.len()).map(|idx| idx.to_string()).collect(),
+            elements.iter().cloned().collect(),
+        ),
+        TyKind::Optional(payload) => (
+            vec!["is_some".to_string(), "value".to_string()],
+            vec![TyKind::Bool.intern(), payload.clone()],
+        ),
+        // The bytes are static, so the address is an integer to the runtime:
+        // nothing for the collector to trace.
+        TyKind::Str => (
+            vec!["data".to_string(), "len".to_string()],
+            vec![
+                TyKind::Int(codira_hir::IntTy::usize()).intern(),
+                TyKind::Int(codira_hir::IntTy::usize()).intern(),
+            ],
+        ),
+        TyKind::Enum(e, _) => {
+            let layout = e.layout(db);
+            (
+                std::iter::once(codira_hir::EnumLayout::TAG.to_string())
+                    .chain(layout.slots.iter().map(|slot| slot.name.clone()))
+                    .collect(),
+                std::iter::once(TyKind::Int(codira_hir::IntTy::u32()).intern())
+                    .chain(layout.slots.iter().map(|slot| slot.ty.clone()))
+                    .collect(),
+            )
+        }
+        _ => unreachable!("only tuples, optionals and enums are exported this way"),
+    };
+
+    let target_data = context.type_context.target_data;
+    let field_names_value = field_names
+        .iter()
+        .enumerate()
+        .map(|(idx, field_name)| {
+            CString::new(field_name.clone())
+                .expect("field name is not a valid CString")
+                .intern(format!("struct_info::<{name}>::field_names.{idx}"), context)
+                .as_value(context)
+        })
+        .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_names"), context);
+    let field_types_value = field_types
+        .iter()
+        .map(|field_ty| ir_type_builder.construct_from_type_id(&hir_types.type_id(field_ty)))
+        .into_const_private_pointer_or_null(format!("struct_info::<{name}>::field_types"), context);
+    let field_offsets = (0..field_types.len())
+        .map(|idx| {
+            target_data
+                .offset_of_element(&inkwell_type, idx as u32)
+                .unwrap() as u16
+        })
+        .into_const_private_pointer_or_null(
+            format!("struct_info::<{name}>::field_offsets"),
+            context,
+        );
+
+    ir::TypeDefinition {
+        name: CString::new(name.clone())
+            .expect("typename is not a valid CString")
+            .intern(format!("type_info::<{name}>::name"), context)
+            .as_value(context),
+        size_in_bits: target_data
+            .get_bit_size(&inkwell_type)
+            .try_into()
+            .expect("could not convert size in bits to smaller size"),
+        alignment: target_data
+            .get_abi_alignment(&inkwell_type)
+            .try_into()
+            .expect("could not convert alignment to smaller size"),
+        data: ir::TypeDefinitionData::Struct(ir::StructDefinition {
+            guid: abi::Guid::from_str(&guid_name),
+            field_names: field_names_value,
+            field_types: field_types_value,
+            field_offsets,
+            // Structural fields are never renamed.
+            field_previous_names: Value::<*const *const u8>::null(context),
+            num_fields: field_types
+                .len()
+                .try_into()
+                .expect("could not convert num_fields to smaller bit size"),
+            memory_kind: abi::StructMemoryKind::Value,
+        }),
+    }
 }
 
 fn gen_struct_info<'ink>(

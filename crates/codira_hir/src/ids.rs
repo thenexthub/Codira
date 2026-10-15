@@ -9,7 +9,9 @@ use std::hash::{Hash, Hasher};
 use codira_hir_input::ModuleId;
 
 use crate::{
-    item_tree::{Effect, Function, Impl, ItemTreeId, ItemTreeNode, Session, Struct, TypeAlias},
+    item_tree::{
+        Effect, Enum, Function, Impl, ItemTreeId, ItemTreeNode, Session, Struct, TypeAlias,
+    },
     primitive_type::PrimitiveType,
     DefDatabase,
 };
@@ -154,6 +156,13 @@ pub struct SessionId(salsa::InternId);
 pub(crate) type SessionLoc = ItemLoc<Session>;
 impl_intern!(SessionId, SessionLoc, intern_session, lookup_intern_session);
 
+/// An enumeration declared with `enum Name { .. }`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct EnumId(salsa::InternId);
+
+pub(crate) type EnumLoc = ItemLoc<Enum>;
+impl_intern!(EnumId, EnumLoc, intern_enum, lookup_intern_enum);
+
 pub trait Intern {
     type ID;
     fn intern(self, db: &dyn DefDatabase) -> Self::ID;
@@ -178,6 +187,15 @@ pub enum ItemDefinitionId {
     /// A session type: type resolution builds `TyKind::Session` from it
     /// through `Resolver::resolve_path_as_session`.
     SessionId(SessionId),
+    /// An enum is a type; its variants are reached through it
+    /// (`Shape.Circle`), never by name alone.
+    EnumId(EnumId),
+}
+
+impl From<EnumId> for ItemDefinitionId {
+    fn from(id: EnumId) -> Self {
+        ItemDefinitionId::EnumId(id)
+    }
 }
 
 impl From<EffectId> for ItemDefinitionId {

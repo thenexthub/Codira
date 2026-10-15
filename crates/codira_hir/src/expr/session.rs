@@ -673,6 +673,26 @@ impl Checker<'_> {
                     .collect();
                 self.merge(expr, state, paths, "the arms of this `select`")
             }
+            // The arms of a `match` (and of the `if let` / `while let` that
+            // lower to one) are alternatives, as for a `select`.
+            Expr::Match {
+                expr: scrutinee,
+                arms,
+                ..
+            } => {
+                if !self.walk(*scrutinee, state) {
+                    return false;
+                }
+                let paths = arms
+                    .iter()
+                    .map(|arm| {
+                        let mut arm_state = state.clone();
+                        let continues = self.walk(arm.expr, &mut arm_state);
+                        (continues, arm_state)
+                    })
+                    .collect();
+                self.merge(expr, state, paths, "the arms of this `match`")
+            }
             Expr::Loop { body: loop_body } => {
                 self.walk_loop(expr, &[*loop_body], state);
                 self.breaks(*loop_body)
@@ -1031,6 +1051,17 @@ mod tests {
         assert_reports(
             "func f(ep: Ping) { ep <- 1; select { x = <-ep -> {} }; }",
             "a `select` waits on channels, not on session endpoints",
+        );
+    }
+
+    #[test]
+    fn match_arms_are_alternatives() {
+        assert_clean(
+            "func f(ep: Ping, n: i64) { match n { 0 -> { ep <- 1 }, _ -> { ep <- 2 } }; let x = <-ep; }",
+        );
+        assert_reports(
+            "func f(ep: Ping, n: i64) { match n { 0 -> { ep <- 1 }, _ -> { } }; let x = <-ep; }",
+            "the arms of this `match` leave `ep` at different points",
         );
     }
 

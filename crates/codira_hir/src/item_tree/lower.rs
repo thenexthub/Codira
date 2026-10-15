@@ -22,7 +22,7 @@ use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 use super::{
-    diagnostics, AssociatedItem, Const, Effect, Field, Fields, Function, FunctionFlags,
+    diagnostics, AssociatedItem, Const, Effect, Enum, Field, Fields, Function, FunctionFlags,
     GenericParamData, IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities,
     LocalItemTreeId, ModItem, Param, ParamAstId, RawVisibilityId, Session, Struct, TypeAlias,
     INTRINSIC_ABI,
@@ -93,6 +93,7 @@ impl Context {
                 ModItem::Const(item) => Some(&self.data.consts[item.index].name),
                 ModItem::Effect(item) => Some(&self.data.effects[item.index].name),
                 ModItem::Session(item) => Some(&self.data.sessions[item.index].name),
+                ModItem::Enum(item) => Some(&self.data.enums[item.index].name),
                 ModItem::Import(item) => {
                     let import = &self.data.imports[item.index];
                     if import.is_glob {
@@ -147,13 +148,13 @@ impl Context {
             ast::ModuleItemKind::Extend(ast) => self.lower_impl(&ast).map(Into::into),
             ast::ModuleItemKind::EffectDef(ast) => self.lower_effect(&ast).map(Into::into),
             ast::ModuleItemKind::SessionDef(ast) => self.lower_session(&ast).map(Into::into),
-            // `trait`, `enum`, `macro`, and `extern "C" { .. }` blocks are
+            ast::ModuleItemKind::EnumDef(ast) => self.lower_enum(&ast).map(Into::into),
+            // `trait`, `macro`, and `extern "C" { .. }` blocks are
             // fully parsed (see `codira_syntax`) but not yet lowered into name-resolvable
             // HIR items -- that requires their own item-tree/code-model support (akin
             // to what exists for `struct`/`func` today), which is tracked as follow-up
             // work rather than implemented here without a way to verify it end-to-end.
             ast::ModuleItemKind::TraitDef(_)
-            | ast::ModuleItemKind::EnumDef(_)
             | ast::ModuleItemKind::MacroDef(_)
             | ast::ModuleItemKind::SupervisorDef(_) => None,
             ast::ModuleItemKind::ExternBlock(ast) => Some(self.lower_extern_block(&ast)),
@@ -417,6 +418,39 @@ impl Context {
                 .alloc(Session {
                     name,
                     visibility,
+                    ast_id,
+                })
+                .into(),
+        )
+    }
+
+    /// Lowers an `enum` declaration: its name, generic parameter names and
+    /// variant names. Variants without a name (a syntax error the parser has
+    /// already reported) are skipped.
+    fn lower_enum(&mut self, def: &ast::EnumDef) -> Option<LocalItemTreeId<Enum>> {
+        let name = def.name()?.as_name();
+        let visibility = lower_visibility(def);
+        let generic_params = def
+            .generic_param_list()
+            .into_iter()
+            .flat_map(|list| list.generic_params())
+            .filter_map(|param| Some(param.name()?.as_name()))
+            .collect();
+        let variants = def
+            .enum_variant_list()
+            .into_iter()
+            .flat_map(|list| list.variants())
+            .filter_map(|variant| Some(variant.name()?.as_name()))
+            .collect();
+        let ast_id = self.source_ast_id_map.ast_id(def);
+        Some(
+            self.data
+                .enums
+                .alloc(Enum {
+                    name,
+                    visibility,
+                    generic_params,
+                    variants,
                     ast_id,
                 })
                 .into(),

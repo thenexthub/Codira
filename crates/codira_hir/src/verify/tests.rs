@@ -935,6 +935,103 @@ fn constant_time_functions_may_not_branch_index_or_divide_on_secrets() {
     assert_eq!(diags.lines().count(), 6, "{diags}");
 }
 
+/// A `match`, `if let` or `while let` on a secret branches on it, and the
+/// names its patterns bind are secret.
+#[test]
+fn matching_on_a_secret_is_a_branch_and_binds_secrets() {
+    let diags = diagnostics(
+        r#"
+    oblivious func matches(k: u64) -> u64 {
+        match k { 0 -> 1, _ -> 2 }
+    }
+    @constant_time
+    func if_lets(k: secret u64, o: i64?) -> secret u64 {
+        if let v = o { 1 } else { k }
+    }
+    func takes_public(x: u64) -> u64 { x }
+    func binds(k: secret u64) -> secret u64 {
+        match k { v -> takes_public(v) }
+    }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("`match` (or `if let`/`while let`) on a secret in a constant-time function"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("secret value passed to a non-`secret` parameter of `takes_public`"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(diags.lines().count(), 2, "{diags}");
+}
+
+/// A `match` on a secret enum is a branch on it: rejected in an
+/// `oblivious` function.
+#[test]
+fn matching_on_a_secret_enum_is_rejected_in_oblivious_code() {
+    let diags = diagnostics(
+        r#"
+    enum Bit { Zero, One }
+    oblivious func pick(b: Bit, x: u64) -> u64 {
+        match b { Bit.Zero -> x, Bit.One -> 0 }
+    }
+    "#,
+    );
+    assert!(
+        diags.contains("`match` (or `if let`/`while let`) on a secret in a constant-time function"),
+        "{diags}"
+    );
+}
+
+/// Each `match` arm is checked on every path that may reach it: what holds
+/// for all arms is proven, and an arm that breaks the contract is refuted.
+#[test]
+fn match_arms_are_each_checked_against_the_postcondition() {
+    let r = report(
+        r#"
+    func pick(n: i64) -> i64
+        ensures result >= 0
+    {
+        match n { 0 -> 1, 1 -> 2, m -> if m < 0 { 0 } else { m } }
+    }
+    "#,
+        "pick",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+
+    let r = report(
+        r#"
+    func pick(n: i64) -> i64
+        ensures result >= 0
+    {
+        match n { 0 -> 1, _ -> -1 }
+    }
+    "#,
+        "pick",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::Postcondition).is_some(),
+        "{r:#?}"
+    );
+
+    // An enum's payload is not modelled: a bound payload is a fresh value.
+    let r = report(
+        r#"
+    enum Size { Small, Big(i64) }
+    func measure(s: Size) -> i64
+        ensures result >= 0
+    {
+        match s { Size.Small -> 1, Size.Big(n) -> if n < 0 { 0 } else { n } }
+    }
+    "#,
+        "measure",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+}
+
 #[test]
 fn ct_select_is_an_ite_to_the_verifier() {
     let r = report(

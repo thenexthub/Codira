@@ -11,8 +11,8 @@ use rustc_hash::FxHashMap;
 use super::PackageDefs;
 use crate::{
     ids::{
-        EffectLoc, FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId, SessionLoc,
-        StructLoc, TypeAliasLoc,
+        EffectLoc, EnumLoc, FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId,
+        SessionLoc, StructLoc, TypeAliasLoc,
     },
     item_scope::{ImportType, ItemScope, PerNsGlobImports},
     item_tree::{
@@ -553,6 +553,7 @@ impl<'a> ModCollectorContext<'a, '_> {
                 ModItem::TypeAlias(id) => self.collect_type_alias(id),
                 ModItem::Effect(id) => self.collect_effect(id),
                 ModItem::Session(id) => self.collect_session(id),
+                ModItem::Enum(id) => self.collect_enum(id),
                 ModItem::Import(id) => {
                     self.collect_import(id);
                     continue;
@@ -644,6 +645,27 @@ impl<'a> ModCollectorContext<'a, '_> {
             name: &adt.name,
             visibility: &self.item_tree[adt.visibility],
             has_constructor: !matches!(adt.fields, Fields::Record(_)),
+        }
+    }
+
+    /// Collects the definition data from an `enum` declaration. An enum
+    /// lives in the type namespace only: its variants are values, but they
+    /// are reached through the enum (`Shape.Circle`).
+    fn collect_enum(&self, id: LocalItemTreeId<item_tree::Enum>) -> DefData<'a> {
+        let item = &self.item_tree[id];
+        DefData {
+            id: EnumLoc {
+                module: ModuleId {
+                    package: self.def_collector.package_id,
+                    local_id: self.module_id,
+                },
+                id: ItemTreeId::new(self.file_id, id),
+            }
+            .intern(self.def_collector.db)
+            .into(),
+            name: &item.name,
+            visibility: &self.item_tree[item.visibility],
+            has_constructor: false,
         }
     }
 

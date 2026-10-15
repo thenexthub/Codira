@@ -95,6 +95,15 @@ fn collect_expr<'ink>(
         }
     }
 
+    // `x!` panics on `nil`; a `match` may compare strings, and panics when
+    // no arm matches (an enum tag a hot reload removed).
+    if let Expr::Unwrap { .. } | Expr::Match { .. } = expr {
+        collect_intrinsic(context, target, &intrinsics::panic, intrinsics);
+    }
+    if let Expr::Match { .. } = expr {
+        collect_intrinsic(context, target, &intrinsics::str_eq, intrinsics);
+    }
+
     // Indexing checks its bounds and panics through the runtime when the
     // index is out of range.
     if let Expr::Index { .. } = expr {

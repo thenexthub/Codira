@@ -6,7 +6,10 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use std::collections::{BTreeMap, HashSet};
 
-use codira_hir::{mono::Instance, HasVisibility, ModuleDef};
+use codira_hir::{
+    mono::{self, Instance},
+    HasVisibility, ModuleDef,
+};
 use inkwell::{module::Module, values::FunctionValue};
 
 use super::body::ExternalGlobals;
@@ -29,6 +32,38 @@ pub struct FileIr<'ink> {
     pub function_definitions: HashSet<codira_hir::Function>,
     /// The types defined in this file
     pub type_definitions: HashSet<codira_hir::Ty>,
+}
+
+/// Adds every tuple, optional and `str` type inside `ty` (including `ty`
+/// itself) to `types`. The unit type `()` is skipped -- it is a primitive to
+/// the runtime -- and so is anything whose layout is not known (an error type,
+/// an uninstantiated parameter).
+fn collect_structural_types(
+    db: &dyn codira_hir::HirDatabase,
+    ty: &codira_hir::Ty,
+    types: &mut HashSet<codira_hir::Ty>,
+) {
+    use codira_hir::{TyKind, TypeWalk};
+    ty.walk(&mut |inner| {
+        // A tuple holding a channel or a session endpoint -- the pair
+        // `S.open()` returns -- is local to the function: those handles never
+        // cross into the runtime, and have no exported layout.
+        let holds_handle = || {
+            let mut found = false;
+            inner.walk(&mut |t| {
+                found |= matches!(t.interned(), TyKind::Channel(_) | TyKind::Session(..));
+            });
+            found
+        };
+        let structural = match inner.interned() {
+            TyKind::Tuple(arity, _) => *arity > 0 && !holds_handle(),
+            TyKind::Optional(_) | TyKind::Str => true,
+            _ => false,
+        };
+        if structural && inner.guid_string(db).is_some() {
+            types.insert(inner.clone());
+        }
+    });
 }
 
 /// Generates IR for the specified file.
@@ -95,14 +130,53 @@ pub(crate) fn gen_file_ir<'ink>(
         .iter()
         .flat_map(|module| module.declarations(code_gen.db))
     {
+        if let ModuleDef::Enum(e) = def {
+            // An enum is exported by the module that declares it, like a
+            // struct, together with the tuples and optionals its payloads
+            // use.
+            type_definitions.insert(e.ty());
+            for slot in e.layout(code_gen.db).slots.iter() {
+                collect_structural_types(code_gen.db, &slot.ty, &mut type_definitions);
+            }
+        }
         if let ModuleDef::Struct(s) = def {
             // A generic struct is defined per instantiation, below.
             if !s.is_generic(code_gen.db) {
                 type_definitions.insert(s.ty(code_gen.db));
+                for field in s.fields(code_gen.db) {
+                    collect_structural_types(
+                        code_gen.db,
+                        &field.ty(code_gen.db),
+                        &mut type_definitions,
+                    );
+                }
             }
         }
     }
     type_definitions.extend(group_ir.instance_types.iter().cloned());
+    for ty in group_ir.instance_types.iter() {
+        if ty.as_struct().is_some() {
+            for field_ty in mono::struct_field_types(code_gen.db, ty) {
+                collect_structural_types(code_gen.db, &field_ty, &mut type_definitions);
+            }
+        }
+    }
+
+    // Tuples, optionals and `str` have no declaration to export them from,
+    // but the runtime needs their layout as soon as one crosses into it --
+    // as a parameter, a return value, a field or an array element. Every one
+    // this group's code mentions -- read at each instance, so a generic body
+    // contributes its concrete types -- is exported as an anonymous value
+    // struct.
+    for unit in group_ir.units.iter() {
+        let sig = unit.instance.sig(code_gen.db);
+        for ty in sig.params().iter().chain(std::iter::once(sig.ret())) {
+            collect_structural_types(code_gen.db, ty, &mut type_definitions);
+        }
+        for ty in unit.infer.all_types() {
+            collect_structural_types(code_gen.db, ty, &mut type_definitions);
+        }
+    }
 
     let external_globals = {
         let alloc_handle = group_ir

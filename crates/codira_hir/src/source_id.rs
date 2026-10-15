@@ -80,6 +80,7 @@ register_ast_id_node! {
         ConstDef,
         EffectDef,
         SessionDef,
+        EnumDef,
     Param, SelfParam
 }
 
