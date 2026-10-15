@@ -910,6 +910,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "codira_image"
+version = "0.6.0-dev"
+
+[[package]]
 name = "codira_language_server"
 version = "0.6.0-dev"
 dependencies = [
