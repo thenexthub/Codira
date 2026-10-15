@@ -22,6 +22,7 @@ mod fn_cells;
 mod fuel;
 mod function_info;
 mod marshal;
+pub mod memtag;
 pub mod native_memory;
 mod reflection;
 mod tasks;

@@ -189,6 +189,8 @@ pub(crate) fn gen_file_ir<'ink>(
             fuel_counter,
             dispatch_table,
             type_table: type_table.map(|g| unsafe { Global::from_raw(g) }),
+            hardware_safety: code_gen.hardware_safety,
+            safety_refusals: code_gen.safety_refusals.clone(),
         }
     };
 

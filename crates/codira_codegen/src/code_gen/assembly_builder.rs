@@ -125,6 +125,11 @@ impl<'db, 'ink, 'ctx, 't> AssemblyBuilder<'db, 'ink, 'ctx, 't> {
             self.code_gen.optimization_level,
             dependencies,
         );
+        crate::hardware_safety::gen_set_hardware_safety_fn(
+            self.code_gen.context,
+            &self.assembly_module,
+            self.code_gen.hardware_safety,
+        );
 
         // A certified build names every function's machine code by its
         // symbol. Private linkage keeps a function out of the object's

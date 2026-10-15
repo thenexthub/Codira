@@ -45,6 +45,11 @@ pub struct CodeGenContext<'db, 'ink> {
     pub fuel: bool,
     /// Whether every function keeps its symbol (`--certify`).
     pub keep_function_symbols: bool,
+    /// The experimental hardware-safety mode (see `crate::hardware_safety`).
+    pub hardware_safety: crate::HardwareSafety,
+    /// What generating code under `hardware_safety` refused, as
+    /// `file:line:column: reason` lines; a non-empty list fails the build.
+    pub safety_refusals: std::rc::Rc<RefCell<Vec<String>>>,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
@@ -52,17 +57,27 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
     /// `CodeGenDatabase`.
     pub fn new(context: &'ink Context, db: &'db dyn CodeGenDatabase) -> Self {
         let target_machine = crate::db::build_target_machine(db);
+        let hardware_safety = db.hardware_safety();
         Self {
             context,
             rust_types: RefCell::new(HashMap::default()),
             hir_types: HirTypeCache::new(context, db, target_machine.get_target_data()),
             optimization_level: db.optimization_level(),
             target_machine,
-            eidos: db.eidos_options().optimizer(&db.target()),
+            // Eidos folds whole functions to constants by interpreting them,
+            // memory included; a hardware-safety build must keep every access
+            // as the checked instructions it asked for, so it skips Eidos.
+            eidos: if hardware_safety.is_enabled() {
+                None
+            } else {
+                db.eidos_options().optimizer(&db.target())
+            },
             codegen_db: db,
             native: db.native_inputs(),
             fuel: db.fuel_instrumentation(),
             keep_function_symbols: db.keep_function_symbols(),
+            hardware_safety,
+            safety_refusals: std::rc::Rc::default(),
             db,
         }
     }

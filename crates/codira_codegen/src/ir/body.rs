@@ -36,6 +36,7 @@ use crate::{
 
 mod closures;
 mod effects;
+mod safety;
 mod tasks;
 
 pub(crate) use effects::has_evidence;
@@ -58,6 +59,10 @@ pub(crate) struct ExternalGlobals<'ink> {
     pub fuel_counter: Option<GlobalValue<'ink>>,
     pub dispatch_table: Option<GlobalValue<'ink>>,
     pub type_table: Option<Global<'ink, [*const std::ffi::c_void]>>,
+    /// The experimental hardware-safety mode (see `safety`).
+    pub hardware_safety: crate::HardwareSafety,
+    /// Where `safety` records code the mode refuses to build.
+    pub safety_refusals: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
 }
 
 pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
@@ -95,6 +100,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     /// Open `scope`s and loops, for joining tasks on every exit. See
     /// `tasks`.
     tasks: tasks::TaskState<'ink>,
+    /// What the hardware-safety mode undoes before each return. See
+    /// `safety`.
+    safety: safety::SafetyState<'ink>,
 }
 
 impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
@@ -146,6 +154,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             eidos,
             effects: effects::EffectState::default(),
             tasks: tasks::TaskState::default(),
+            safety: safety::SafetyState::default(),
         }
     }
 
@@ -278,6 +287,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     .expect("failed to build return");
             }
         }
+
+        // Undo what a hardware-safety mode set up, before every return.
+        self.finish_safety();
     }
 
     /// Emits a `@runtime_checked` function's `requires` clauses at its
@@ -2262,6 +2274,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         args: &[BasicMetadataValueEnum<'ink>],
     ) -> Option<BasicValueEnum<'ink>> {
         let name = function.name(self.db).to_string();
+        if let safety::Lowered::Emitted(value) = self.gen_safety_intrinsic(expr, &name, args) {
+            return value;
+        }
         match intrinsic_ops::gen_intrinsic(
             &name,
             args,

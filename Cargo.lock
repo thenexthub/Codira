@@ -1280,6 +1280,7 @@ dependencies = [
 name = "codira_runtime"
 version = "0.6.0-dev"
 dependencies = [
+ "cc",
  "codira_abi",
  "codira_capi_utils",
  "codira_compiler",

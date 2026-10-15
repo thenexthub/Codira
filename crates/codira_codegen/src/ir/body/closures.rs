@@ -331,6 +331,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
                     .build_unreachable()
                     .expect("failed to build unreachable");
             }
+            self.finish_safety();
             return;
         }
         if ret_ty.is_empty() || ret_ty.is_never() {
@@ -342,5 +343,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
                 .build_return(Some(&value))
                 .expect("failed to build return");
         }
+        // Undo what a hardware-safety mode set up, before every return.
+        self.finish_safety();
     }
 }

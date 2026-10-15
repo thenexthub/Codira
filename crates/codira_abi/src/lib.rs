@@ -70,6 +70,15 @@ pub const FN_VALUE_CELL_PREFIX: &str = "codira.fn_cell:";
 /// function used as a value). The compiler pre-fills the slot with the code's
 /// address; the runtime only reads it, to point the matching cells at it.
 pub const FN_VALUE_CODE_PREFIX: &str = "codira.fn_code:";
+/// Defines the name for the `set_hardware_safety` function. Only libraries
+/// built with an experimental hardware-safety mode (`--sanitize=memtag`,
+/// `--capabilities=soft`) export it. It receives the runtime's capability
+/// table (ignored by a memtag build) and returns the `HARDWARE_SAFETY_*`
+/// flags the library was built with, so the runtime can refuse a library it
+/// cannot honour.
+pub const SET_HARDWARE_SAFETY_FN_NAME: &str = "set_hardware_safety";
+/// `set_hardware_safety` flag: built with `--sanitize=memtag` (ARM MTE).
+pub const HARDWARE_SAFETY_MEMTAG: u32 = 1;
 
 /// Represents a globally unique identifier (GUID).
 #[repr(C)]

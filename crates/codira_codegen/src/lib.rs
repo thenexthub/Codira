@@ -11,6 +11,7 @@ pub use crate::{
     code_gen::AssemblyBuilder,
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
     eidos_options::{BuildMode, EidosOptions, EidosRun},
+    hardware_safety::HardwareSafety,
     image_link::{
         image_link_stats, reset_image_link_stats, verification_enabled, ImageLinkStats,
         DIRECT_ELF_ENV, DUMP_OBJECTS_ENV, LINK_LOG_ENV, LINK_VERIFY_ENV,
@@ -41,12 +42,15 @@ mod run_test;
 #[cfg(test)]
 mod test;
 #[cfg(test)]
+mod test_memtag;
+#[cfg(test)]
 mod test_targets;
 
 pub mod value;
 
 mod apple;
 pub mod gpu;
+pub mod hardware_safety;
 mod image_link;
 pub(crate) mod intrinsics;
 mod linker;

@@ -33,6 +33,7 @@ impl CompilerDatabase {
         db.set_config(config);
         db.set_fuel_instrumentation(false);
         db.set_keep_function_symbols(false);
+        db.set_hardware_safety(codira_codegen::HardwareSafety::NONE);
         db.set_native_inputs(std::sync::Arc::default());
 
         db

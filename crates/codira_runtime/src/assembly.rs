@@ -32,6 +32,10 @@ pub enum LoadError {
     FailedToLoadSharedLibrary(#[from] codira_libloader::InitError),
     #[error("ABI version mismatch. codiralib is `{actual}` but runtime is `{expected}`")]
     MismatchedAbiVersions { expected: u32, actual: u32 },
+    /// The library was built with a hardware-safety mode this host cannot
+    /// honour (for instance `--sanitize=memtag` without MTE).
+    #[error(transparent)]
+    Memtag(#[from] crate::memtag::MemtagError),
     #[error(transparent)]
     Other(#[from] io::Error),
 }
@@ -136,6 +140,14 @@ impl Assembly {
         let allocator_ptr = Arc::into_raw(gc.clone()) as *mut std::ffi::c_void;
         library.set_allocator_handle(allocator_ptr);
         let fuel_instrumented = library.set_fuel_counter(fuel_counter);
+
+        // A `--sanitize=memtag` library runs only with tag checking on: its
+        // MTE instructions do not exist on other CPUs, and running it with
+        // checks off would claim a protection it does not have.
+        let safety = library.set_hardware_safety(std::ptr::null_mut());
+        if safety & abi::HARDWARE_SAFETY_MEMTAG != 0 {
+            crate::memtag::activate()?;
+        }
 
         let assembly = Assembly {
             info: library.get_info(),
