@@ -4,8 +4,9 @@
 //!
 //! Functionality:
 //! - Circuits from Codira functions: one elaborator from HIR to a word-level
-//!   circuit IR, and a back end for zero-knowledge proofs (`codira attest`:
-//!   R1CS over BN254, Circom source, Groth16 proofs).
+//!   circuit IR, and back ends for zero-knowledge proofs (`codira attest`: R1CS
+//!   over BN254, Circom source, Groth16 proofs) and FPGAs (`@target(fpga)`:
+//!   synthesizable Verilog-2001).
 //!
 //! # Pipeline
 //!
@@ -13,7 +14,9 @@
 //! oblivious func / @target(fpga) func
 //!        |  elaborate (HIR, interpreted at compile time)
 //!        v
-//!   ir::Circuit  -- eval: the reference semantics
+//!   ir::Circuit  -- eval: the reference semantics (the "netlist evaluator")
+//!     |      \
+//!     |       verilog::emit -> <name>.v
 //!     |  r1cs::lower (exact integers by bit decomposition)
 //!     v
 //!   r1cs::R1cs -- witness / check, .r1cs / .wtns (iden3), circom::emit
@@ -41,7 +44,26 @@ pub mod elaborate;
 pub mod groth16;
 pub mod ir;
 pub mod r1cs;
+pub mod verilog;
 
 pub use elaborate::{elaborate, ElabError, ElabOptions, Mode};
 pub use ir::{Circuit, Ty};
 pub use r1cs::R1cs;
+
+/// The Verilog for every `@target(fpga)` function among `functions`, as
+/// `(function name, module text)`, or the first elaboration error.
+pub fn fpga_modules(
+    db: &dyn codira_hir::HirDatabase,
+    functions: impl IntoIterator<Item = codira_hir::Function>,
+) -> Result<Vec<(String, String)>, ElabError> {
+    let options = ElabOptions::default();
+    let mut modules = Vec::new();
+    for func in functions {
+        if !elaborate::is_fpga(db, func) {
+            continue;
+        }
+        let circuit = elaborate(db, func, Mode::Fpga, &options)?;
+        modules.push((circuit.name.clone(), verilog::emit(&circuit)));
+    }
+    Ok(modules)
+}

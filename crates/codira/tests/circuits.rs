@@ -7,9 +7,11 @@
 //!   every operator, on every integer width, through the circuit evaluator and
 //!   the R1CS witness, against the same function compiled by LLVM and run;
 //!   `codira attest build|prove|verify` on a real file, with a tampered reveal
-//!   rejected; and, when the tools are present, circom/snarkjs checking the
-//!   emitted Circom and R1CS. That external check reports a skip, and passes,
-//!   when the tools are not installed.
+//!   rejected; `codira build` writing `<function>.v` for `@target(fpga)`
+//!   functions; and, when the tools are present, Yosys (`YoWASP`) evaluating
+//!   that Verilog and circom/snarkjs checking the emitted Circom and R1CS.
+//!   Those external checks report a skip, and pass, when their tool is not
+//!   installed.
 
 use std::{
     collections::HashMap,
@@ -413,6 +415,33 @@ fn attest_refuses_what_is_not_an_oblivious_circuit() {
     );
 }
 
+const FPGA: &str = r#"
+@target(fpga)
+public func clamp(x: i32, lo: i32) -> i32 {
+    var r = x
+    if x < lo {
+        r = lo
+    }
+    if x > lo + 1000 {
+        r = lo + 1000
+    }
+    r
+}
+
+@target(fpga)
+public func mix(a: u64, s: u64) -> u64 {
+    let rotated = (a << (s & 63)) | (a >> ((64 - (s & 63)) & 63))
+    ct_select(a > s, rotated ^ s, rotated * 3)
+}
+
+@target(fpga)
+public func sar(a: i64, s: i64) -> i64 {
+    (a >> (s & 63)) + ((a as i8) as i64)
+}
+
+public func host_only(x: i64) -> i64 { x + 1 }
+"#;
+
 /// Runs `program` with `args`, killing it after `limit`; `None` if it could
 /// not be started.
 fn run_with_timeout(program: &Path, args: &[&str], cwd: &Path, limit: Duration) -> Option<String> {
@@ -439,6 +468,115 @@ fn run_with_timeout(program: &Path, args: &[&str], cwd: &Path, limit: Duration) 
         String::from_utf8_lossy(&output.stdout).into_owned()
             + &String::from_utf8_lossy(&output.stderr),
     )
+}
+
+/// The `YoWASP` Yosys executable: `CODIRA_YOSYS`, or `yowasp-yosys` on the
+/// path.
+fn yosys() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("CODIRA_YOSYS") {
+        return Some(PathBuf::from(path));
+    }
+    let probe = Command::new("yowasp-yosys")
+        .arg("-V")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    probe
+        .ok()
+        .filter(std::process::ExitStatus::success)
+        .map(|_| PathBuf::from("yowasp-yosys"))
+}
+
+#[test]
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+fn codira_build_writes_verilog_that_computes_what_native_code_does() {
+    let dir = tempfile::tempdir().unwrap();
+    write_package(dir.path(), FPGA);
+    let rt = build_native(dir.path());
+    let target = dir.path().join("target");
+    for name in ["clamp", "mix", "sar"] {
+        let text = std::fs::read_to_string(target.join(format!("{name}.v"))).unwrap();
+        assert!(text.contains(&format!("module {name} (")), "{text}");
+    }
+    assert!(!target.join("host_only.v").exists());
+
+    let names: Vec<String> = ["clamp", "mix", "sar"].map(String::from).to_vec();
+    let circuits = circuits(&dir.path().join("src/mod.code"), &names, Mode::Fpga);
+    let mut vectors: Vec<(&str, u64, u64, u64)> = Vec::new();
+    for (a, b) in pairs(11) {
+        let clamp_args = (a as i32, (b as i32) >> 2);
+        let clamp: i32 = rt.invoke("clamp", clamp_args).unwrap();
+        let mix: u64 = rt.invoke("mix", (a, b)).unwrap();
+        let sar: i64 = rt.invoke("sar", (a as i64, b as i64)).unwrap();
+        let enc32 = |v: i32| u64::from(v as u32);
+        let cases = [
+            (
+                "clamp",
+                enc32(clamp_args.0),
+                enc32(clamp_args.1),
+                enc32(clamp),
+            ),
+            ("mix", a, b, mix),
+            ("sar", a, b, sar as u64),
+        ];
+        for (name, x, y, want) in cases {
+            assert_eq!(
+                circuits[name].0.eval(&[x, y]),
+                want,
+                "{name}({x:#x}, {y:#x})"
+            );
+            vectors.push((name, x, y, want));
+        }
+    }
+
+    // Yosys reads, elaborates and synthesises the files, and evaluates them
+    // on a sample of the vectors, before and after synthesis.
+    let Some(yosys) = yosys() else {
+        eprintln!("SKIPPED: Yosys not found (set CODIRA_YOSYS to yowasp-yosys)");
+        return;
+    };
+    for name in ["clamp", "mix", "sar"] {
+        let sample: Vec<_> = vectors.iter().filter(|v| v.0 == name).step_by(37).collect();
+        let (x_name, y_name) = match name {
+            "clamp" => ("x", "lo"),
+            _ => ("a", "s"),
+        };
+        // Sized hexadecimal: Yosys reads a plain decimal as a 32-bit integer.
+        let inputs = &circuits[name].0.inputs;
+        let (wx, wy) = (inputs[0].ty.width(), inputs[1].ty.width());
+        let evals: String = sample
+            .iter()
+            .map(|(_, x, y, _)| {
+                format!("eval -set {x_name} {wx}'h{x:x} -set {y_name} {wy}'h{y:x} -show result; ")
+            })
+            .collect();
+        let script = format!(
+            "read_verilog {name}.v; hierarchy -check -top {name}; proc; {evals}synth -top {name} -noabc; {evals}"
+        );
+        let log = run_with_timeout(&yosys, &["-p", &script], &target, Duration::from_secs(300))
+            .expect("yosys starts");
+        let results: Vec<u64> = log
+            .lines()
+            .filter_map(|l| l.strip_prefix("Eval result: \\result = "))
+            .map(|v| {
+                let v = v.trim_end_matches('.');
+                match v.split_once('\'') {
+                    Some((_, bits)) => u64::from_str_radix(bits, 2),
+                    None => v.parse(),
+                }
+                .unwrap_or_else(|e| panic!("`{v}` from Yosys: {e}\n{log}"))
+            })
+            .collect();
+        assert_eq!(results.len(), 2 * sample.len(), "{name}: {log}");
+        for (i, (_, x, y, want)) in sample.iter().enumerate() {
+            assert_eq!(results[i], *want, "yosys {name}({x}, {y}) before synthesis");
+            assert_eq!(
+                results[sample.len() + i],
+                *want,
+                "yosys {name}({x}, {y}) after synthesis"
+            );
+        }
+    }
 }
 
 /// The directory whose `node_modules` holds `circom2` and `snarkjs`

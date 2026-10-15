@@ -8,13 +8,13 @@
 //!   `@target(fpga)` functions become circuits that compute them; loops, calls,
 //!   casts and compile-time arithmetic fold; `if` on an input becomes a
 //!   multiplexer for FPGAs; every refusal names its reason and location; the
-//!   Circom text; and a Groth16 proof from source.
+//!   Verilog and Circom texts; and a Groth16 proof from source.
 
 use codira_hir::{salsa, HirDatabase};
 use codira_hir_input::WithFixture;
 
 use super::*;
-use crate::{circom, groth16, r1cs};
+use crate::{circom, groth16, r1cs, verilog};
 
 #[salsa::database(
     codira_hir_input::SourceDatabaseStorage,
@@ -231,6 +231,80 @@ func both(a: bool, b: bool) -> bool {
     for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
         assert_eq!(b.eval(&[x, y]), x ^ y);
     }
+}
+
+#[test]
+fn verilog_emission_snapshot() {
+    let src = r#"
+@target(fpga)
+func blend(a: u8, b: i8, s: u8) -> i16 {
+    let mixed = (a ^ (s << 1)) as i16
+    let scaled = (b >> 2) as i16 * mixed
+    if s > 7 { scaled } else { -scaled }
+}
+"#;
+    let c = elab(src, "blend", Mode::Fpga);
+    let text = verilog::emit(&c);
+    let expected = "\
+// `blend(a: u8, b: i8, s: u8) -> i16`, compiled by Codira from an `@target(fpga)` function.
+// Combinational; integers are two's complement, ports and nets unsigned.
+`default_nettype none
+
+module blend (
+    input  wire [7:0] a, // u8
+    input  wire [7:0] b, // i8
+    input  wire [7:0] s, // u8
+    output wire [15:0] result  // i16
+);
+    wire [7:0] n3 = 8'd1;
+    wire [7:0] n4 = s << n3;
+    wire [7:0] n5 = a ^ n4;
+    wire [15:0] n6 = {{8{1'b0}}, n5};
+    wire [7:0] n7 = 8'd2;
+    wire [7:0] n8 = $signed(b) >>> n7;
+    wire [15:0] n9 = {{8{n8[7]}}, n8};
+    wire [15:0] n10 = n9 * n6;
+    wire [7:0] n11 = 8'd7;
+    wire n12 = n11 < s;
+    wire [15:0] n13 = -n10;
+    wire [15:0] n14 = n12 ? n10 : n13;
+    assign result = n14;
+endmodule
+
+`default_nettype wire
+";
+    assert_eq!(text, expected);
+    // And the module computes what Codira does.
+    for a in [0u8, 1, 127, 128, 255] {
+        for b in [0i8, 1, -1, 127, -128] {
+            for s in [0u8, 3, 7, 8, 200] {
+                let mixed = i16::from(a ^ s.wrapping_shl(1));
+                let scaled = i16::from(b >> 2).wrapping_mul(mixed);
+                let want = if s > 7 { scaled } else { scaled.wrapping_neg() };
+                #[allow(clippy::cast_sign_loss)]
+                let got = c.eval(&[u64::from(a), u64::from(b as u8), u64::from(s)]);
+                #[allow(clippy::cast_sign_loss)]
+                let want = u64::from(want as u16);
+                assert_eq!(got, want, "blend({a}, {b}, {s})");
+            }
+        }
+    }
+}
+
+#[test]
+fn verilog_ports_avoid_keywords_and_internal_names() {
+    let src = r#"
+@target(fpga)
+func wire(input: u8, n3: u8, result: u8) -> u8 {
+    input + n3 + result
+}
+"#;
+    let text = verilog::emit(&elab(src, "wire", Mode::Fpga));
+    assert!(text.contains("module wire_ ("), "{text}");
+    assert!(text.contains("input  wire [7:0] input_,"), "{text}");
+    assert!(text.contains("input  wire [7:0] n3_,"), "{text}");
+    assert!(text.contains("input  wire [7:0] result,"), "{text}");
+    assert!(text.contains("output wire [7:0] result_"), "{text}");
 }
 
 #[test]

@@ -1,11 +1,13 @@
 # codira_circuits
 
 Circuits from Codira functions. One elaborator turns a function into a
-word-level circuit, which a zero-knowledge back end consumes:
+word-level circuit; two back ends consume it:
 
 - **`codira attest`**: zero-knowledge proofs for `oblivious func`s. The
   circuit becomes an R1CS over the BN254 scalar field (written as an iden3
   `.r1cs` file and as Circom 2 source), and arkworks proves it with Groth16.
+- **`@target(fpga)`**: synthesizable Verilog-2001, one module per function,
+  written by `codira build` as `target/<function>.v`.
 
 ## The subset
 
@@ -21,8 +23,8 @@ Inside, it may use:
 - calls to other Codira functions (inlined; recursion only to a compile-time
   depth);
 - `if`, `&&`, `||` on compile-time conditions (only the branch taken is
-  elaborated); the elaborator's FPGA mode also accepts them on inputs (both
-  branches become a multiplexer), for the Verilog back end that comes next;
+  elaborated); in `@target(fpga)` functions also on inputs (both branches
+  become a multiplexer);
 - `while`, `loop` and `for i in a..b` / `a..=b` whose bounds are known at
   compile time (unrolled), `break`, `continue`, and `return` where no
   input-dependent condition guards it;
@@ -107,8 +109,13 @@ ceremony with snarkjs over the emitted `.r1cs`.
     Circom, its witness generator computes the same output as native code,
     and snarkjs checks that witness against circom's R1CS
     (`CODIRA_ZK_TOOLS=<dir with node_modules>`).
+  - Yosys (YoWASP's WebAssembly build from pip, `CODIRA_YOSYS=<path to
+    yowasp-yosys>`) reads and elaborates the emitted Verilog, evaluates it on
+    sampled vectors before and after `synth -noabc`, and matches native code.
 
-Not verified: no
+Not verified: no event-driven simulator (Icarus, Verilator) and no FPGA
+vendor tool has run the Verilog; Yosys's ABC technology-mapping step does not
+run under YoWASP on Windows, so synthesis stops at Yosys's generic gates; no
 snarkjs-generated Groth16 proof has been checked against arkworks' keys (the
 formats differ); no multi-party setup.
 

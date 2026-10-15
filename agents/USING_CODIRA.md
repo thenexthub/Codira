@@ -934,6 +934,34 @@ codira attest verify --vk keys/score.vk --proof score.proof --reveal 5   # INVAL
 - Shifting by the width or more is undefined natively; circuits give 0 (or
   all sign bits for signed `>>`).
 
+### FPGA: `@target(fpga)`
+
+A function marked `@target(fpga)` is also compiled to a synthesizable
+Verilog-2001 module: `codira build` writes `target/<function>.v`, one
+combinational module with an input port per parameter and an output port
+`result`. The function stays an ordinary host function too.
+
+```codira
+@target(fpga)
+public func clamp(x: i32, lo: i32, hi: i32) -> i32 {
+    var r = x
+    if x < lo { r = lo }        // an `if` on an input becomes a multiplexer
+    if x > hi { r = hi }
+    r
+}
+```
+
+- Same subset as `attest`, plus `if`/`&&`/`||` on inputs (both sides are
+  built and selected between). A `return`/`break` under an input-dependent
+  condition, or a loop whose bound depends on an input, is refused; so is
+  anything outside the subset, which fails `codira build` with the reason.
+- Exact two's complement: every net is unsigned and exactly as wide as its
+  type; signed `<` is `$signed(a) < $signed(b)`, signed `>>` is `>>>`.
+- Validated by the netlist evaluator against native execution, and by Yosys
+  (the pip-installable YoWASP build) parsing, synthesising (`synth -noabc`)
+  and evaluating the output. No simulator such as Icarus or Verilator, and
+  no vendor FPGA flow, has run it. No clocks, registers or pipelining yet.
+
 ### C, C++ and assembly in a package: `[native]`
 
 ```toml
@@ -1047,7 +1075,8 @@ Runtime (hosts embedding `codira_runtime`):
 
 Circuits: `codira attest build|prove|verify` proves `oblivious` functions
 in zero knowledge (Groth16 over BN254, exact integer semantics, `.r1cs` and
-Circom output); see its section above for the subset.
+Circom output), and `codira build` writes `target/<function>.v` (Verilog) for
+`@target(fpga)` functions; see their sections above for the subset.
 
 `@noalloc`, `@nopanic`, `@noblock` and `@realtime` are checked statically in
 `codira check` and `codira build` (see their section above); `@deadline` is

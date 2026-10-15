@@ -994,6 +994,7 @@ version = "0.6.0-dev"
 dependencies = [
  "annotate-snippets",
  "anyhow",
+ "codira_circuits",
  "codira_codegen",
  "codira_diagnostics",
  "codira_hir",
