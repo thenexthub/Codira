@@ -1,0 +1,27 @@
+[package]
+name = "funis_macho"
+version = "3.0.0"
+edition = "2024"
+rust-version = "1.95"
+description = "The generic Mach-O linker of Funis (a fork of mold)"
+authors = ["Rui Ueyama and the mold contributors", "Omnira"]
+license = "MIT"
+repository = "https://github.com/rui314/mold"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+hashbrown.workspace = true
+libc.workspace = true
+memchr.workspace = true
+memmap2.workspace = true
+funis_common = { version = "3.0.0", path = "../funis_common" }
+portable-atomic.workspace = true
+rayon.workspace = true
+serde_json = { workspace = true, features = ["std"] }
+sha1.workspace = true
+sha2.workspace = true
+uuid.workspace = true
+xxhash-rust.workspace = true

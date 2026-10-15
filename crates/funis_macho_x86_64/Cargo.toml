@@ -1,0 +1,16 @@
+[package]
+name = "funis_macho_x86_64"
+version = "3.0.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Funis Mach-O linker instantiated for x86_64"
+authors = ["Rui Ueyama and the mold contributors", "Omnira"]
+license = "MIT"
+repository = "https://github.com/rui314/mold"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+funis_macho = { version = "3.0.0", path = "../funis_macho" }

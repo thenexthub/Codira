@@ -1,0 +1,52 @@
+[package]
+name = "funis"
+version = "3.0.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Funis, a linker forked from mold: command line and in-process library"
+authors = ["Rui Ueyama and the mold contributors", "Omnira"]
+license = "MIT"
+repository = "https://github.com/rui314/mold"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[[bin]]
+name = "funis"
+path = "main.rs"
+
+[[test]]
+name = "integration"
+path = "integration.rs"
+harness = false
+
+[dependencies]
+mimalloc = { workspace = true, optional = true }
+funis_common = { version = "3.0.0", path = "../funis_common" }
+funis_elf = { version = "3.0.0", path = "../funis_elf" }
+funis_macho = { version = "3.0.0", path = "../funis_macho" }
+funis_elf_x86_64 = { version = "3.0.0", path = "../funis_elf_x86_64", optional = true }
+funis_elf_arm64 = { version = "3.0.0", path = "../funis_elf_arm64", optional = true }
+funis_elf_riscv64 = { version = "3.0.0", path = "../funis_elf_riscv64", optional = true }
+funis_macho_arm64 = { version = "3.0.0", path = "../funis_macho_arm64", optional = true }
+funis_macho_x86_64 = { version = "3.0.0", path = "../funis_macho_x86_64", optional = true }
+
+[dev-dependencies]
+funis_tests = { path = "../funis_tests" }
+# Builds the small objects the library tests link, and reads back the outputs.
+object = { version = "0.36.5", default-features = false, features = ["std", "read", "write", "elf", "macho"] }
+
+# One feature per target. All are built by default; a build for one
+# target alone (`--no-default-features --features x86_64`) is much faster.
+# `mimalloc` is the command line's global allocator; an in-process user of the
+# library leaves it off, so that its own allocator stays in charge.
+[features]
+default = ["targets", "mimalloc"]
+targets = ["x86_64", "arm64", "riscv64", "macho-arm64", "macho-x86_64"]
+mimalloc = ["dep:mimalloc"]
+x86_64 = ["dep:funis_elf_x86_64"]
+arm64 = ["dep:funis_elf_arm64"]
+riscv64 = ["dep:funis_elf_riscv64"]
+macho-arm64 = ["dep:funis_macho_arm64"]
+macho-x86_64 = ["dep:funis_macho_x86_64"]
