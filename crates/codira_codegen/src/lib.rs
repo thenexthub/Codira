@@ -11,6 +11,7 @@ pub use crate::{
     code_gen::AssemblyBuilder,
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
     eidos_options::{BuildMode, EidosOptions, EidosRun},
+    hardware_safety::HardwareSafety,
     linker::{in_process_lld_available, link_mode, LinkMode, LINK_MODE_ENV},
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
@@ -37,12 +38,15 @@ mod run_test;
 #[cfg(test)]
 mod test;
 #[cfg(test)]
+mod test_memtag;
+#[cfg(test)]
 mod test_targets;
 
 pub mod value;
 
 mod apple;
 pub mod gpu;
+pub mod hardware_safety;
 pub(crate) mod intrinsics;
 mod linker;
 pub mod mir_codegen;

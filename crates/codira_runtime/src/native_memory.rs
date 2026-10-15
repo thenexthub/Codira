@@ -17,6 +17,10 @@
 //!
 //! Region handles are an index into a process-wide table plus a generation,
 //! so a freed or forged handle is rejected instead of being dereferenced.
+//!
+//! Once a `--sanitize=memtag` library has turned MTE on (`crate::memtag`),
+//! regions created afterwards and every page mapping hand out tagged
+//! addresses; see that module for what is checked.
 
 use std::{cell::Cell, ptr::NonNull};
 
@@ -26,7 +30,7 @@ use codira_memory::{
 };
 use parking_lot::Mutex;
 
-use crate::{FunctionDefinition, IntoFunctionDefinition};
+use crate::{memtag, FunctionDefinition, IntoFunctionDefinition};
 
 /// Bits of a region handle that hold the slot index (plus one, so that `0`
 /// is never a valid handle).
@@ -36,6 +40,11 @@ const INDEX_MASK: usize = (1 << INDEX_BITS) - 1;
 struct Slot {
     generation: usize,
     arena: Option<Arena>,
+    /// Whether the region's chunks are MTE-tagged.
+    tagged: bool,
+    /// The tag of a tagged region's last allocation (the next one never
+    /// repeats it).
+    last_tag: Option<u8>,
 }
 
 #[derive(Default)]
@@ -54,14 +63,18 @@ impl Regions {
         (generation << INDEX_BITS) | (index + 1)
     }
 
-    fn get(&mut self, handle: usize) -> Option<&mut Arena> {
+    fn slot(&mut self, handle: usize) -> Option<&mut Slot> {
         let index = (handle & INDEX_MASK).checked_sub(1)?;
         let generation = handle >> INDEX_BITS;
         let slot = self.slots.get_mut(index)?;
-        if slot.generation != generation {
+        if slot.generation != generation || slot.arena.is_none() {
             return None;
         }
-        slot.arena.as_mut()
+        Some(slot)
+    }
+
+    fn get(&mut self, handle: usize) -> Option<&mut Arena> {
+        self.slot(handle)?.arena.as_mut()
     }
 }
 
@@ -69,15 +82,25 @@ impl Regions {
 /// quota). Returns the region handle, or `0` if the region table is full.
 pub extern "C" fn codira_region_new(quota: usize) -> usize {
     let mut regions = REGIONS.lock();
-    let arena = Arena::new((quota != 0).then_some(quota));
+    let quota = (quota != 0).then_some(quota);
+    let tagged = memtag::is_active();
+    let arena = if tagged {
+        Arena::with_chunk_source(quota, memtag::TAGGED_CHUNKS)
+    } else {
+        Arena::new(quota)
+    };
     if let Some(index) = regions.free.pop() {
         let slot = &mut regions.slots[index];
         slot.arena = Some(arena);
+        slot.tagged = tagged;
+        slot.last_tag = None;
         Regions::handle(index, slot.generation)
     } else if regions.slots.len() < INDEX_MASK {
         regions.slots.push(Slot {
             generation: 0,
             arena: Some(arena),
+            tagged,
+            last_tag: None,
         });
         Regions::handle(regions.slots.len() - 1, 0)
     } else {
@@ -88,17 +111,51 @@ pub extern "C" fn codira_region_new(quota: usize) -> usize {
 /// Allocates `size` zeroed bytes aligned to `align` in a region. Returns `0`
 /// when the region's quota would be exceeded, the handle is not a live
 /// region, or the layout is invalid.
+///
+/// In a tagged region the allocation is rounded up to whole 16-byte MTE
+/// granules (the quota counts the rounded size) and the address carries its
+/// tag.
 pub extern "C" fn codira_region_alloc(region: usize, size: usize, align: usize) -> usize {
-    REGIONS
-        .lock()
-        .get(region)
-        .and_then(|arena| arena.alloc(size, align).ok())
-        .map_or(0, |ptr| ptr.as_ptr() as usize)
+    let mut regions = REGIONS.lock();
+    let Some(slot) = regions.slot(region) else {
+        return 0;
+    };
+    let arena = slot.arena.as_mut().expect("`slot` checks it is live");
+    if !slot.tagged {
+        return arena
+            .alloc(size, align)
+            .map_or(0, |ptr| ptr.as_ptr() as usize);
+    }
+    let size = size.max(1).next_multiple_of(memtag::GRANULE);
+    let Ok(ptr) = arena.alloc(size, align.max(memtag::GRANULE)) else {
+        return 0;
+    };
+    // Safety: a fresh, granule-aligned allocation in a `PROT_MTE` chunk of
+    // this region, which still has tag 0 (chunks are cleared on reset).
+    let tagged = unsafe { memtag::tag(ptr.as_ptr() as usize, size, slot.last_tag) };
+    slot.last_tag = Some(memtag::tag_of(tagged));
+    tagged
 }
 
 /// Frees everything allocated in a region at once; the region stays usable.
+///
+/// A tagged region's chunks get tag 0 back first, so every address it handed
+/// out faults until the memory is allocated (and tagged) again.
 pub extern "C" fn codira_region_reset(region: usize) -> bool {
-    REGIONS.lock().get(region).map(Arena::reset).is_some()
+    let mut regions = REGIONS.lock();
+    let Some(slot) = regions.slot(region) else {
+        return false;
+    };
+    let arena = slot.arena.as_mut().expect("`slot` checks it is live");
+    if slot.tagged {
+        for (base, size) in arena.chunk_ranges() {
+            // Safety: the region's own `PROT_MTE` chunk, whole.
+            unsafe { memtag::clear(base.as_ptr() as usize, size) };
+        }
+        slot.last_tag = None;
+    }
+    arena.reset();
+    true
 }
 
 /// Returns the bytes handed out by a region since it was created or reset,
@@ -116,6 +173,8 @@ pub extern "C" fn codira_region_free(region: usize) -> bool {
     let index = (region & INDEX_MASK) - 1;
     let slot = &mut regions.slots[index];
     slot.arena = None;
+    slot.tagged = false;
+    slot.last_tag = None;
     slot.generation = slot.generation.wrapping_add(1) & (usize::MAX >> INDEX_BITS);
     regions.free.push(index);
     true
@@ -127,8 +186,15 @@ pub extern "C" fn codira_page_size() -> usize {
 }
 
 /// Maps zeroed pages with `prot` (`1` read, `2` write, `4` exec; write and
-/// exec together are refused). Returns the address or `0`.
+/// exec together are refused). Returns the address or `0`. While MTE is on
+/// the mapping is tagged and so is the address.
 pub extern "C" fn codira_page_alloc(size: usize, prot: u32) -> usize {
+    if memtag::is_active() {
+        if size == 0 || pages::validate_protection(prot).is_err() {
+            return 0;
+        }
+        return memtag::map_pages(size, prot).unwrap_or(0);
+    }
     pages::alloc(size, prot).map_or(0, |ptr| ptr.as_ptr() as usize)
 }
 
@@ -139,7 +205,14 @@ thread_local! {
 /// Maps pages backed by huge pages where the OS grants them, regular pages
 /// otherwise. Returns the address or `0`; [`codira_page_huge_status`] tells
 /// what was granted.
+///
+/// While MTE is on these are regular tagged pages (status `0`): huge pages
+/// with `PROT_MTE` are not something every kernel can map.
 pub extern "C" fn codira_page_alloc_huge(size: usize, prot: u32) -> usize {
+    if memtag::is_active() {
+        LAST_HUGE_PAGES.with(|last| last.set(0));
+        return codira_page_alloc(size, prot);
+    }
     match pages::alloc_huge(size, prot) {
         Ok((ptr, kind)) => {
             let status = match kind {
@@ -162,7 +235,12 @@ pub extern "C" fn codira_page_huge_status() -> u32 {
 
 /// Changes the protection of pages mapped by `codira_page_alloc*`.
 pub extern "C" fn codira_page_protect(addr: usize, size: usize, prot: u32) -> bool {
-    let Some(addr) = NonNull::new(addr as *mut u8) else {
+    if memtag::is_active() && addr != 0 {
+        // Safety: as below; the OS rejects ranges that are not mapped.
+        return pages::validate_protection(prot).is_ok()
+            && unsafe { memtag::protect_pages(addr, size, prot) };
+    }
+    let Some(addr) = NonNull::new(memtag::untagged(addr) as *mut u8) else {
         return false;
     };
     // Safety: the caller passes a range it mapped; the OS rejects ranges
@@ -172,7 +250,7 @@ pub extern "C" fn codira_page_protect(addr: usize, size: usize, prot: u32) -> bo
 
 /// Unmaps pages mapped by `codira_page_alloc*`.
 pub extern "C" fn codira_page_free(addr: usize, size: usize) -> bool {
-    let Some(addr) = NonNull::new(addr as *mut u8) else {
+    let Some(addr) = NonNull::new(memtag::untagged(addr) as *mut u8) else {
         return false;
     };
     // Safety: the caller passes a mapping it owns.
@@ -181,7 +259,7 @@ pub extern "C" fn codira_page_free(addr: usize, size: usize) -> bool {
 
 /// Makes freshly written machine code visible to instruction fetch.
 pub extern "C" fn codira_icache_flush(addr: usize, size: usize) {
-    pages::flush_instruction_cache(addr as *const u8, size);
+    pages::flush_instruction_cache(memtag::untagged(addr) as *const u8, size);
 }
 
 /// Allocates `size` zeroed bytes aligned to `align` (a power of two).

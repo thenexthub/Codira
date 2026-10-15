@@ -141,12 +141,34 @@ pub(crate) fn build_target_assembly(
         });
     }
 
+    // An experimental hardware-safety mode the target cannot honour is the
+    // build's error, before any code is generated for it.
+    let safety = db.hardware_safety();
+    if let Err(reason) = crate::hardware_safety::validate(safety, &db.target()) {
+        return Arc::new(TargetAssembly {
+            file: Err(reason),
+            extension: TargetAssembly::EXTENSION,
+        });
+    }
+
     // Setup the code generation context
     let inkwell_context = Context::create();
     let code_gen_context = CodeGenContext::new(&inkwell_context, db);
 
     // Build an assembly for the module
     let assembly = build_assembly(db, &code_gen_context, module_group);
+
+    // Code the mode could not protect fails the build, with every place.
+    let refusals = code_gen_context.safety_refusals.borrow().clone();
+    if !refusals.is_empty() {
+        return Arc::new(TargetAssembly {
+            file: Err(refusals.join(
+                "
+",
+            )),
+            extension: TargetAssembly::EXTENSION,
+        });
+    }
 
     // The package's native code goes into every assembly that calls it.
     let native = db.native_inputs();
@@ -174,6 +196,11 @@ pub(crate) fn build_target_assembly(
     // point it at its fuel counter.
     if db.fuel_instrumentation() {
         exported_symbols.push(codira_abi::SET_FUEL_COUNTER_FN_NAME.to_owned());
+    }
+    // So does one built with a hardware-safety mode, for the hook that tells
+    // the runtime which.
+    if safety.is_enabled() {
+        exported_symbols.push(codira_abi::SET_HARDWARE_SAFETY_FN_NAME.to_owned());
     }
 
     // Translate the object file into a shared object

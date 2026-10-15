@@ -23,6 +23,15 @@ pub enum UseColor {
     Auto,
 }
 
+/// `--sanitize`: an experimental hardware memory-safety mode.
+#[derive(Copy, Clone, PartialEq, Eq, clap::ValueEnum)]
+pub enum Sanitizer {
+    /// EXPERIMENTAL. ARM MTE: random tags on `stack_alloc` slots, region
+    /// arenas and OS pages, checked by the CPU on every access. aarch64
+    /// Linux targets with the `+mte` feature only; untested on hardware.
+    Memtag,
+}
+
 /// `--mode`: whether the Eidos mid-level optimizer runs.
 #[derive(Copy, Clone, PartialEq, Eq, clap::ValueEnum)]
 pub enum Mode {
@@ -103,6 +112,19 @@ pub struct Args {
     #[clap(long)]
     target_cpu: Option<String>,
 
+    /// Extra LLVM target features, comma-separated (`+mte`, `-neon`),
+    /// applied after the target's own and `--target-cpu`'s.
+    #[clap(long, value_name = "FEATURES", conflicts_with = "daemon")]
+    target_feature: Vec<String>,
+
+    /// EXPERIMENTAL hardware memory safety for the unchecked escape hatches
+    /// (see "Experimental hardware safety" in `agents/USING_CODIRA.md`).
+    /// `memtag`: ARM MTE tagging, for aarch64 Linux targets with `+mte`;
+    /// refused for any other target. Nothing here has been run on MTE
+    /// hardware.
+    #[clap(long, value_enum, conflicts_with_all = ["watch", "daemon"])]
+    sanitize: Option<Sanitizer>,
+
     /// Also write a standalone executable: the Codira runtime with this
     /// package's libraries appended, runnable with nothing else installed.
     #[clap(long, conflicts_with_all = ["watch", "daemon", "emit_ir", "target"])]
@@ -124,6 +146,10 @@ struct TargetArg {
 }
 
 fn parse_target_triple(target_triple: &str) -> Result<TargetArg, String> {
+    if let Some(reason) = codira_compiler::hardware_safety::refuse_capability_target(target_triple)
+    {
+        return Err(reason);
+    }
     Target::search(target_triple)
         .map(|target| TargetArg {
             triple: target_triple.to_owned(),
@@ -175,10 +201,30 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         || Target::host_target().expect("unable to determine host target"),
         |target| target.target,
     );
-    let target = match &args.target_cpu {
+    let mut target = match &args.target_cpu {
         Some(cpu) => codira_compiler::resolve_target_cpu(&target, cpu)?,
         None => target,
     };
+    for features in &args.target_feature {
+        for feature in features.split(',').map(str::trim).filter(|f| !f.is_empty()) {
+            if !feature.starts_with(['+', '-']) {
+                return Err(anyhow!(
+                    "`{feature}` is not a target feature change; write `+{feature}` to enable \
+                     it or `-{feature}` to disable it"
+                ));
+            }
+            if !target.options.features.is_empty() {
+                target.options.features.push(',');
+            }
+            target.options.features.push_str(feature);
+        }
+    }
+    let safety = match args.sanitize {
+        Some(Sanitizer::Memtag) => codira_compiler::HardwareSafety::MEMTAG,
+        None => codira_compiler::HardwareSafety::NONE,
+    };
+    codira_compiler::hardware_safety::validate(safety, &target)
+        .map_err(|reason| anyhow!(reason))?;
     log::info!(
         "generating code for {} (cpu {})",
         target.llvm_target,
@@ -211,6 +257,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         |driver| {
             driver.set_fuel_instrumentation(args.fuel);
             driver.set_certify(args.certify);
+            driver.set_hardware_safety(safety);
         },
     )? {
         return Ok(ExitStatus::Error);

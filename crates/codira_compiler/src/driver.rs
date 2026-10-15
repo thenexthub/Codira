@@ -386,6 +386,15 @@ impl Driver {
         }
     }
 
+    /// Sets the experimental hardware-safety mode for the code this driver
+    /// generates (`codira build --sanitize=memtag`). Whether the target can
+    /// honour it is checked when the assembly is built.
+    pub fn set_hardware_safety(&mut self, safety: codira_codegen::HardwareSafety) {
+        if self.db.hardware_safety() != safety {
+            self.db.set_hardware_safety(safety);
+        }
+    }
+
     /// Turns fuel instrumentation on or off for the code this driver
     /// generates (`codira build --fuel`): a counter decrement at every
     /// function entry and loop back-edge.

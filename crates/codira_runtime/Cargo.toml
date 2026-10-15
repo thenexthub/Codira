@@ -29,6 +29,9 @@ rustc-hash = { workspace = true }
 seq-macro = { workspace = true }
 thiserror = { workspace = true }
 
+[build-dependencies]
+cc = "1.2.2"
+
 [dev-dependencies]
 codira_compiler = { path = "../codira_compiler" }
 codira_test = { path = "../codira_test" }

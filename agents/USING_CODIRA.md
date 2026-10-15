@@ -1057,7 +1057,94 @@ addresses as `usize`:
 - `cache_line_size() -> usize`, `frame_address() -> usize`.
 
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
-loads and stores). As with `load_*`/`store_*`, nothing checks the address.
+loads and stores). As with `load_*`/`store_*`, nothing checks the address --
+unless the program is built with one of the experimental modes below.
+
+### Experimental hardware safety
+
+> **EXPERIMENTAL.** These modes cover the unchecked escape hatches
+> (`load_*`/`store_*` and the other address intrinsics, `stack_alloc`, region
+> arenas and OS pages). None of it has run on MTE or CHERI hardware: the
+> machine it was written on has neither, and no `qemu-aarch64`. What was
+> verified, and how, is stated for each mode. Expect changes.
+
+#### ARM MTE: `--sanitize=memtag`
+
+```bash
+codira build --target aarch64-unknown-linux-gnu --target-feature +mte --sanitize=memtag
+codira build --target aarch64-unknown-linux-gnu --target-cpu cortex-a710 --sanitize=memtag
+```
+
+For aarch64 **Linux** targets whose features include `+mte` (from
+`--target-feature +mte`, a comma-separated list of LLVM feature changes, or
+from an MTE CPU given to `--target-cpu`). Any other target is refused before
+code generation: another architecture ("needs an aarch64 target with the
+`+mte` feature"), aarch64 without `+mte` ("needs the `+mte` target feature"),
+and non-Linux aarch64 (no `PROT_MTE`/`PR_SET_TAGGED_ADDR_CTRL`).
+
+What is tagged, with a random 4-bit tag in bits 56..59 of the address that the
+CPU compares with the memory's tag on every load and store:
+
+- `stack_alloc` slots (generated code): rounded up to 16-byte granules,
+  `llvm.aarch64.irg` (`IRG`) picks a tag, `llvm.aarch64.settag` (`STG`/`ST2G`)
+  writes it, and `stack_alloc` returns the tagged address. Before every
+  return the slot is set back to tag 0, so an address that outlives the frame
+  faults. A `stack_alloc` with a size computed at run time is refused with its
+  location.
+- Region arenas (runtime, `native/memtag_aarch64.c`): chunks are `PROT_MTE`
+  mappings; each allocation is rounded to granules and gets a tag that is
+  never 0 and never the previous allocation's, so overflowing into the next
+  allocation always faults. `codira_region_reset` sets the memory back to tag
+  0 and `codira_region_free` unmaps it, so stale addresses fault.
+- OS pages (`codira_page_alloc*`): mapped `PROT_MTE`, one tag per mapping;
+  huge pages are not used under memtag.
+
+Tag 0 is never handed out, so an untagged address -- an integer forged into
+an address, or a pointer from code that does not know the tag -- faults on
+tagged memory. The garbage-collected heap and `codira_aligned_alloc` stay
+untagged (they come from the C allocator, which is not mapped `PROT_MTE`) and
+work exactly as before.
+
+Tagged addresses are still `usize`. Adding an offset keeps the tag (any
+user-space address plus an in-bounds offset stays below 2^56). Comparing or
+subtracting addresses of *different* allocations compares their tags first, so
+it is meaningless there; `addr & 0x00ff_ffff_ffff_ffff` strips a tag. Passing
+a tagged address to C works (top-byte-ignore, and the tagged-address ABI for
+system calls). A page that will be *executed* must be called through its
+untagged address.
+
+At load time the runtime asks for synchronous tag-check faults
+(`prctl(PR_SET_TAGGED_ADDR_CTRL)`, tags 1..15 allowed) and adds `PROT_MTE` to
+the loading thread's stack. A memtag library loaded where that is impossible
+(no MTE, or not aarch64 Linux) is refused rather than run unchecked. Threads
+that existed before the library loaded are not checked.
+
+Verified here: an aarch64 Linux object built with `+mte` has `IRG` and tag
+stores for a `stack_alloc` (the test decodes the object's instruction stream,
+and disassembles it with the LLVM installation's `llvm-objdump`) and an object
+built without the mode has no MTE instruction; the runtime's C primitives
+compile for aarch64 with `IRG`, `ST2G`, `STG` and `LDG` in their disassembly;
+a freestanding aarch64 test program built from them links. The test that
+*runs* that program (in-bounds accesses work; overflowing, untagged and stale
+pointers end in SIGSEGV) runs only where `/proc/cpuinfo` lists `mte` or
+`qemu-aarch64` is on `PATH`, and is skipped here with that reason. Limits:
+tag checks are probabilistic only where two allocations happen to share a tag
+(1 in 15, never for neighbours in a region); `--sanitize=memtag` cannot go
+through the daemon or `--watch`; there is no aarch64 build of the runtime in
+this repository's tests, so the region/page integration has only been
+compiled for the host, where it is inactive.
+
+#### CHERI and Morello targets: refused
+
+`--target aarch64-morello` (or any triple naming `morello`, `cheri` or
+`purecap`) is refused with an explanation, not faked. On Morello every
+pointer is a 129-bit capability -- a 64-bit address plus bounds compressed
+relative to it and permissions in 64 more bits, with a validity tag the
+hardware keeps outside addressable memory -- so pointer size, alignment, the
+stack and every load and store change. Building for it needs a
+capability-aware LLVM (CHERI LLVM; the LLVM this compiler links does not have
+it), the purecap ABI (`-mabi=purecap`), and a Codira runtime, C library and
+loader built for it. None of that exists here.
 
 ### Proven rewrite rules: `@rewrite`
 
@@ -1375,6 +1462,10 @@ Runtime (hosts embedding `codira_runtime`):
   (`codira_region_*`), OS pages with W^X protection, huge pages and icache
   flushing (`codira_page_*`, `codira_icache_flush`), and aligned allocation.
   Addresses are `usize`; failures return 0/false. Region memory is untraced.
+- Experimental hardware safety: `codira build --sanitize=memtag` tags
+  `stack_alloc` slots, region memory and OS pages with ARM MTE on aarch64
+  Linux targets with `+mte` (built and inspected, never run: see
+  "Experimental hardware safety").
 - Fuel: `codira build --fuel` instruments every function entry and loop
   iteration to decrement a counter; `codira start --fuel <n>` /
   `codira run --fuel <n>` (or `RuntimeBuilder::fuel(n)`) sets the budget.
