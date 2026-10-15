@@ -1,0 +1,24 @@
+import root.table.{ Table }
+import root.wal.{ Log }
+
+// Read-only views the evaluation harness uses to compare logical state
+// across versions. Never changed by any update in the history.
+public func slot_live(t: Table, i: i64) -> i64 {
+    if i < 0 || i >= t.cap { return 0 }
+    if t.slots[i].state == 2 { 1 } else { 0 }
+}
+
+public func slot_key(t: Table, i: i64) -> i64 {
+    if i < 0 || i >= t.cap { return 0 }
+    t.slots[i].key
+}
+
+public func slot_val(t: Table, i: i64) -> i64 {
+    if i < 0 || i >= t.cap { return 0 }
+    t.slots[i].val
+}
+
+public func table_capacity(t: Table) -> i64 { t.cap }
+public func table_used(t: Table) -> i64 { t.used }
+public func log_seq(l: Log) -> i64 { l.seq }
+public func log_sum(l: Log) -> i64 { l.sum }

@@ -1,0 +1,28 @@
+import root.accounts.{ Ledger }
+
+// Read-only views the evaluation harness uses to compare logical state
+// across versions. Never changed by any update in the history.
+public func acct_bal(l: Ledger, i: i64) -> i64 {
+    if i < 0 || i >= l.n { return 0 }
+    l.accts[i].bal
+}
+
+public func acct_frozen(l: Ledger, i: i64) -> i64 {
+    if i < 0 || i >= l.n { return 0 }
+    l.accts[i].frozen
+}
+
+public func acct_tokens(l: Ledger, i: i64) -> i64 {
+    if i < 0 || i >= l.n { return 0 }
+    l.accts[i].tokens
+}
+
+public func acct_last(l: Ledger, i: i64) -> i64 {
+    if i < 0 || i >= l.n { return 0 }
+    l.accts[i].last
+}
+
+public func ledger_n(l: Ledger) -> i64 { l.n }
+public func ledger_total(l: Ledger) -> i64 { l.total }
+public func ledger_ok(l: Ledger) -> i64 { l.ok }
+public func ledger_denied(l: Ledger) -> i64 { l.denied }

@@ -79,11 +79,21 @@ CHERI-style capability mode) are in progress.
 
 Each stage is a group of crates in `crates/`. Arrows into `codira_smt` (Z3)
 and `codira_tv` are proofs the compiler asks for before it trusts a
-contract, a transformation or a rewrite rule. The dashed box lists work on
-feature branches that has not reached `main` yet.
+contract, a transformation or a rewrite rule. This is the compiler as of
+15 October 2026: amber outlines mark what was added on 14 and 15 October,
+dashed outlines mark parts that are on `main` but unfinished or experimental,
+and the grey box lists unfinished work that is not on `main`.
 
 ```mermaid
 flowchart TD
+    %% ---------------------------------------------------------------- legend
+    subgraph LEGEND [" Legend "]
+        direction LR
+        L1["on main since 13 Oct<br/>(earlier work, plain outline)"]
+        L2["added 14-15 Oct<br/>(amber outline)"]
+        L3["on main but unfinished or<br/>experimental (dashed)"]
+    end
+
     %% ---------------------------------------------------------------- 5
     subgraph TOOLS [" 5. Tooling and interop "]
         direction LR
@@ -91,6 +101,10 @@ flowchart TD
         Daemon["codira_compiler_daemon<br/>warm salsa + LLVM, token-authenticated"]
         LSP["codira_language_server"]
         ImportC["codira import-c<br/>C headers via Clang"]
+        Certify["codira certify<br/>re-checks proofs with Z3 alone"]
+        ApiDiff["codira api-diff<br/>breaking-change check, Z3 implication"]
+        Attest["codira attest<br/>zero-knowledge proof of an oblivious function"]
+        Ueval["codira_ueval<br/>evaluation harness scaffolding (paper)"]
     end
     TOOLS ==>|drive| FRONTEND
 
@@ -99,9 +113,16 @@ flowchart TD
         direction TB
         Src["Codira source<br/>*.code, codira.toml"] --> Parse["codira_syntax<br/>lexer, parser, lossless CST<br/>contextual keywords"]
         Parse --> ItemTree["Item tree and name resolution<br/>modules, visibility, imports"]
-        ItemTree --> Infer["Type inference<br/>generics, optionals, effects rows"]
+        ItemTree --> Infer["Type inference<br/>generics, optionals, enums,<br/>closures, effect rows"]
         Infer --> Mono["codira_hir::mono<br/>one instance per type argument"]
         Comptime["codira_comptime<br/>compile-time interpreter<br/>fuel + depth limits"] <-->|folds comptime blocks| Infer
+
+        Enums["enum, match, optionals<br/>exhaustiveness checker"]
+        Closures["function values and closures<br/>capture by value, hot-reload safe"]
+        Loops["for loops, ranges, continue<br/>bounds-checked indexing"]
+        Infer --- Enums
+        Infer --- Closures
+        Infer --- Loops
 
         subgraph CHECKS [" Static checks, every one a diagnostic, never a crash "]
             direction LR
@@ -116,7 +137,7 @@ flowchart TD
 
         subgraph VERIFY [" Contract verification: codira_hir::verify "]
             direction LR
-            Contracts["requires / ensures<br/>invariant / decreases / ghost<br/>refinement types"]
+            Contracts["requires / ensures<br/>invariant / decreases / ghost<br/>refinement types, bit-exact,<br/>for and continue modelled"]
             Synth["?? holes and choose x where p"]
             TestGen["Counterexample to test<br/>codira test, codira query"]
         end
@@ -125,6 +146,9 @@ flowchart TD
 
     SMT["codira_smt<br/>Z3, deterministic rlimit"]
     VERIFY <==>|bit-vector proof obligations| SMT
+    CERT["codira_certificate<br/>proofs as SMT-LIB2 + code hashes"]
+    VERIFY --> CERT
+    CERT <--> SMT
 
     %% ---------------------------------------------------------------- 2
     subgraph EIDOS [" 2. Eidos mid-end: codira_mir, codira_egraph, codira_tv "]
@@ -147,25 +171,32 @@ flowchart TD
         LLVMGen["codira_codegen<br/>HIR instance to LLVM IR via inkwell<br/>bounds checks, effects, tasks, fuel"]
         Targets["codira_target<br/>14 targets held to LLVM data layouts<br/>--target-cpu"]
         Native["[native] C, C++, asm in a package<br/>bitcode linked before optimization"]
-        LLD["codira_lld<br/>in-process LLD"]
+        Image["codira_image<br/>direct PE writer (default on Windows),<br/>ELF opt-in, declines what it cannot model"]
+        LLD["codira_lld<br/>in-process LLD (fallback)"]
         Lib[".codiralib<br/>hot-reloadable shared library"]
         Exe["codira build --exe<br/>standalone executable"]
         Wasm["wasm32-unknown-unknown<br/>module that imports nothing"]
         PTX["@target(gpu)<br/>NVPTX, launched by codira_gpu"]
         CL["codira_cranelift<br/>codira run --jit, no LLVM, no linker"]
         Quantum["codira_quantum<br/>@target(qpu): circuit IR, simulator,<br/>QIR, OpenQASM 2/3"]
+        Circuits["codira_circuits<br/>oblivious function to R1CS, Circom,<br/>Groth16 (attest); Verilog (@target(fpga))"]
         Asm["@asm inline assembly<br/>machine memory intrinsics"]
+        MTE["--sanitize=memtag (AArch64)<br/>experimental, never run on MTE hardware"]
+        Funis["funis_* crates (mold fork, MIT)<br/>ELF + Mach-O linker; library mode unfinished,<br/>not used by the compiler yet"]
+        Bindgen["codira bindgen<br/>C, Rust, Go, TypeScript"]
+        Bun["Bun plugin<br/>import a .code file"]
 
         LLVMGen --> Targets
         Native --> LLVMGen
         Asm --> LLVMGen
-        Targets --> LLD
+        Targets --> Image
+        Image --> Lib
+        Targets -.->|"declined or other formats"| LLD
         LLD --> Lib
         LLD --> Exe
         Targets --> Wasm
+        Targets -.-> MTE
         LLVMGen --> PTX
-        Bindgen["codira bindgen<br/>C, Rust, Go, TypeScript"]
-        Bun["Bun plugin<br/>import a .code file"]
         Lib --> Bindgen
         Lib --> Bun
     end
@@ -173,13 +204,16 @@ flowchart TD
     Fold -.->|constant shortcut| LLVMGen
     Mono ==>|dev JIT| CL
     Infer ==>|"qpu kernels"| Quantum
+    Flow ==>|"oblivious subset"| Circuits
 
     %% ---------------------------------------------------------------- 4
     subgraph RUNTIME [" 4. Runtime: codira_runtime, codira_memory, codira_healing "]
         direction TB
         Loader["codira_libloader + codira_abi<br/>type info, GUIDs, dispatch table"]
         Reload["Hot reload<br/>relink dispatch table, migrate heap<br/>@renamed, saturating retypes"]
-        GC["codira_memory<br/>mark-sweep GC, size-class blocks<br/>heap cap, heap snapshots"]
+        Snap["Heap snapshots<br/>save and restore the whole GC heap"]
+        Cells["Function-value code cells<br/>repointed on every reload"]
+        GC["codira_memory<br/>mark-sweep GC, size-class blocks, heap cap"]
         Regions["Region arenas with quotas<br/>W^X OS pages"]
         Pool["Worker pool<br/>scope joins, bounded channels"]
         EffRT["Effect handlers<br/>resume, abort across frames"]
@@ -187,22 +221,20 @@ flowchart TD
         Heracles["codira_healing (HERACLES)<br/>fault interception, @heal strategies"]
         Loader --> Reload
         Reload --> GC
+        Reload --> Snap
+        Reload --> Cells
         Fuel --> Heracles
     end
     Lib ==> Loader
     Exe ==> Loader
 
     %% ---------------------------------------------------------------- in progress
-    subgraph NEXT [" In progress on feature branches "]
+    subgraph NEXT [" Not on main: unfinished work kept in branch worktrees "]
         direction LR
-        N1["enum + match"]
-        N2["closures and function values"]
-        N3["select, session types"]
-        N4["attest: ZK circuits<br/>@target(fpga): Verilog"]
-        N5["schedule ... for<br/>LLVM loop metadata"]
-        N6["multi-shot continuations<br/>sample / observe"]
-        N7["proof-carrying artifacts<br/>codira api-diff"]
-        N8["experimental MTE,<br/>software capabilities"]
+        N1["select and session types<br/>merge with main unfinished"]
+        N2["loop schedules (LLVM hints)<br/>fails a dependence-safety test"]
+        N3["multi-shot continuations,<br/>sample / observe<br/>fails posterior checks"]
+        N6["proof-gated live updates<br/>relational prover and runtime<br/>protocol do not compile yet"]
     end
 
     classDef frontend fill:#1e293b,stroke:#38bdf8,color:#f8fafc,stroke-width:2px;
@@ -211,8 +243,11 @@ flowchart TD
     classDef runtime fill:#3b0764,stroke:#c084fc,color:#f8fafc,stroke-width:2px;
     classDef tools fill:#422006,stroke:#fbbf24,color:#f8fafc,stroke-width:2px;
     classDef smt fill:#581c87,stroke:#e879f9,color:#f8fafc,stroke-width:2px;
-    classDef sub fill:#0f172a,stroke:#94a3b8,color:#f8fafc,stroke-width:1px;
     classDef next fill:#1f2937,stroke:#9ca3af,color:#e5e7eb,stroke-width:1px,stroke-dasharray:5 5;
+    classDef legend fill:#0f172a,stroke:#94a3b8,color:#f8fafc,stroke-width:1px;
+    classDef added fill:#1f2937,stroke:#f59e0b,color:#fef3c7,stroke-width:3px;
+    classDef wip fill:#111827,stroke:#9ca3af,color:#d1d5db,stroke-width:2px,stroke-dasharray:5 5;
+    classDef old fill:#1f2937,stroke:#64748b,color:#f1f5f9,stroke-width:1px;
 
     class FRONTEND frontend;
     class EIDOS mid;
@@ -221,8 +256,13 @@ flowchart TD
     class TOOLS tools;
     class SMT,TV smt;
     class NEXT next;
-    class CHECKS,VERIFY sub;
-
+    class LEGEND legend;
+    class L1 old;
+    class L2 added;
+    class L3 wip;
+    class N1,N2,N3,N6 wip;
+    class MTE,Funis,Ueval wip;
+    class Enums,Closures,Loops,Units,Realtime,Mono,Certify,ApiDiff,Attest,CERT,Rewrite,Image,Circuits,PTX,Snap,Cells added;
     linkStyle default stroke:#94a3b8,stroke-width:1.5px;
 ```
 

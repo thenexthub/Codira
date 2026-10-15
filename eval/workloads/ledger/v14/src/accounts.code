@@ -1,0 +1,168 @@
+import root.limiter.{ refill, rate, burst }
+
+type Amount = i64 { a | a > 0 && a <= 1000000 }
+
+public struct Acct {
+    public bal: i64,
+    public frozen: i64,
+    public tokens: i64,
+    public last: i64,
+    public txs: i64,
+}
+
+public class Ledger {
+    public accts: [Acct],
+    public n: i64,
+    public total: i64,
+    public ok: i64,
+    public denied: i64,
+    public fee_shift: i64,
+}
+
+func fresh() -> Acct {
+    Acct { bal: 1000, frozen: 0, tokens: 10, last: 0, txs: 0 }
+}
+
+public func ledger_new() -> Ledger {
+    Ledger {
+        accts: [fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh()],
+        n: 32,
+        total: 32000,
+        ok: 0,
+        denied: 0,
+        fee_shift: 0,
+    }
+}
+
+@realtime
+public func fee_of(amt: i64, shift: i64) -> i64
+    requires amt >= 0 && amt <= 1000000
+    ensures result >= 0 && result <= amt
+{
+    if shift <= 0 || shift > 40 { 0 } else { amt >> shift }
+}
+
+@realtime
+func debit(bal: i64, amt: Amount) -> i64
+    requires bal >= amt
+    ensures result == bal - amt && result >= 0
+{
+    bal - amt
+}
+
+@realtime
+func credit(bal: i64, amt: Amount) -> i64
+    requires bal >= 0 && bal <= 4000000000000
+    ensures result == bal + amt && result > 0
+{
+    bal + amt
+}
+
+@noalloc
+public func deposit(l: Ledger, acct: i64, amt: i64) -> i64 {
+    if acct < 0 || acct >= l.n { return 4 }
+    if amt <= 0 || amt > 1000000 { return 5 }
+    let b = l.accts[acct].bal
+    if b < 0 || b > 4000000000000 { return 7 }
+    l.accts[acct].bal = credit(b, amt)
+    l.total += amt
+    0
+}
+
+@noalloc
+public func withdraw(l: Ledger, acct: i64, amt: i64) -> i64 {
+    if acct < 0 || acct >= l.n { return 4 }
+    if amt <= 0 || amt > 1000000 { return 5 }
+    if l.accts[acct].frozen == 1 { return 3 }
+    let b = l.accts[acct].bal
+    if b < amt { return 1 }
+    l.accts[acct].bal = debit(b, amt)
+    l.total -= amt
+    0
+}
+
+enum Status {
+    Ok,
+    Insufficient,
+    RateLimited,
+    Frozen,
+    BadAccount,
+    BadAmount,
+    SameAccount,
+    Overflow,
+}
+
+func code(s: Status) -> i64 {
+    match s {
+        Status.Ok -> 0,
+        Status.Insufficient -> 1,
+        Status.RateLimited -> 2,
+        Status.Frozen -> 3,
+        Status.BadAccount -> 4,
+        Status.BadAmount -> 5,
+        Status.SameAccount -> 6,
+        Status.Overflow -> 7,
+    }
+}
+
+@noalloc
+func take_token(l: Ledger, i: i64, now: i64) -> bool {
+    let tk = refill(l.accts[i].tokens, l.accts[i].last, now, rate(), burst())
+    if tk < 1 { return false }
+    l.accts[i].tokens = tk - 1
+    l.accts[i].last = now
+    true
+}
+
+@noalloc
+public func transfer(l: Ledger, from: i64, to: i64, amt: i64, now: i64) -> i64 {
+    if from < 0 || from >= l.n || to < 0 || to >= l.n { return code(Status.BadAccount) }
+    if amt <= 0 || amt > 1000000 { return code(Status.BadAmount) }
+    if from == to { return code(Status.SameAccount) }
+    if l.accts[from].frozen == 1 || l.accts[to].frozen == 1 { return code(Status.Frozen) }
+    if !take_token(l, from, now) {
+        l.denied += 1
+        return code(Status.RateLimited)
+    }
+    let fee = fee_of(amt, l.fee_shift)
+    let fb = l.accts[from].bal
+    if fb < amt + fee {
+        l.denied += 1
+        return code(Status.Insufficient)
+    }
+    let tb = l.accts[to].bal
+    if tb < 0 || tb > 4000000000000 { return code(Status.Overflow) }
+    let rest = debit(fb, amt)
+    l.accts[from].bal = if fee > 0 { debit(rest, fee) } else { rest }
+    l.total -= fee
+    l.accts[to].bal = credit(tb, amt)
+    l.accts[from].txs += 1
+    l.accts[to].txs += 1
+    l.ok += 1
+    code(Status.Ok)
+}
+
+public func acct_txs(l: Ledger, i: i64) -> i64 {
+    if i < 0 || i >= l.n { return -1 }
+    l.accts[i].txs
+}
+
+@noalloc
+public func set_frozen(l: Ledger, acct: i64, flag: i64) -> i64 {
+    if acct < 0 || acct >= l.n { return 4 }
+    l.accts[acct].frozen = if flag == 0 { 0 } else { 1 }
+    0
+}
+
+// Sum of all balances minus the money supply: zero while the books balance.
+@noalloc
+public func audit(l: Ledger) -> i64 {
+    var sum = 0
+    var i = 0
+    let n = l.n
+    while i < n {
+        sum += l.accts[i].bal
+        i += 1
+    }
+    sum - l.total
+}
