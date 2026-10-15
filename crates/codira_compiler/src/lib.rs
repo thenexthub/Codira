@@ -22,8 +22,10 @@ use std::{
 
 pub use annotate_snippets::AnnotationType;
 pub use codira_codegen::{
-    in_process_lld_available, link_mode, resolve_target_cpu, BuildMode, EidosOptions, LinkMode,
-    OptimizationLevel, TargetCpuError, LINK_MODE_ENV,
+    image_link_stats, in_process_lld_available, link_mode, reset_image_link_stats,
+    resolve_target_cpu, verification_enabled, BuildMode, EidosOptions, ImageLinkStats, LinkMode,
+    OptimizationLevel, TargetCpuError, DIRECT_ELF_ENV, DIRECT_LINK_ENV, DUMP_OBJECTS_ENV,
+    LINK_LOG_ENV, LINK_MODE_ENV, LINK_VERIFY_ENV,
 };
 pub use codira_hir_input::FileId;
 pub use codira_paths::{RelativePath, RelativePathBuf};

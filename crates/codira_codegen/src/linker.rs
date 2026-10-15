@@ -27,10 +27,19 @@ pub enum LinkMode {
 
     /// Call LLD as a library inside this process, through `codira_lld`.
     InProcess,
+
+    /// Write the image with `codira_image` when it can be certain of the
+    /// result (a `.codiralib` for `x86_64-pc-windows-msvc`), and link with
+    /// LLD, in-process where it is linked in, for everything it declines.
+    Direct,
 }
 
 /// Name of the environment variable that overrides the link mode.
 pub const LINK_MODE_ENV: &str = "CODIRA_LINK_MODE";
+
+/// Set to `0` to keep the direct image writer out even in `Direct` mode;
+/// the escape hatch that forces LLD without naming how to run it.
+pub const DIRECT_LINK_ENV: &str = "CODIRA_DIRECT_LINK";
 
 /// Set once LLD reports that it cannot be run in this process again. Every
 /// later link spawns the linker instead -- see `link_in_process`.
@@ -83,15 +92,28 @@ fn parse_link_mode(value: &str) -> Option<LinkMode> {
     match value.trim().to_ascii_lowercase().as_str() {
         "in-process" | "in_process" | "inprocess" => Some(LinkMode::InProcess),
         "subprocess" | "spawn" => Some(LinkMode::Subprocess),
+        "direct" | "image" => Some(LinkMode::Direct),
         _ => None,
     }
 }
 
-/// The link mode in effect: `CODIRA_LINK_MODE` if it names one, otherwise
-/// in-process when LLD is linked into this compiler and a spawned linker
-/// when it is not.
+/// The way LLD is run when nothing else is asked for: in-process when it is
+/// linked into this compiler and a spawned linker when it is not.
+fn default_lld_mode() -> LinkMode {
+    if in_process_lld_available() {
+        LinkMode::InProcess
+    } else {
+        LinkMode::Subprocess
+    }
+}
+
+/// The link mode requested: `CODIRA_LINK_MODE` if it names one; otherwise
+/// the direct image writer on Windows hosts (which declines, and so links
+/// with LLD, whatever it does not model), and LLD -- in-process when it is
+/// linked into this compiler, a spawned linker when it is not -- elsewhere.
 ///
-/// Reports what is *requested*. Whether an individual link can honor
+/// `CODIRA_LINK_MODE=in-process` or `subprocess` is the escape hatch that
+/// forces LLD for everything. Whether an individual link can honor
 /// `InProcess` is decided per call by `run_lld`.
 pub fn link_mode() -> LinkMode {
     if let Some(mode) = env::var(LINK_MODE_ENV)
@@ -102,11 +124,32 @@ pub fn link_mode() -> LinkMode {
         return mode;
     }
 
-    if in_process_lld_available() {
-        LinkMode::InProcess
+    if cfg!(windows) {
+        LinkMode::Direct
     } else {
-        LinkMode::Subprocess
+        default_lld_mode()
     }
+}
+
+/// How LLD is run when it is run: the requested mode, except that `Direct`
+/// leaves the choice between in-process and spawned to the build.
+fn lld_mode() -> LinkMode {
+    match link_mode() {
+        LinkMode::Direct => default_lld_mode(),
+        mode => mode,
+    }
+}
+
+/// Whether `codira_image` should be tried for the targets it supports: in
+/// `Direct` mode, unless `CODIRA_DIRECT_LINK` is `0`/`off`/`false`.
+pub(crate) fn direct_image_requested() -> bool {
+    if matches!(
+        env::var(DIRECT_LINK_ENV).as_deref().map(str::trim),
+        Ok("0" | "off" | "false")
+    ) {
+        return false;
+    }
+    link_mode() == LinkMode::Direct
 }
 
 /// The object-file format a linker invocation targets, which selects the LLD
@@ -199,7 +242,7 @@ fn run_lld(driver: LldDriver, args: &[String]) -> Result<(), String> {
 
     #[cfg(all(feature = "in-process-lld", windows))]
     if program_override.is_none()
-        && link_mode() == LinkMode::InProcess
+        && lld_mode() == LinkMode::InProcess
         && !IN_PROCESS_LLD_POISONED.load(Ordering::SeqCst)
         && claim_in_process_driver(driver)
     {
@@ -737,6 +780,8 @@ mod tests {
         assert_eq!(parse_link_mode(" inprocess "), Some(LinkMode::InProcess));
         assert_eq!(parse_link_mode("subprocess"), Some(LinkMode::Subprocess));
         assert_eq!(parse_link_mode("spawn"), Some(LinkMode::Subprocess));
+        assert_eq!(parse_link_mode("direct"), Some(LinkMode::Direct));
+        assert_eq!(parse_link_mode(" DIRECT "), Some(LinkMode::Direct));
     }
 
     #[test]

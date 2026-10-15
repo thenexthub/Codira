@@ -42,6 +42,10 @@ mod test_utils;
 /// Defines the current ABI version
 #[allow(clippy::zero_prefixed_literal)]
 pub const ABI_VERSION: u32 = 00_04_00;
+/// The extension of the temporary file the compiler writes a library to
+/// before renaming it onto its final path, so that the runtime never sees a
+/// torn `.codiralib`. The runtime ignores files with this extension.
+pub const OUTPUT_TEMP_EXTENSION: &str = "codira-tmp";
 /// Defines the name for the `get_info` function
 pub const GET_INFO_FN_NAME: &str = "get_info";
 /// Defines the name for the `get_version` function

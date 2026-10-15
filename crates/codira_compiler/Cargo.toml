@@ -29,5 +29,6 @@ walkdir = { workspace = true }
 yansi-term = { workspace = true }
 
 [dev-dependencies]
+codira_image = { path = "../codira_image" }
 tempfile = { workspace = true }
 insta = { workspace = true }

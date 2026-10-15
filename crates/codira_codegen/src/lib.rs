@@ -11,7 +11,11 @@ pub use crate::{
     code_gen::AssemblyBuilder,
     db::{CodeGenDatabase, CodeGenDatabaseStorage},
     eidos_options::{BuildMode, EidosOptions, EidosRun},
-    linker::{in_process_lld_available, link_mode, LinkMode, LINK_MODE_ENV},
+    image_link::{
+        image_link_stats, reset_image_link_stats, verification_enabled, ImageLinkStats,
+        DIRECT_ELF_ENV, DUMP_OBJECTS_ENV, LINK_LOG_ENV, LINK_VERIFY_ENV,
+    },
+    linker::{in_process_lld_available, link_mode, LinkMode, DIRECT_LINK_ENV, LINK_MODE_ENV},
     module_group::ModuleGroup,
     module_partition::{ModuleGroupId, ModulePartition},
     native::NativeInputs,
@@ -43,6 +47,7 @@ pub mod value;
 
 mod apple;
 pub mod gpu;
+mod image_link;
 pub(crate) mod intrinsics;
 mod linker;
 pub mod mir_codegen;

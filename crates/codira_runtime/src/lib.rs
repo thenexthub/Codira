@@ -53,7 +53,10 @@ use codira_project::LOCKFILE_NAME;
 use dispatch_table::DispatchTable;
 use garbage_collector::GarbageCollector;
 use log::{debug, error, info, warn};
-use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{
+    event::{ModifyKind, RenameMode},
+    Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+};
 
 pub use crate::{
     adt::{RootedStruct, StructRef},
@@ -821,6 +824,14 @@ fn drain_watcher_events(
         };
 
         for path in event.paths {
+            // The compiler writes a library to a temporary file and renames
+            // it onto its path; the temporary file is never an assembly.
+            if path
+                .extension()
+                .is_some_and(|extension| extension == abi::OUTPUT_TEMP_EXTENSION)
+            {
+                continue;
+            }
             if is_lockfile(&path) {
                 match event.kind {
                     EventKind::Create(_) => debug!("Lockfile created"),
@@ -846,22 +857,36 @@ fn drain_watcher_events(
                 };
 
                 match event.kind {
-                    EventKind::Modify(ModifyKind::Name(_)) => {
-                        let Some(tracker) = event.attrs.tracker() else {
+                    EventKind::Modify(ModifyKind::Name(mode)) => {
+                        let tracker = event.attrs.tracker();
+                        let source = tracker.and_then(|tracker| renamed_files.remove(&tracker));
+                        match (source, mode, tracker) {
+                            (Some(old_path), _, _) => {
+                                assemblies_to_relink.insert(old_path, path);
+                                // on_file_changed(self, &old_path, &path);
+                            }
+                            // Something was renamed onto this path from a
+                            // file that is not tracked: the compiler writes
+                            // a library to a temporary file and renames it
+                            // over the old one, and the temporary file is
+                            // gone by the time its event is handled. The
+                            // file at this path has new contents. Platforms
+                            // that report no tracker (Windows) always end up
+                            // here.
+                            (None, RenameMode::To, _) => {
+                                assemblies_to_relink.insert(path.clone(), path);
+                            }
+                            (None, _, Some(tracker)) => {
+                                renamed_files.insert(tracker, path);
+                            }
                             // Without a tracker the two halves of a rename
                             // cannot be matched up.
-                            warn!(
-                                "Ignoring a rename event without a tracker for {}",
-                                path.to_string_lossy()
-                            );
-                            continue;
-                        };
-
-                        if let Some(old_path) = renamed_files.remove(&tracker) {
-                            assemblies_to_relink.insert(old_path, path);
-                            // on_file_changed(self, &old_path, &path);
-                        } else {
-                            renamed_files.insert(tracker, path);
+                            (None, _, None) => {
+                                warn!(
+                                    "Ignoring a rename event without a tracker for {}",
+                                    path.to_string_lossy()
+                                );
+                            }
                         }
                     }
                     EventKind::Modify(_) => {
@@ -1225,15 +1250,18 @@ mod tests {
         );
     }
 
-    /// A rename event without a tracker used to panic.
+    /// A rename event without a tracker used to panic. Its destination is
+    /// still a file that changed, and a source that is not a file of ours
+    /// cannot be told apart from the compiler's temporary file.
     #[test]
-    fn rename_without_tracker_is_skipped() {
+    fn rename_onto_a_path_without_tracker_is_a_change_to_it() {
         let dir = tempfile::tempdir().unwrap();
-        let (untracked, _) = existing_file(dir.path(), "untracked.codiralib");
+        let (untracked, untracked_canonical) = existing_file(dir.path(), "untracked.codiralib");
         let (path, canonical) = existing_file(dir.path(), "mod.codiralib");
 
         let drained = drain(vec![
             Ok(renamed(&untracked, RenameMode::To)),
+            Ok(renamed(&path, RenameMode::From)),
             Ok(modified(&path)),
         ]);
 
@@ -1242,7 +1270,10 @@ mod tests {
         assert!(drained.renamed_files.is_empty());
         assert_eq!(
             drained.assemblies_to_relink,
-            BTreeMap::from([(canonical.clone(), canonical)])
+            BTreeMap::from([
+                (untracked_canonical.clone(), untracked_canonical),
+                (canonical.clone(), canonical)
+            ])
         );
     }
 
@@ -1265,6 +1296,74 @@ mod tests {
             drained.assemblies_to_relink,
             BTreeMap::from([(old_canonical, new_canonical)])
         );
+    }
+
+    /// The compiler writes a library to a temporary file and renames it onto
+    /// its path. The first half of that rename names a file that is already
+    /// gone; the second half is the library changing.
+    #[test]
+    fn rename_onto_an_assembly_is_a_change_to_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let temp = dir.path().join(format!(
+            ".mod.codiralib.1.{}",
+            codira_abi::OUTPUT_TEMP_EXTENSION
+        ));
+        let (new, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![
+            Ok(modified(&temp)),
+            Ok(renamed(&temp, RenameMode::From).set_tracker(3)),
+            Ok(renamed(&new, RenameMode::To).set_tracker(3)),
+            Ok(lockfile_removed(dir.path())),
+        ]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert!(drained.renamed_files.is_empty());
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    /// The same rename as the platform reports it on Windows: no trackers.
+    #[test]
+    fn rename_onto_an_assembly_without_trackers_is_a_change_to_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let temp = dir.path().join(format!(
+            ".mod.codiralib.1.{}",
+            codira_abi::OUTPUT_TEMP_EXTENSION
+        ));
+        let (new, canonical) = existing_file(dir.path(), "mod.codiralib");
+
+        let drained = drain(vec![
+            Ok(renamed(&temp, RenameMode::From)),
+            Ok(renamed(&new, RenameMode::To)),
+            Ok(lockfile_removed(dir.path())),
+        ]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.queue_is_empty);
+        assert_eq!(
+            drained.assemblies_to_relink,
+            BTreeMap::from([(canonical.clone(), canonical)])
+        );
+    }
+
+    /// While the compiler is still writing its temporary file, events about
+    /// the file itself must not make the runtime try to load it.
+    #[test]
+    fn compiler_temporary_files_are_never_assemblies() {
+        let dir = tempfile::tempdir().unwrap();
+        let (temp, _) = existing_file(
+            dir.path(),
+            &format!(".mod.codiralib.1.{}", codira_abi::OUTPUT_TEMP_EXTENSION),
+        );
+
+        let drained = drain(vec![Ok(modified(&temp)), Ok(lockfile_removed(dir.path()))]);
+
+        assert!(drained.requires_relink);
+        assert!(drained.assemblies_to_relink.is_empty());
     }
 
     /// A path without a final component used to panic when it was compared to
