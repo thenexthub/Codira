@@ -10,6 +10,8 @@ Functionality: Codira Programming Language
 ### Stable Version: 26.10
 ### Build: October 14, 2026.
 
+Release notes: [RELEASE_NOTES_26.10.md](RELEASE_NOTES_26.10.md)
+
 _Codira_ is an ahead-of-time compiled, statically typed language for high
 performance systems, built around three ideas: the compiler proves what it
 can about your code, a running program can be changed without restarting
