@@ -39,6 +39,12 @@ pub enum PageError {
     Os(#[from] std::io::Error),
 }
 
+/// Checks protection bits the way [`alloc`] and [`protect`] do: only read,
+/// write and execute, and never write together with execute.
+pub fn validate_protection(prot: u32) -> Result<(), PageError> {
+    validate(prot)
+}
+
 fn validate(prot: u32) -> Result<(), PageError> {
     if prot & !(PROT_READ | PROT_WRITE | PROT_EXEC) != 0 {
         return Err(PageError::InvalidProtection(prot));

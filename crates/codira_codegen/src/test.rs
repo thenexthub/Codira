@@ -44,6 +44,24 @@ fn array_index() {
     );
 }
 
+/// A closure capturing a parameter, passed as a function value and called
+/// through it: the object is allocated with its cell from the
+/// `codira.fn_cell:` slot, the call loads the object, the cell and the code,
+/// and the closure body reads its capture back out of the object.
+#[test]
+fn closure_call() {
+    test_snapshot_unoptimized(
+        "closure_call",
+        r"
+    func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+
+    public func main(k: i32) -> i32 {
+        apply(func(x: i32) -> i32 { x + k }, 2)
+    }
+    ",
+    );
+}
+
 #[test]
 fn array_literal() {
     test_snapshot_unoptimized(
@@ -1892,20 +1910,6 @@ fn enum_is_a_tag_and_shared_slots() {
 
     public func main(w: f64) -> f64 {
         area(Shape.Rectangle(w, 2.0)) + area(Shape.Point)
-    }"#,
-    );
-}
-
-/// A construct the front end parses but cannot lower yet stops the build with
-/// a diagnostic naming it, rather than reaching `gen_expr` and crashing.
-#[test]
-fn unlowered_closure_is_a_diagnostic() {
-    test_snapshot(
-        "unlowered_closure_is_a_diagnostic",
-        r#"
-    public func main(x: i32) -> i32 {
-        let f = func(a: i32) -> i32 { a };
-        x
     }"#,
     );
 }

@@ -1,0 +1,87 @@
+import root.table.{ Table, table_new, table_get, table_put, table_del, table_scan, table_count }
+import root.wal.{ Log, log_new, log_append }
+
+public class Store {
+    table: Table,
+    log: Log,
+    public gets: i64,
+    public hits: i64,
+    public puts: i64,
+    public dels: i64,
+}
+
+public func kv_new() -> Store {
+    Store { table: table_new(), log: log_new(), gets: 0, hits: 0, puts: 0, dels: 0 }
+}
+
+public func kv_get(s: Store, key: i64) -> i64 {
+    s.gets += 1
+    match table_get(s.table, key) {
+        nil -> -1,
+        v -> {
+            s.hits += 1
+            v
+        },
+    }
+}
+
+public func kv_put(s: Store, key: i64, val: i64) -> i64 {
+    if val < 0 { return 0 }
+    if table_put(s.table, key, val) {
+        s.puts += 1
+        log_append(s.log, 1, key, val)
+        1
+    } else {
+        0
+    }
+}
+
+public func kv_del(s: Store, key: i64) -> i64 {
+    if table_del(s.table, key) {
+        s.dels += 1
+        log_append(s.log, 2, key, 0)
+        1
+    } else {
+        0
+    }
+}
+
+public func kv_scan(s: Store, lo: i64, hi: i64) -> i64
+    ensures result >= 0
+{
+    let r = table_scan(s.table, lo, hi)
+    if r < 0 { 0 } else { r }
+}
+
+public func kv_count(s: Store) -> i64 {
+    table_count(s.table)
+}
+
+public func kv_stat(s: Store, which: i64) -> i64 {
+    if which == 0 {
+        s.gets
+    } else if which == 1 {
+        s.hits
+    } else if which == 2 {
+        s.puts
+    } else {
+        s.dels
+    }
+}
+
+// One entry point for the request stream: 0 get, 1 put, 2 del, 3 scan, 4 count.
+public func kv_handle(s: Store, op: i64, a: i64, b: i64) -> i64 {
+    if op == 0 {
+        kv_get(s, a)
+    } else if op == 1 {
+        kv_put(s, a, b)
+    } else if op == 2 {
+        kv_del(s, a)
+    } else if op == 3 {
+        kv_scan(s, a, b)
+    } else if op == 4 {
+        kv_count(s)
+    } else {
+        -2
+    }
+}

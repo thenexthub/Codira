@@ -1,0 +1,92 @@
+public class Agg {
+    public hist: [i64],
+    public win_id: [i64],
+    public win_sum: [i64],
+    public win_cnt: [i64],
+    public total: i64,
+    public late: i64,
+    public newest: i64,
+    public sum_all: i64,
+}
+
+public func agg_new() -> Agg {
+    Agg {
+        hist: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        win_id: [-7, -7, -7, -7, -7, -7, -7, -7],
+        win_sum: [0, 0, 0, 0, 0, 0, 0, 0],
+        win_cnt: [0, 0, 0, 0, 0, 0, 0, 0],
+        total: 0,
+        late: 0,
+        newest: -7,
+        sum_all: 0,
+    }
+}
+
+@realtime
+func window_of(ts: i64) -> i64 {
+    ts / 64
+}
+
+// Events are folded into a ring of 8 windows of 64 time units each.
+@noalloc
+public func agg_add(a: Agg, ts: i64, bucket: i64, val: i64) {
+    let w = window_of(ts)
+    let slot = w & 7
+    if a.win_id[slot] != w {
+        if w < a.win_id[slot] {
+            a.late += 1
+            return
+        }
+        a.win_id[slot] = w
+        a.win_sum[slot] = 0
+        a.win_cnt[slot] = 0
+    }
+    a.win_sum[slot] += val
+    a.win_cnt[slot] += 1
+    a.hist[bucket] += 1
+    a.total += 1
+    a.sum_all += val
+    if w > a.newest {
+        a.newest = w
+    }
+}
+
+// The smallest bucket bound below which at least p percent of the events fall.
+@noalloc
+public func agg_pct(a: Agg, p: i64) -> i64 {
+    let want = (a.total * p + 99) / 100
+    let target = if want < 1 { 1 } else { want }
+    var seen = 0
+    var b = 0
+    while b < 15 {
+        seen += a.hist[b]
+        if seen >= target {
+            return 1 << b
+        }
+        b += 1
+    }
+    1 << 14
+}
+
+@noalloc
+public func agg_mean(a: Agg) -> i64 {
+    if a.total == 0 { return 0 }
+    a.sum_all / a.total
+}
+
+@noalloc
+public func agg_recent(a: Agg, k: i64) -> i64 {
+    var sum = 0
+    for i in 0..8 {
+        let id = a.win_id[i]
+        if id <= a.newest && id > a.newest - k {
+            sum += a.win_sum[i]
+        }
+    }
+    sum
+}
+
+@noalloc
+public func agg_window_sum(a: Agg, w: i64) -> i64 {
+    a.win_sum[w & 7]
+}

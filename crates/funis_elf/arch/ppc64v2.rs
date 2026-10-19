@@ -1,0 +1,607 @@
+//! This file implements the PowerPC ELFv2 ABI which was standardized in
+//! 2014. Modern little-endian PowerPC systems are based on this ABI.
+//! The ABI is often referred to as "ppc64le". This shouldn't be confused
+//! with "ppc64" which refers to the original, big-endian PowerPC systems.
+//!
+//! PPC64 is a bit tricky to support because PC-relative load/store
+//! instructions weren't available until Power10, which debuted in 2021.
+//! Prior to Power10, it wasn't trivial for position-independent code (PIC)
+//! to load a value from, for example, .got, as we can't do that with [PC +
+//! the offset to the .got entry].
+//!
+//! In the following, I'll explain how PIC is supported on pre-Power10
+//! systems first and then explain what has changed with Power10.
+//!
+//!
+//! Position-independent code on Power9 or earlier:
+//!
+//! We can get the program counter on older PPC64 systems with the
+//! following four instructions
+//!
+//!   mflr  r1  // save the current link register to r1
+//!   bl    .+4 // branch to the next instruction as if it were a function
+//!   mflr  r0  // copy the return address to r0
+//!   mtlr  r1  // restore the original link register value
+//!
+//! , but it's too expensive to do this for each load/store.
+//!
+//! As a workaround, most functions are compiled in such a way that r2 is
+//! assumed to always contain the address of .got + 0x8000. With this, we
+//! can for example load the first entry of .got with a single instruction
+//! `lw r0, -0x8000(r2)`. r2 is called the TOC pointer.
+//!
+//! There's only one .got for each ELF module. Therefore, if a callee is in
+//! the same ELF module, r2 doesn't have to be recomputed. Most function
+//! calls are usually within the same ELF module, so this mechanism is
+//! efficient.
+//!
+//! A function compiled for pre-Power10 usually has two entry points,
+//! global and local. The global entry point usually precedes the local
+//! entry point by 8 bytes. In between are the following instructions:
+//!
+//!   addis r2, r12, .TOC.@ha
+//!   addi  r2, r2,  .TOC.@lo + 4;
+//!
+//! The global entry point assumes that its own address is in r12, and it
+//! computes its own TOC pointer from r12. It's easy to do so for the callee
+//! because the offset between its .got + 0x8000 and the function is known
+//! at link-time. The above code sequence then falls through to the local
+//! entry point that assumes r2 is .got + 0x8000.
+//!
+//! So, if a callee's TOC pointer is different from the current one
+//! (e.g. calling a function in another .so), we first load the callee's
+//! address into r12 (e.g. from .got.plt with an r2-relative load) and branch
+//! to that address. Then the callee computes its own TOC pointer using
+//! r12.
+//!
+//!
+//! Position-independent code on Power10:
+//!
+//! Power10 added 8-byte-long instructions to the ISA. Some of them are
+//! PC-relative load/store instructions that take 34-bit offsets.
+//! Functions compiled with `-mcpu=power10` use these instructions for PIC.
+//! r2 does not have a special meaning in such functions.
+//!
+//! When a function compiled for Power10 calls a function that uses the TOC
+//! pointer, we need to compute the correct TOC value and set r2 to it
+//! before transferring control to the callee. Thunks are responsible for
+//! doing it.
+//!
+//! `_NOTOC` relocations such as `R_PPC64_REL24_NOTOC` indicate that the
+//! caller does not use TOC (i.e. compiled with `-mcpu=power10`), so r2
+//! doesn't hold a valid TOC pointer at the call site. If a function using
+//! TOC is referenced via a `_NOTOC` relocation, that call is made through
+//! a range extension thunk.
+//!
+//!
+//! Note on section names: the PPC64 psABI uses a weird naming convention
+//! which calls .got.plt .plt. We ignored that part because it's just
+//! confusing. Since the runtime only cares about segments, we should be
+//! able to name sections whatever we want.
+//!
+//! https://github.com/rui314/psabi/blob/main/ppc64v2.pdf
+//!
+//! The distance between the global and local entry points is encoded in
+//! the symbol's `st_other`.
+
+use std::sync::atomic::Ordering;
+
+use funis_common::bits::{bits, is_int};
+use funis_common::endian::{read_ul16, read_ul32, write_ul16, write_ul32, write_ul64};
+use funis_common::{error, fatal};
+
+use crate::arch::{Family, Target, ThunkLayout};
+use crate::chunks::eh_frame;
+use crate::context::Context;
+use crate::elf::*;
+use crate::input_sections::NonAllocReloc;
+use crate::input_sections::{InputSection, check_tlsle};
+use crate::symbol::{NEEDS_GOT, NEEDS_GOTTP, NEEDS_PLT, NEEDS_TLSGD, Symbol};
+use crate::thunks::Thunk;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Ppc64V2;
+
+fn lo(x: u64) -> u64 {
+    x & 0xffff
+}
+
+fn hi(x: u64) -> u64 {
+    x >> 16
+}
+
+fn ha(x: u64) -> u64 {
+    x.wrapping_add(0x8000) >> 16
+}
+
+fn higha(x: u64) -> u64 {
+    ha(x) & 0xffff
+}
+
+fn or16(loc: &mut [u8], v: u64) {
+    let cur = read_ul16(loc);
+    write_ul16(loc, cur | v as u16);
+}
+
+fn or32(loc: &mut [u8], v: u32) {
+    let cur = read_ul32(loc);
+    write_ul32(loc, cur | v);
+}
+
+/// Writes the 34-bit immediate of a prefixed instruction, which is split
+/// between the prefix word and the instruction word.
+fn write34(loc: &mut [u8], x: u64) {
+    let prefix = (read_ul32(loc) & 0xfffc_0000) | bits(x, 33, 16) as u32;
+    let insn = (read_ul32(&loc[4..]) & 0xffff_0000) | bits(x, 15, 0) as u32;
+    write_ul32(loc, prefix);
+    write_ul32(&mut loc[4..], insn);
+}
+
+/// The 26-bit displacement field of a branch.
+fn branch_field(val: i64) -> u32 {
+    (bits(val as u64, 25, 2) << 2) as u32
+}
+
+/// The address of the TOC pointer, `.got + 0x8000`.
+fn toc(ctx: &Context<Ppc64V2>) -> u64 {
+    ctx.symbols[ctx.syms.toc.expect("PPC64 has a .TOC. symbol")].addr(ctx)
+}
+
+fn is_power10(ctx: &Context<Ppc64V2>) -> bool {
+    ctx.is_power10.load(Ordering::Relaxed)
+}
+
+/// The distance from a function's global entry point to its local one.
+fn local_entry_offset(ctx: &Context<Ppc64V2>, sym: &Symbol) -> u64 {
+    match sym.esym(ctx).ppc64_local_entry() {
+        0 | 1 => 0,
+        7 => fatal!("{sym}: local entry offset 7 is reserved"),
+        n => 1 << n,
+    }
+}
+
+impl Target for Ppc64V2 {
+    const IS_LITTLE: bool = true;
+    type Word = U64<Self>;
+    type Sym = Elf64Sym<Self>;
+    type Phdr = Elf64Phdr<Self>;
+    type Chdr = Elf64Chdr<Self>;
+    type Rel = ElfRela<Self>;
+
+    type InputSectionExtra = ();
+
+    const NAME: &'static str = "ppc64v2";
+    const FAMILY: Family = Family::Ppc64V2;
+    const PAGE_SIZE: u64 = 65536;
+    const E_MACHINE: u32 = EM_PPC64;
+    const PLTGOT_SIZE: u64 = 0;
+    const THUNK: Option<ThunkLayout> = Some(ThunkLayout { header_size: 0, max_entry_size: 24 });
+    const TRAP: &'static [u8] = &[0x08, 0x00, 0xe0, 0x7f]; // trap
+
+    const R_COPY: u32 = R_PPC64_COPY;
+    const R_GLOB_DAT: u32 = R_PPC64_GLOB_DAT;
+    const R_JUMP_SLOT: u32 = R_PPC64_JMP_SLOT;
+    const R_ABS: u32 = R_PPC64_ADDR64;
+    const R_RELATIVE: u32 = R_PPC64_RELATIVE;
+    const R_IRELATIVE: Option<u32> = Some(R_PPC64_IRELATIVE);
+    const R_DTPOFF: u32 = R_PPC64_DTPREL64;
+    const R_TPOFF: u32 = R_PPC64_TPREL64;
+    const R_DTPMOD: u32 = R_PPC64_DTPMOD64;
+    const R_FUNCALL: &'static [u32] = &[R_PPC64_REL24, R_PPC64_REL24_NOTOC];
+
+    fn rel_to_string(r_type: u32) -> std::borrow::Cow<'static, str> {
+        ppc64_rel_to_string(r_type)
+    }
+
+    fn eflags(_ctx: &Context<Self>) -> u32 {
+        2
+    }
+
+    fn plt_entry_offset(_ctx: &Context<Self>, idx: u32) -> u64 {
+        52 + idx as u64 * 4
+    }
+
+    // .plt is used only for lazy symbol resolution on PPC64. All PLT
+    // calls are made via range extension thunks even if they are within
+    // reach. Thunks read addresses from .got.plt and jump there.
+    // Therefore, once PLT symbols are resolved and final addresses are
+    // written to .got.plt, thunks just skip .plt and directly jump to the
+    // resolved addresses.
+    fn write_plt_header(ctx: &Context<Self>, buf: &mut [u8]) {
+        const INSN: [u32; 13] = [
+            // Get PC.
+            0x7c08_02a6, // mflr    r0
+            // bcl     20, 31, 4 // obtain PC
+            0x429f_0005, // bcl     20, 31, 4
+            0x7d68_02a6, // mflr    r11
+            0x7c08_03a6, // mtlr    r0
+            // Compute the PLT entry index.
+            0x398c_ffd4, // addi    r12, r12, -44
+            0x7c0b_6050, // subf    r0, r11, r12
+            0x7800_f082, // rldicl  r0, r0, 62, 2
+            // Compute the address of .got.plt.
+            0x3d6b_0000, // addis   r11, r11, GOTPLT_OFFSET@ha
+            0x396b_0000, // addi    r11, r11, GOTPLT_OFFSET@lo
+            // Load .got.plt[0] and .got.plt[1] and branch to .got.plt[0].
+            0xe98b_0000, // ld      r12, 0(r11)
+            0x7d89_03a6, // mtctr   r12
+            0xe96b_0008, // ld      r11, 8(r11)
+            0x4e80_0420, // bctr
+        ];
+        for (i, &insn) in INSN.iter().enumerate() {
+            write_ul32(&mut buf[i * 4..], insn);
+        }
+        let gotplt = ctx.gotplt.shdr.sh_addr.get();
+        let plt = ctx.plt.hdr.shdr.sh_addr.get();
+        let val = gotplt.wrapping_sub(plt).wrapping_sub(8);
+        or32(&mut buf[28..], higha(val) as u32);
+        or32(&mut buf[32..], lo(val) as u32);
+    }
+
+    // When control is transferred to a PLT entry, the caller has already
+    // set %r12 to the PLT entry's address.
+    fn write_plt_entry(ctx: &Context<Self>, buf: &mut [u8], sym: &Symbol) {
+        let plt = ctx.plt.hdr.shdr.sh_addr.get();
+        let offset = plt.wrapping_sub(sym.plt_addr(ctx));
+        write_ul32(buf, 0x4b00_0000 | (offset as u32 & 0x00ff_ffff)); // b plt0
+    }
+
+    // .plt.got is not necessary on PPC64 because range extension thunks
+    // directly read GOT entries and jump there.
+    fn write_pltgot_entry(_ctx: &Context<Self>, _buf: &mut [u8], _sym: &Symbol) {}
+
+    fn apply_eh_reloc(
+        ctx: &Context<Self>,
+        isec: &InputSection<Self>,
+        rel: &ElfRel<Self>,
+        loc: &mut [u8],
+        p: u64,
+        val: u64,
+    ) {
+        match rel.r_type() {
+            R_NONE => {}
+            R_PPC64_ADDR64 => write_ul64(loc, val),
+            R_PPC64_REL32 => {
+                eh_frame::check_range(
+                    ctx,
+                    isec,
+                    rel,
+                    val.wrapping_sub(p) as i64,
+                    -(1 << 31),
+                    1 << 31,
+                );
+                write_ul32(loc, val.wrapping_sub(p) as u32);
+            }
+            R_PPC64_REL64 => write_ul64(loc, val.wrapping_sub(p)),
+            _ => eh_frame::unsupported::<Self>(rel),
+        }
+    }
+
+    fn scan_relocations(ctx: &Context<Self>, isec: &InputSection<Self>) {
+        debug_assert!(isec.is_alloc());
+        let file = &ctx.objs[isec.file.index()];
+        // Scan relocations
+        for rel in isec.rels(file) {
+            if rel.r_type() == R_NONE || isec.record_undef_error(ctx, rel) {
+                continue;
+            }
+            let sym = &ctx.symbols[file.base.symbols[rel.r_sym() as usize]];
+            if sym.is_ifunc() {
+                sym.add_flags(NEEDS_GOT | NEEDS_PLT);
+            }
+
+            match rel.r_type() {
+                R_PPC64_GOT_TPREL16_HA | R_PPC64_GOT_TPREL_PCREL34 => sym.add_flags(NEEDS_GOTTP),
+                R_PPC64_REL24 => {
+                    if sym.is_imported() {
+                        sym.add_flags(NEEDS_PLT);
+                    }
+                }
+                R_PPC64_REL24_NOTOC => {
+                    if sym.is_imported() {
+                        sym.add_flags(NEEDS_PLT);
+                    }
+                    ctx.is_power10.store(true, Ordering::Relaxed);
+                }
+                R_PPC64_GOT16
+                | R_PPC64_GOT16_LO
+                | R_PPC64_GOT16_HI
+                | R_PPC64_GOT16_HA
+                | R_PPC64_PLT16_HA
+                | R_PPC64_PLT_PCREL34
+                | R_PPC64_PLT_PCREL34_NOTOC
+                | R_PPC64_GOT_PCREL34 => sym.add_flags(NEEDS_GOT),
+                R_PPC64_GOT_TLSGD16_HA | R_PPC64_GOT_TLSGD_PCREL34 => sym.add_flags(NEEDS_TLSGD),
+                R_PPC64_GOT_TLSLD16_HA | R_PPC64_GOT_TLSLD_PCREL34 => {
+                    ctx.needs_tlsld.store(true, Ordering::Relaxed)
+                }
+                R_PPC64_TPREL16_HA | R_PPC64_TPREL34 => check_tlsle(ctx, isec, sym, rel),
+                R_PPC64_ADDR64
+                | R_PPC64_REL14
+                | R_PPC64_REL32
+                | R_PPC64_REL64
+                | R_PPC64_TOC16_HA
+                | R_PPC64_TOC16_LO
+                | R_PPC64_TOC16_LO_DS
+                | R_PPC64_TOC16_DS
+                | R_PPC64_REL16_HA
+                | R_PPC64_REL16_LO
+                | R_PPC64_PLT16_HI
+                | R_PPC64_PLT16_LO
+                | R_PPC64_PLT16_LO_DS
+                | R_PPC64_PCREL34
+                | R_PPC64_PLTSEQ
+                | R_PPC64_PLTSEQ_NOTOC
+                | R_PPC64_PLTCALL
+                | R_PPC64_PLTCALL_NOTOC
+                | R_PPC64_GOT_TPREL16_LO_DS
+                | R_PPC64_GOT_TLSGD16_LO
+                | R_PPC64_GOT_TLSLD16_LO
+                | R_PPC64_TPREL16_LO
+                | R_PPC64_TPREL16_LO_DS
+                | R_PPC64_TLS
+                | R_PPC64_TLSGD
+                | R_PPC64_TLSLD
+                | R_PPC64_DTPREL16_HA
+                | R_PPC64_DTPREL16_LO
+                | R_PPC64_DTPREL16_LO_DS
+                | R_PPC64_DTPREL34
+                | R_PPC64_ENTRY => {}
+                _ => error!(
+                    "{}: unknown relocation: {}",
+                    isec.display(file),
+                    rel.type_name::<Self>()
+                ),
+            }
+        }
+    }
+
+    fn apply_reloc_alloc(
+        ctx: &Context<Self>,
+        isec: &InputSection<Self>,
+        rels: &mut [ElfRel<Self>],
+        buf: &mut [u8],
+    ) {
+        let file = &ctx.objs[isec.file.index()];
+        let isec_addr = isec.addr(ctx);
+        let toc = toc(ctx);
+
+        for rel in rels {
+            if rel.r_type() == R_NONE || Self::is_absrel(rel) {
+                continue;
+            }
+            let sym = &ctx.symbols[file.base.symbols[rel.r_sym() as usize]];
+            if sym.ty() == STT_TLS && sym.is_remaining_undef_weak() {
+                continue;
+            }
+
+            let off = rel.r_offset() as usize;
+            let s = sym.addr(ctx);
+            let a = rel.r_addend() as u64;
+            let p = isec_addr + rel.r_offset();
+            let sa = s.wrapping_add(a);
+            let pcrel = sa.wrapping_sub(p);
+            let loc = &mut buf[off..];
+
+            // Thunk entries have two entry points: one that saves r2 to
+            // the caller's stack frame first, and one 8 bytes in that
+            // doesn't.
+            let r2save_thunk = || sym.thunk_addr(ctx, p);
+            let no_r2save_thunk = || sym.thunk_addr(ctx, p) + 8;
+
+            match rel.r_type() {
+                R_PPC64_TOC16_HA => write_ul16(loc, ha(sa.wrapping_sub(toc)) as u16),
+                R_PPC64_TOC16_LO => write_ul16(loc, lo(sa.wrapping_sub(toc)) as u16),
+                R_PPC64_TOC16_DS => {
+                    isec.check_range(ctx, rel, sa.wrapping_sub(toc) as i64, -(1 << 15), 1 << 15);
+                    or16(loc, sa.wrapping_sub(toc) & 0xfffc);
+                }
+                R_PPC64_TOC16_LO_DS => or16(loc, sa.wrapping_sub(toc) & 0xfffc),
+                R_PPC64_REL24 => {
+                    if sym.has_plt(&ctx.symbols) || !sym.esym(ctx).ppc64_preserves_r2() {
+                        let val = r2save_thunk().wrapping_add(a).wrapping_sub(p) as i64;
+                        or32(loc, branch_field(val));
+
+                        // The thunk saves %r2 to the caller's r2 save slot. We
+                        // need to restore it after the function returns. To do
+                        // so, there's usually a NOP as a placeholder after a
+                        // BL. 0x6000_0000 is a NOP.
+                        if loc.len() >= 8 && read_ul32(&loc[4..]) == 0x6000_0000 {
+                            write_ul32(&mut loc[4..], 0xe841_0018); // ld r2, 24(r1)
+                        }
+                    } else {
+                        let mut val = s
+                            .wrapping_add(local_entry_offset(ctx, sym))
+                            .wrapping_add(a)
+                            .wrapping_sub(p) as i64;
+                        if !is_int(val, 26) {
+                            val = no_r2save_thunk().wrapping_add(a).wrapping_sub(p) as i64;
+                        }
+                        or32(loc, branch_field(val));
+                    }
+                }
+                R_PPC64_REL24_NOTOC => {
+                    let mut val = pcrel as i64;
+                    if sym.has_plt(&ctx.symbols)
+                        || sym.esym(ctx).ppc64_uses_toc()
+                        || !is_int(val, 26)
+                    {
+                        val = no_r2save_thunk().wrapping_add(a).wrapping_sub(p) as i64;
+                    }
+                    or32(loc, branch_field(val));
+                }
+                R_PPC64_REL14 => or32(loc, (bits(pcrel, 15, 2) << 2) as u32),
+                R_PPC64_REL32 => write_ul32(loc, pcrel as u32),
+                R_PPC64_REL64 => write_ul64(loc, pcrel),
+                R_PPC64_REL16_HA => write_ul16(loc, ha(pcrel) as u16),
+                R_PPC64_REL16_LO => write_ul16(loc, lo(pcrel) as u16),
+                R_PPC64_GOT16 => write_ul16(loc, sym.got_addr(ctx).wrapping_sub(toc) as u16),
+                R_PPC64_GOT16_LO => write_ul16(loc, lo(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_GOT16_HI => write_ul16(loc, hi(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_GOT16_HA => write_ul16(loc, ha(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_PLT16_HA => write_ul16(loc, ha(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_PLT16_HI => write_ul16(loc, hi(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_PLT16_LO => write_ul16(loc, lo(sym.got_addr(ctx).wrapping_sub(toc)) as u16),
+                R_PPC64_PLT16_LO_DS => or16(loc, sym.got_addr(ctx).wrapping_sub(toc) & 0xfffc),
+                R_PPC64_PLT_PCREL34 | R_PPC64_PLT_PCREL34_NOTOC | R_PPC64_GOT_PCREL34 => {
+                    write34(loc, sym.got_addr(ctx).wrapping_sub(p))
+                }
+                R_PPC64_PCREL34 => write34(loc, pcrel),
+                R_PPC64_GOT_TPREL16_HA => {
+                    write_ul16(loc, ha(sym.gottp_addr(ctx).wrapping_sub(toc)) as u16)
+                }
+                R_PPC64_GOT_TPREL16_LO_DS => {
+                    or16(loc, sym.gottp_addr(ctx).wrapping_sub(toc) & 0xfffc)
+                }
+                R_PPC64_GOT_TPREL_PCREL34 => write34(loc, sym.gottp_addr(ctx).wrapping_sub(p)),
+                R_PPC64_GOT_TLSGD16_HA => {
+                    write_ul16(loc, ha(sym.tlsgd_addr(ctx).wrapping_sub(toc)) as u16)
+                }
+                R_PPC64_GOT_TLSGD16_LO => {
+                    write_ul16(loc, lo(sym.tlsgd_addr(ctx).wrapping_sub(toc)) as u16)
+                }
+                R_PPC64_GOT_TLSGD_PCREL34 => write34(loc, sym.tlsgd_addr(ctx).wrapping_sub(p)),
+                R_PPC64_GOT_TLSLD16_HA => {
+                    write_ul16(loc, ha(ctx.got.tlsld_addr().wrapping_sub(toc)) as u16)
+                }
+                R_PPC64_GOT_TLSLD16_LO => {
+                    write_ul16(loc, lo(ctx.got.tlsld_addr().wrapping_sub(toc)) as u16)
+                }
+                R_PPC64_GOT_TLSLD_PCREL34 => write34(loc, ctx.got.tlsld_addr().wrapping_sub(p)),
+                R_PPC64_DTPREL16_HA => write_ul16(loc, ha(sa.wrapping_sub(ctx.dtp_addr)) as u16),
+                R_PPC64_DTPREL16_LO => write_ul16(loc, lo(sa.wrapping_sub(ctx.dtp_addr)) as u16),
+                R_PPC64_DTPREL16_LO_DS => or16(loc, sa.wrapping_sub(ctx.dtp_addr) & 0xfffc),
+                R_PPC64_DTPREL34 => write34(loc, sa.wrapping_sub(ctx.dtp_addr)),
+                R_PPC64_TPREL16_HA => write_ul16(loc, ha(sa.wrapping_sub(ctx.tp_addr)) as u16),
+                R_PPC64_TPREL16_LO => write_ul16(loc, lo(sa.wrapping_sub(ctx.tp_addr)) as u16),
+                R_PPC64_TPREL16_LO_DS => or16(loc, sa.wrapping_sub(ctx.tp_addr) & 0xfffc),
+                R_PPC64_TPREL34 => write34(loc, sa.wrapping_sub(ctx.tp_addr)),
+                R_PPC64_PLTSEQ
+                | R_PPC64_PLTSEQ_NOTOC
+                | R_PPC64_PLTCALL
+                | R_PPC64_PLTCALL_NOTOC
+                | R_PPC64_TLS
+                | R_PPC64_TLSGD
+                | R_PPC64_TLSLD
+                | R_PPC64_ENTRY => {}
+                _ => unreachable!("unexpected relocation {}", rel.type_name::<Self>()),
+            }
+        }
+    }
+
+    fn apply_reloc_nonalloc(ctx: &Context<Self>, isec: &InputSection<Self>, buf: &mut [u8]) {
+        let mut fragment_cache = crate::input_sections::FragmentLookup::default();
+        let file = &ctx.objs[isec.file.index()];
+        for rel in isec.relocations(ctx) {
+            let Some(NonAllocReloc { sym, s, a, frag }) =
+                isec.resolve_nonalloc(ctx, file, &rel, &mut fragment_cache)
+            else {
+                continue;
+            };
+            let sa = s.wrapping_add(a);
+            let loc = &mut buf[rel.r_offset() as usize..];
+
+            match rel.r_type() {
+                R_PPC64_ADDR64 => match isec.tombstone(ctx, sym, frag) {
+                    Some(v) => write_ul64(loc, v),
+                    None => write_ul64(loc, sa),
+                },
+                R_PPC64_ADDR32 => {
+                    isec.check_range(ctx, &rel, sa as i64, 0, 1 << 32);
+                    write_ul32(loc, sa as u32);
+                }
+                R_PPC64_DTPREL64 => write_ul64(loc, sa.wrapping_sub(ctx.dtp_addr)),
+                _ => fatal!(
+                    "{}: invalid relocation for non-allocated sections: {}",
+                    isec.display(file),
+                    rel.type_name::<Self>()
+                ),
+            }
+        }
+    }
+
+    /// On PowerPC, all PLT calls go through range extension thunks.
+    ///
+    /// PowerPC before Power10 lacks PC-relative load/store instructions.
+    /// Functions compiled for Power9 or earlier assume that r2 points to
+    /// GOT+0x8000, while those for Power10 use r2 as a scratch register.
+    /// We need a thunk to recompute r2 for interworking.
+    fn always_needs_thunk(ctx: &Context<Self>, sym: &Symbol, rel: &ElfRel<Self>) -> bool {
+        sym.has_plt(&ctx.symbols)
+            || (rel.r_type() == R_PPC64_REL24 && !sym.esym(ctx).ppc64_preserves_r2())
+            || (rel.r_type() == R_PPC64_REL24_NOTOC && sym.esym(ctx).ppc64_uses_toc())
+    }
+
+    fn write_thunk(ctx: &Context<Self>, thunk: &Thunk, addr: u64, buf: &mut [u8]) {
+        // If the destination is PLT, we read an address from .got.plt or .got
+        // and jump there.
+        const PLT_THUNK: [u32; 6] = [
+            0xf841_0018, // std   r2, 24(r1)
+            0x6000_0000, // nop
+            0x3d82_0000, // addis r12, r2, foo@gotplt@toc@ha
+            0xe98c_0000, // ld    r12, foo@gotplt@toc@lo(r12)
+            0x7d89_03a6, // mtctr r12
+            0x4e80_0420, // bctr
+        ];
+        const PLT_THUNK_POWER10: [u32; 6] = [
+            0xf841_0018, // std   r2, 24(r1)
+            0x6000_0000, // nop
+            0x0410_0000, // pld   r12, foo@gotplt@pcrel
+            0xe580_0000,
+            0x7d89_03a6, // mtctr r12
+            0x4e80_0420, // bctr
+        ];
+        // If the destination is a non-imported function, we jump to its
+        // global entry point with r12 set to that address.
+        const LOCAL_THUNK: [u32; 6] = [
+            0xf841_0018, // std   r2, 24(r1)
+            0x6000_0000, // nop
+            0x3d82_0000, // addis r12, r2,  foo@toc@ha
+            0x398c_0000, // addi  r12, r12, foo@toc@lo
+            0x7d89_03a6, // mtctr r12
+            0x4e80_0420, // bctr
+        ];
+        const LOCAL_THUNK_POWER10: [u32; 6] = [
+            0xf841_0018, // std   r2, 24(r1)
+            0x6000_0000, // nop
+            0x0610_0000, // pla   r12, foo@pcrel
+            0x3980_0000,
+            0x7d89_03a6, // mtctr r12
+            0x4e80_0420, // bctr
+        ];
+
+        let toc = toc(ctx);
+        let power10 = is_power10(ctx);
+        let (plt, local) = if power10 {
+            (&PLT_THUNK_POWER10, &LOCAL_THUNK_POWER10)
+        } else {
+            (&PLT_THUNK, &LOCAL_THUNK)
+        };
+
+        for (i, &id) in thunk.symbols.iter().enumerate() {
+            let sym = &ctx.symbols[id];
+            let p = addr + thunk.offsets[i];
+            let entry = &mut buf[thunk.offsets[i] as usize..][..24];
+
+            let (insns, target) = if sym.has_plt(&ctx.symbols) {
+                let got = if sym.has_got(&ctx.symbols) {
+                    sym.got_addr(ctx)
+                } else {
+                    sym.gotplt_addr(ctx)
+                };
+                (plt, got)
+            } else {
+                (local, sym.addr(ctx))
+            };
+            for (j, &insn) in insns.iter().enumerate() {
+                write_ul32(&mut entry[j * 4..], insn);
+            }
+            if power10 {
+                write34(&mut entry[8..], target.wrapping_sub(p).wrapping_sub(8));
+            } else {
+                or32(&mut entry[8..], higha(target.wrapping_sub(toc)) as u32);
+                or32(&mut entry[12..], lo(target.wrapping_sub(toc)) as u32);
+            }
+        }
+    }
+}

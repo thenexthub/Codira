@@ -1,0 +1,54 @@
+Funis
+=====
+
+Funis is a fork of mold, https://github.com/rui314/mold, created by Rui Ueyama
+and distributed under the MIT licence (see LICENSE). The fork was started on
+2026-10-15 from mold 3.0.0 at commit c522789 ("Mark the Mach-O build ID as a
+version-3 UUID").
+
+All code present at that commit is the work of mold's authors. The Funis
+changes are recorded in this repository's git history on the `funis` branch;
+the `upstream` remote points at mold.
+
+The external crate `mold-mimalloc` is a dependency published by the mold
+project and is used under its own licence.
+
+Location and what was kept
+--------------------------
+
+Since 2026-10-15 Funis is a component of the Codira workspace. It is a
+snapshot of the `funis` branch of the standalone repository at the time (mold
+3.0.0 at commit c522789, plus the Funis commits 715b339, the rename, and
+46f3a3a, the thread pool sized to the input), split into Cargo crates under
+`crates/`:
+
+    funis              the command line (`funis`, `ld64.funis`) and the library API
+    funis_common       code the two linkers share
+    funis_elf          the generic ELF linker
+    funis_macho        the generic Mach-O linker
+    funis_elf_x86_64, funis_elf_arm64, funis_elf_riscv64
+                       the ELF linker instantiated for Codira's ELF targets
+    funis_macho_arm64, funis_macho_x86_64
+                       the Mach-O linker instantiated for Codira's Mach-O targets
+    funis_tests        the harness that runs the shell tests (see tests/)
+
+The standalone repository (C:/Users/RAIDER/Documents/GitHub/funis, remote
+`upstream` = mold) kept the history. Compared with mold, this tree does not
+build, test or ship the other ELF targets: i386, arm32 and arm32be, arm64be,
+riscv32, riscv32be and riscv64be, ppc32, ppc64v1 and ppc64v2, s390x, sparc64,
+m68k, sh4 and sh4be, loongarch32 and loongarch64. Their instantiation crates
+(`arch/elf-*`) were left out, and so were the `dist.sh` and `install-funis.sh`
+release scripts. The generic `funis_elf` crate still contains the target
+descriptions of those architectures (`funis_elf/arch/*.rs`), untouched so that
+mold's changes keep applying cleanly, but nothing instantiates them; asking
+for one of them reports "unsupported target". To bring one back, copy its
+`arch/elf-<name>` crate from the standalone repository, add it to the
+workspace, and add a feature and a table entry in `crates/funis`.
+
+The shell tests of mold (`tests/elf/*.sh`, `tests/macho/*.sh`) are kept under
+`crates/funis/tests/`. They need a Unix host with a C compiler (macOS for the
+Mach-O ones) and are skipped elsewhere, so `cargo test --workspace` on Windows
+does not run them.
+
+Codira is licensed under Apache-2.0; Funis keeps mold's MIT licence, in
+`crates/funis/LICENSE-MIT`, and every Funis crate declares `license = "MIT"`.

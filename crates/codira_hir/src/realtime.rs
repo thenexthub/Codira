@@ -473,7 +473,30 @@ impl Collector<'_> {
             // Bounded by construction: the iteration count is fixed before
             // the first iteration, and the counter is not the program's.
             | Expr::For { .. } => {}
+            Expr::Path(_) if self.frame.infer.function_value(expr).is_some() => self.source(
+                expr,
+                EffectSet::GC_ALLOC,
+                "a function used as a value allocates its function value object",
+            ),
             Expr::Path(path) => self.unit_struct(expr, path),
+            // The body runs only when the closure is called, and a call
+            // through a function value is unknown (below); what the literal
+            // itself does is allocate. Its body is still visited, which can
+            // only over-approximate.
+            Expr::Closure { .. } => self.source(
+                expr,
+                EffectSet::GC_ALLOC,
+                "a closure allocates its function value object",
+            ),
+            Expr::Call { .. } | Expr::MethodCall { .. }
+                if self.frame.infer.is_indirect_call(expr) =>
+            {
+                self.source(
+                    expr,
+                    EffectSet::ALL,
+                    "a call through a function value, whose code the analysis cannot see",
+                );
+            }
             Expr::RecordLit { .. } => {
                 if let Some(s) = self.frame.infer[expr].as_struct() {
                     self.construct(expr, s);

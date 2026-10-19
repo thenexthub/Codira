@@ -330,6 +330,78 @@ floats and strings -- and the error names a value that is not covered. A
 value no arm matches at run time (only possible for an enum after a hot
 reload removed its variant) stops the program with its location.
 
+### Function values and closures
+
+```codira
+func square(x: i32) -> i32 { x * x }
+
+func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+
+func adder(a: i32) -> func(i32) -> i32 {
+    func(b: i32) -> i32 { a + b }      // a closure literal; captures `a`
+}
+
+class Counter { n: i32 }
+
+func make_counter() -> func() -> i32 {
+    let state = Counter { n: 0 }
+    func() -> i32 { state.n += 1; state.n }   // state lives in a captured object
+}
+
+class Button { on_click: func(i32) -> i32 }
+
+public func main() -> i32 {
+    let f = square                     // a named function used as a value
+    let steps = [square, adder(1), func(x) { x * 3 }]
+    let b = Button { on_click: f }
+    b.on_click(2) + apply(func(x) { x + 1 }, 4) + steps[1](5) + make_counter()()
+}
+```
+
+- `func(A, B) -> R` is the type of a function value (`func()` returns `()`).
+  A named function (used anywhere but as the callee of a call) or a closure
+  literal `func(a: A) -> R { .. }` is a value of that type: store it in a
+  local, a field or an array, pass and return it, call it with `f(x)`. A
+  field of function type is called like a method: `obj.on_click(x)`.
+- **Captures are by value, at creation.** A closure copies every local it
+  mentions when it is created; changing the variable afterwards does not
+  change the closure's copy. Assigning to a captured variable (or a field of
+  a captured value struct) inside the closure is a compile error. Mutable
+  state goes in a class instance: capturing it copies the reference, so the
+  closure and its creator share the object (the counter above).
+- Parameter types and the result may be left out when the closure is
+  checked against a known function type (an argument, a typed `let`, an
+  array of functions); otherwise parameter types are required and a missing
+  `-> R` means `()`, as for functions.
+- Function values cannot be compared (`==` is a type error).
+- Generic higher-order functions work: `func fold[T, U](xs: [T], init: U,
+  f: func(U, T) -> U) -> U` is instantiated like any generic function, and a
+  closure inside a generic function gets code per instance (it may capture
+  a `T`). A generic function itself cannot be used as a value yet (`let f =
+  id` names no instantiation); wrap it in a closure.
+- Not allowed: a generic function, a function that `uses` effects, an
+  `extern "codira-intrinsic"` or `@asm` function as a value; `perform`,
+  `handle` or calling a `uses` function inside a closure; `spawn` of a
+  function value; capturing a channel (it lives only as long as its
+  `scope`). Enums, optionals, tuples and `str` are captured by value like
+  anything else. `break`/`continue` inside a closure do not reach loops
+  outside it; `return` returns from the closure.
+- Secrets: a closure that captures a secret is secret (so is its result);
+  function-value parameters are never `secret`; `@constant_time` functions
+  neither create nor call function values. A function with contracts may
+  not contain closures whose obligations would go unchecked (the verifier
+  says so).
+- Cost: creating a function value allocates one GC object (a cell word plus
+  the captures); a call is three dependent loads and an indirect call.
+- Hot reload: a function value never holds a raw code pointer. It points at a
+  runtime-owned code cell that every reload repoints, so a value created
+  before a reload runs the *new* code of the same closure (or named
+  function) with the captures it was created with. If the reload removed
+  that closure or changed its signature, calling the old value stops the
+  program with a message instead.
+- `codira run --jit` (Cranelift) does not compile function values; such a
+  program runs on the LLVM backend.
+
 ### Algebraic effects: `effect`, `uses`, `perform`, `handle`, `resume`
 
 An effect declares operations; a function that may perform them says so
@@ -379,7 +451,7 @@ Rules (checked by the compiler):
   result.
 - Innermost handler wins.
 - Version-1 restrictions: an arm cannot use local variables or parameters of
-  the enclosing function (no closures yet -- pass values through the
+  the enclosing function (arms do not capture -- pass values through the
   operation's parameters), cannot `return` or `break` out of the enclosing
   function, and a function with `uses` can only be called from its own
   module and cannot be `@export`ed.
@@ -832,6 +904,46 @@ options as `build`. If the build reports an error, nothing is run. After the
 entry point returns, `run`/`start` print its value if it is a primitive
 (`bool`, any integer or float type); a `()` entry point prints nothing.
 
+### How a library is linked
+
+A `.codiralib` has a handful of sections, imports nothing, exports a known
+list of functions and needs only absolute-address base relocations (calls
+between Codira functions go through the dispatch table), so on Windows the
+compiler writes the image itself instead of calling LLD: the `codira_image`
+crate turns the object LLVM emitted into the DLL in microseconds. It is the
+default for `x86_64-pc-windows-msvc` libraries on a Windows host.
+
+It never guesses. An object with anything it does not model -- an unknown
+relocation, a section it does not know (TLS, C runtime initializers, linker
+directives), an import, debug information, a package with `[native]` C, C++ or
+assembly sources -- is *declined*, and LLD links it exactly as before. Other
+targets always use LLD.
+
+- `CODIRA_LINK_MODE=direct` asks for the image writer (the default on Windows
+  hosts); `in-process` or `subprocess` forces LLD for everything, and
+  `CODIRA_DIRECT_LINK=0` does the same without naming how LLD runs.
+- x86-64 Linux shared objects can be written the same way
+  (`CODIRA_DIRECT_ELF=1`, with `CODIRA_LINK_MODE=direct`). It is opt-in
+  because it is newer: the library is checked by `llvm-readobj` and loaded
+  by a real dynamic loader in the tests, but it has not run under the Codira
+  runtime on Linux. It declines a program that calls one of its own public
+  functions directly (that would need a PLT). Its cross-check against LLD
+  compares what a program can observe -- the exported symbols and the
+  symbolic relocations -- not the bytes.
+- In builds of the compiler with debug assertions (what `cargo test` builds)
+  every library is also linked by LLD and the two images must be identical but
+  for the header time stamp; a difference stops the build with a report.
+  `CODIRA_LINK_VERIFY=0` turns that off, `=1` turns it on in a release build.
+  Every test of the workspace that builds a library is therefore a
+  differential test of the image writer.
+- `CODIRA_LINK_LOG=<file>` appends one line per link (`written`, `verified`,
+  `declined <reason>`); `CODIRA_DUMP_OBJECTS=<dir>` keeps the objects.
+- The compiler writes a finished library to a temporary file next to its
+  destination (`.<name>.<pid>-<n>.codira-tmp`) and renames it over the old one,
+  so a running program never loads a half-written file. The runtime ignores
+  `.codira-tmp` files and treats a file renamed onto a loaded library as a
+  change to it.
+
 ### Tests, counterexamples and semantic search
 
 ```bash
@@ -1120,7 +1232,94 @@ addresses as `usize`:
 - `cache_line_size() -> usize`, `frame_address() -> usize`.
 
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
-loads and stores). As with `load_*`/`store_*`, nothing checks the address.
+loads and stores). As with `load_*`/`store_*`, nothing checks the address --
+unless the program is built with one of the experimental modes below.
+
+### Experimental hardware safety
+
+> **EXPERIMENTAL.** These modes cover the unchecked escape hatches
+> (`load_*`/`store_*` and the other address intrinsics, `stack_alloc`, region
+> arenas and OS pages). None of it has run on MTE or CHERI hardware: the
+> machine it was written on has neither, and no `qemu-aarch64`. What was
+> verified, and how, is stated for each mode. Expect changes.
+
+#### ARM MTE: `--sanitize=memtag`
+
+```bash
+codira build --target aarch64-unknown-linux-gnu --target-feature +mte --sanitize=memtag
+codira build --target aarch64-unknown-linux-gnu --target-cpu cortex-a710 --sanitize=memtag
+```
+
+For aarch64 **Linux** targets whose features include `+mte` (from
+`--target-feature +mte`, a comma-separated list of LLVM feature changes, or
+from an MTE CPU given to `--target-cpu`). Any other target is refused before
+code generation: another architecture ("needs an aarch64 target with the
+`+mte` feature"), aarch64 without `+mte` ("needs the `+mte` target feature"),
+and non-Linux aarch64 (no `PROT_MTE`/`PR_SET_TAGGED_ADDR_CTRL`).
+
+What is tagged, with a random 4-bit tag in bits 56..59 of the address that the
+CPU compares with the memory's tag on every load and store:
+
+- `stack_alloc` slots (generated code): rounded up to 16-byte granules,
+  `llvm.aarch64.irg` (`IRG`) picks a tag, `llvm.aarch64.settag` (`STG`/`ST2G`)
+  writes it, and `stack_alloc` returns the tagged address. Before every
+  return the slot is set back to tag 0, so an address that outlives the frame
+  faults. A `stack_alloc` with a size computed at run time is refused with its
+  location.
+- Region arenas (runtime, `native/memtag_aarch64.c`): chunks are `PROT_MTE`
+  mappings; each allocation is rounded to granules and gets a tag that is
+  never 0 and never the previous allocation's, so overflowing into the next
+  allocation always faults. `codira_region_reset` sets the memory back to tag
+  0 and `codira_region_free` unmaps it, so stale addresses fault.
+- OS pages (`codira_page_alloc*`): mapped `PROT_MTE`, one tag per mapping;
+  huge pages are not used under memtag.
+
+Tag 0 is never handed out, so an untagged address -- an integer forged into
+an address, or a pointer from code that does not know the tag -- faults on
+tagged memory. The garbage-collected heap and `codira_aligned_alloc` stay
+untagged (they come from the C allocator, which is not mapped `PROT_MTE`) and
+work exactly as before.
+
+Tagged addresses are still `usize`. Adding an offset keeps the tag (any
+user-space address plus an in-bounds offset stays below 2^56). Comparing or
+subtracting addresses of *different* allocations compares their tags first, so
+it is meaningless there; `addr & 0x00ff_ffff_ffff_ffff` strips a tag. Passing
+a tagged address to C works (top-byte-ignore, and the tagged-address ABI for
+system calls). A page that will be *executed* must be called through its
+untagged address.
+
+At load time the runtime asks for synchronous tag-check faults
+(`prctl(PR_SET_TAGGED_ADDR_CTRL)`, tags 1..15 allowed) and adds `PROT_MTE` to
+the loading thread's stack. A memtag library loaded where that is impossible
+(no MTE, or not aarch64 Linux) is refused rather than run unchecked. Threads
+that existed before the library loaded are not checked.
+
+Verified here: an aarch64 Linux object built with `+mte` has `IRG` and tag
+stores for a `stack_alloc` (the test decodes the object's instruction stream,
+and disassembles it with the LLVM installation's `llvm-objdump`) and an object
+built without the mode has no MTE instruction; the runtime's C primitives
+compile for aarch64 with `IRG`, `ST2G`, `STG` and `LDG` in their disassembly;
+a freestanding aarch64 test program built from them links. The test that
+*runs* that program (in-bounds accesses work; overflowing, untagged and stale
+pointers end in SIGSEGV) runs only where `/proc/cpuinfo` lists `mte` or
+`qemu-aarch64` is on `PATH`, and is skipped here with that reason. Limits:
+tag checks are probabilistic only where two allocations happen to share a tag
+(1 in 15, never for neighbours in a region); `--sanitize=memtag` cannot go
+through the daemon or `--watch`; there is no aarch64 build of the runtime in
+this repository's tests, so the region/page integration has only been
+compiled for the host, where it is inactive.
+
+#### CHERI and Morello targets: refused
+
+`--target aarch64-morello` (or any triple naming `morello`, `cheri` or
+`purecap`) is refused with an explanation, not faked. On Morello every
+pointer is a 129-bit capability -- a 64-bit address plus bounds compressed
+relative to it and permissions in 64 more bits, with a validity tag the
+hardware keeps outside addressable memory -- so pointer size, alignment, the
+stack and every load and store change. Building for it needs a
+capability-aware LLVM (CHERI LLVM; the LLVM this compiler links does not have
+it), the purecap ABI (`-mabi=purecap`), and a Codira runtime, C library and
+loader built for it. None of that exists here.
 
 ### Proven rewrite rules: `@rewrite`
 
@@ -1405,6 +1604,9 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
   moved and stored; generic functions are not exported to the host)
 - imports and visibility (`public`/`internal`/`private`)
 - algebraic effects and structured concurrency (see below)
+- function values: named functions as values, closures with by-value
+  captures, calls through locals, fields and arrays (see "Function values
+  and closures")
 
 Contracts (`requires`, `ensures`, `invariant`, `decreases`, `ghost let`,
 refinement types on parameters and returns) are checked statically by Z3 in
@@ -1435,6 +1637,10 @@ Runtime (hosts embedding `codira_runtime`):
   (`codira_region_*`), OS pages with W^X protection, huge pages and icache
   flushing (`codira_page_*`, `codira_icache_flush`), and aligned allocation.
   Addresses are `usize`; failures return 0/false. Region memory is untraced.
+- Experimental hardware safety: `codira build --sanitize=memtag` tags
+  `stack_alloc` slots, region memory and OS pages with ARM MTE on aarch64
+  Linux targets with `+mte` (built and inspected, never run: see
+  "Experimental hardware safety").
 - Fuel: `codira build --fuel` instruments every function entry and loop
   iteration to decrement a counter; `codira start --fuel <n>` /
   `codira run --fuel <n>` (or `RuntimeBuilder::fuel(n)`) sets the budget.
@@ -1470,9 +1676,9 @@ tasks following dual protocols, checked at compile time; see "Session
 types").
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
-supported by the code generator yet" naming the construct: closures,
-postfix `^`. Not available at all yet: generic enums, `trait` (and so
-generic bounds), `String`, and using the standard library from a program.
+supported by the code generator yet" naming the construct: postfix `^`. Not available at
+all yet: generic enums, `trait` (and so generic bounds), `String`, and using the
+standard library from a program.
 
 ---
 

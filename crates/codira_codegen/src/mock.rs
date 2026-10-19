@@ -51,6 +51,7 @@ impl Default for MockDatabase {
         db.set_eidos_options(EidosOptions::default());
         db.set_fuel_instrumentation(false);
         db.set_keep_function_symbols(false);
+        db.set_hardware_safety(crate::HardwareSafety::NONE);
         db.set_target(Target::host_target().unwrap());
         db.set_native_inputs(std::sync::Arc::default());
         db

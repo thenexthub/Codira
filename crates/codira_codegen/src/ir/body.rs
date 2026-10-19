@@ -34,7 +34,9 @@ use crate::{
     value::Global,
 };
 
+mod closures;
 mod effects;
+mod safety;
 mod tasks;
 
 pub(crate) use effects::has_evidence;
@@ -57,6 +59,10 @@ pub(crate) struct ExternalGlobals<'ink> {
     pub fuel_counter: Option<GlobalValue<'ink>>,
     pub dispatch_table: Option<GlobalValue<'ink>>,
     pub type_table: Option<Global<'ink, [*const std::ffi::c_void]>>,
+    /// The experimental hardware-safety mode (see `safety`).
+    pub hardware_safety: crate::HardwareSafety,
+    /// Where `safety` records code the mode refuses to build.
+    pub safety_refusals: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
 }
 
 pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
@@ -94,6 +100,9 @@ pub(crate) struct BodyIrGenerator<'db, 'ink, 't> {
     /// Open `scope`s and loops, for joining tasks on every exit. See
     /// `tasks`.
     tasks: tasks::TaskState<'ink>,
+    /// What the hardware-safety mode undoes before each return. See
+    /// `safety`.
+    safety: safety::SafetyState<'ink>,
 }
 
 impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
@@ -145,6 +154,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             eidos,
             effects: effects::EffectState::default(),
             tasks: tasks::TaskState::default(),
+            safety: safety::SafetyState::default(),
         }
     }
 
@@ -277,6 +287,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     .expect("failed to build return");
             }
         }
+
+        // Undo what a hardware-safety mode set up, before every return.
+        self.finish_safety();
     }
 
     /// Emits a `@runtime_checked` function's `requires` clauses at its
@@ -399,6 +412,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 tail,
             } => self.gen_block(expr, statements, *tail),
             Expr::Path(ref p) => {
+                // A named function used as a value: see `closures`.
+                if let Some(item) = self.infer.function_value(expr) {
+                    return Some(self.gen_fn_item_value(item));
+                }
                 let resolver = codira_hir::resolver_for_expr(self.db, self.body.owner(), expr);
                 Some(self.gen_path_expr(p, expr, &resolver))
             }
@@ -430,6 +447,13 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                         return self.gen_channel_new(expr, args);
                     }
                     return self.gen_builtin_call(builtin, args);
+                }
+
+                // A call through a function value: see `closures`.
+                if self.infer.is_indirect_call(expr) {
+                    let callee_value = self.gen_expr(*callee)?;
+                    let fn_ty = self.infer[*callee].clone();
+                    return self.gen_indirect_call(expr, callee_value, &fn_ty, args);
                 }
 
                 // Get the callable definition from the map
@@ -508,6 +532,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::ChannelReceive { channel } => self.gen_channel_receive(expr, *channel),
             Expr::Select { arms } => self.gen_select(expr, arms),
             Expr::Offer { endpoint, branches } => self.gen_offer(*endpoint, branches),
+            Expr::Closure { .. } => self.gen_closure(expr),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a
             // syntax error comes with a parse error; either way the build
@@ -1202,6 +1227,26 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             return self.gen_builtin_method(builtin, receiver, args);
         }
 
+        // `obj.callback(x)`: a call through the function value in a field.
+        if self.infer.is_field_call(tgt_expr) {
+            let body = self.body.clone();
+            let Expr::MethodCall { method_name, .. } = &body[tgt_expr] else {
+                unreachable!("a field call is a method-call expression");
+            };
+            let receiver_ty = self.infer[receiver].clone();
+            let fn_ty = receiver_ty
+                .as_struct()
+                .and_then(|s| s.field(self.db, method_name))
+                .and_then(|field| {
+                    codira_hir::mono::struct_field_types(self.db, &receiver_ty)
+                        .get(field.index(self.db) as usize)
+                        .cloned()
+                })
+                .expect("inference resolved the called field");
+            let callee_value = self.gen_field(tgt_expr, receiver, method_name)?;
+            return self.gen_indirect_call(tgt_expr, callee_value, &fn_ty, args);
+        }
+
         let resolved = self
             .infer
             .method_resolution(tgt_expr)
@@ -1554,7 +1599,11 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         let lhs_type = self.infer[lhs].clone();
         match (lhs_type.interned(), op) {
             (
-                TyKind::Optional(_) | TyKind::Str | TyKind::Tuple(..) | TyKind::Enum(..),
+                TyKind::Optional(_)
+                | TyKind::Str
+                | TyKind::Tuple(..)
+                | TyKind::Enum(..)
+                | TyKind::Function(_),
                 BinaryOp::Assignment { op: None },
             ) => return self.gen_plain_assignment(lhs, rhs),
             (TyKind::Enum(e, _), BinaryOp::CmpOp(CmpOp::Eq { negated })) => {
@@ -1576,6 +1625,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     self.gen_binary_op_heap_struct(lhs, rhs, op)
                 }
             }
+            // A function value is a GC reference like a class instance;
+            // inference admits only plain assignment for it.
+            TyKind::Function(_) => self.gen_binary_op_heap_struct(lhs, rhs, op),
             _ => {
                 let rhs_type = self.infer[rhs].clone();
                 unimplemented!(
@@ -2233,6 +2285,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         args: &[BasicMetadataValueEnum<'ink>],
     ) -> Option<BasicValueEnum<'ink>> {
         let name = function.name(self.db).to_string();
+        if let safety::Lowered::Emitted(value) = self.gen_safety_intrinsic(expr, &name, args) {
+            return value;
+        }
         match intrinsic_ops::gen_intrinsic(
             &name,
             args,

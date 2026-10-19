@@ -1,0 +1,32 @@
+import root.accounts.{ Ledger, ledger_new, deposit, withdraw, transfer, set_frozen, audit }
+
+public func ledger_stat(l: Ledger, which: i64) -> i64 {
+    if which == 0 {
+        l.ok
+    } else {
+        l.denied
+    }
+}
+
+// One entry point for the request stream:
+// 0 transfer(a -> b, c), 1 deposit(a, b), 2 withdraw(a, b), 3 balance(a),
+// 4 freeze(a, b), 5 audit, 6 stat(a).
+public func ledger_handle(l: Ledger, op: i64, a: i64, b: i64, c: i64, now: i64) -> i64 {
+    if op == 0 {
+        transfer(l, a, b, c, now)
+    } else if op == 1 {
+        deposit(l, a, b)
+    } else if op == 2 {
+        withdraw(l, a, b)
+    } else if op == 3 {
+        if a < 0 || a >= l.n { -1 } else { l.accts[a].bal }
+    } else if op == 4 {
+        set_frozen(l, a, b)
+    } else if op == 5 {
+        audit(l)
+    } else if op == 6 {
+        ledger_stat(l, a)
+    } else {
+        -2
+    }
+}

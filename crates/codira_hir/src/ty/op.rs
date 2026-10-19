@@ -34,6 +34,7 @@ pub(super) fn binary_op_rhs_expectation(op: BinaryOp, lhs_ty: Ty) -> Ty {
             | TyKind::Bool
             | TyKind::Struct(..)
             | TyKind::Array(_)
+            | TyKind::Function(_)
             | TyKind::Optional(_)
             | TyKind::Str
             | TyKind::Tuple(..)

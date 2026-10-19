@@ -1,0 +1,49 @@
+// Latency buckets: bucket k holds 2^(k-1) <= v < 2^k, bucket 0 holds v < 1,
+// and everything from 2^13 up lands in bucket 14. Pure and bounded, so it is
+// safe on a real-time path and cheap to prove.
+
+@realtime
+public func bucket_of(v: i64) -> i64
+    ensures result >= 0 && result <= 14
+{
+    if v < 1 {
+        0
+    } else if v < 2 {
+        1
+    } else if v < 4 {
+        2
+    } else if v < 8 {
+        3
+    } else if v < 16 {
+        4
+    } else if v < 32 {
+        5
+    } else if v < 64 {
+        6
+    } else if v < 128 {
+        7
+    } else if v < 256 {
+        8
+    } else if v < 512 {
+        9
+    } else if v < 1024 {
+        10
+    } else if v < 2048 {
+        11
+    } else if v < 4096 {
+        12
+    } else if v < 8192 {
+        13
+    } else {
+        14
+    }
+}
+
+// Upper bound of a bucket, used to report a percentile.
+@realtime
+public func bucket_bound(b: i64) -> i64
+    requires b >= 0 && b <= 14
+    ensures result >= 1
+{
+    1 << b
+}

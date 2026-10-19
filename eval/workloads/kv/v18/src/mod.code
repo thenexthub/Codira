@@ -1,0 +1,130 @@
+import root.table.{ Table, table_new, table_get, table_put, table_del, table_scan, table_count, table_expire }
+import root.wal.{ Log, log_new, log_append }
+
+public class Store {
+    table: Table,
+    log: Log,
+    public gets: i64,
+    public hits: i64,
+    public puts: i64,
+    public dels: i64,
+    public clock: i64,
+}
+
+public func kv_new() -> Store {
+    Store { table: table_new(), log: log_new(), gets: 0, hits: 0, puts: 0, dels: 0, clock: 0 }
+}
+
+public func kv_get(s: Store, key: i64) -> i64 {
+    s.gets += 1
+    match table_get(s.table, key, s.clock) {
+        nil -> -1,
+        v -> {
+            s.hits += 1
+            v
+        },
+    }
+}
+
+public func kv_put(s: Store, key: i64, val: i64) -> i64
+    requires key >= 0
+{
+    if val < 0 { return 0 }
+    if table_put(s.table, key, val) {
+        s.puts += 1
+        log_append(s.log, 1, key, val)
+        1
+    } else {
+        0
+    }
+}
+
+public func kv_del(s: Store, key: i64) -> i64 {
+    if table_del(s.table, key) {
+        s.dels += 1
+        log_append(s.log, 2, key, 0)
+        1
+    } else {
+        0
+    }
+}
+
+public func kv_scan(s: Store, lo: i64, hi: i64) -> i64 {
+    if lo > hi { return -1 }
+    table_scan(s.table, lo, hi)
+}
+
+public func kv_incr(s: Store, key: i64, delta: i64) -> i64 {
+    let cur = match table_get(s.table, key, s.clock) {
+        nil -> 0,
+        v -> v,
+    }
+    let next = cur + delta
+    if next < 0 { return -1 }
+    if table_put(s.table, key, next) {
+        s.puts += 1
+        log_append(s.log, 3, key, next)
+        next
+    } else {
+        -1
+    }
+}
+
+public func kv_count(s: Store) -> i64 {
+    table_count(s.table)
+}
+
+public func kv_expire(s: Store, key: i64, at_time: i64) -> i64 {
+    if table_expire(s.table, key, at_time) { 1 } else { 0 }
+}
+
+public func kv_stat(s: Store, which: i64) -> i64 {
+    if which == 0 {
+        s.gets
+    } else if which == 1 {
+        s.hits
+    } else if which == 2 {
+        s.puts
+    } else {
+        s.dels
+    }
+}
+
+// One entry point for the request stream: 0 get, 1 put, 2 del, 3 scan, 4 count.
+enum Op {
+    Get,
+    Put,
+    Del,
+    Scan,
+    Count,
+    Incr,
+    Expire,
+    Unknown,
+}
+
+func decode(code: i64) -> Op {
+    match code {
+        0 -> Op.Get,
+        1 -> Op.Put,
+        2 -> Op.Del,
+        3 -> Op.Scan,
+        4 -> Op.Count,
+        5 -> Op.Incr,
+        6 -> Op.Expire,
+        _ -> Op.Unknown,
+    }
+}
+
+public func kv_handle(s: Store, op: i64, a: i64, b: i64) -> i64 {
+    s.clock += 1
+    match decode(op) {
+        Op.Get -> kv_get(s, a),
+        Op.Put -> if a < 0 { -3 } else { kv_put(s, a, b) },
+        Op.Del -> kv_del(s, a),
+        Op.Scan -> kv_scan(s, a, b),
+        Op.Count -> kv_count(s),
+        Op.Incr -> kv_incr(s, a, b),
+        Op.Expire -> kv_expire(s, a, b),
+        Op.Unknown -> -2,
+    }
+}

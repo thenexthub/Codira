@@ -1,0 +1,23 @@
+import root.window.{ Agg, agg_new, agg_pct, agg_window_sum }
+import root.pipeline.{ process_batch }
+
+public func stream_new() -> Agg { agg_new() }
+
+// One entry point for the request stream:
+// 0 batch(n=x, seed=y, ts0=z), 1 percentile(p=x), 2 window sum (window id x),
+// 3 total events, 4 late events.
+public func stream_handle(a: Agg, op: i64, x: i64, y: i64, z: i64) -> i64 {
+    if op == 0 {
+        if x < 0 || x > 60 { -1 } else { process_batch(a, x, y, z) }
+    } else if op == 1 {
+        agg_pct(a, x)
+    } else if op == 2 {
+        agg_window_sum(a, x)
+    } else if op == 3 {
+        a.total
+    } else if op == 4 {
+        a.late
+    } else {
+        -2
+    }
+}

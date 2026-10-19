@@ -26,6 +26,7 @@ use crate::{
     BinaryOp, BuiltinFn, CallableDef, Function, HirDatabase, HirDisplay, Name, Path,
 };
 
+mod closures;
 mod effects;
 mod exhaustive;
 mod place_expr;
@@ -43,6 +44,8 @@ use crate::{
 };
 
 mod coerce;
+
+pub use closures::ClosureInfo;
 
 /// A list of interned types
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -78,6 +81,20 @@ pub struct InferenceResult {
     /// [`effects::EffectResolutions`].
     pub(crate) effects: effects::EffectResolutions,
 
+    /// Every closure literal, with its signature and captures.
+    pub(crate) closures: FxHashMap<ExprId, ClosureInfo>,
+
+    /// Path expressions naming a function that are used as a function
+    /// value rather than called.
+    pub(crate) fn_values: FxHashMap<ExprId, FunctionId>,
+
+    /// Calls through a value of function type: `f(x)` with `f` a function
+    /// value, and `obj.f(x)` with `f` a field of function type.
+    pub(crate) indirect_calls: FxHashSet<ExprId>,
+
+    /// The method-call expressions among `indirect_calls`: `obj.f(x)`
+    /// calling the function value in the field `f`.
+    pub(crate) field_calls: FxHashSet<ExprId>,
     /// Expressions whose value is implicitly wrapped into an optional: a
     /// `T` used where a `T?` is expected. Maps each such expression to the
     /// optional type it becomes; the expression's own type stays `T`.
@@ -144,6 +161,63 @@ impl InferenceResult {
     /// is not a call to a builtin. See [`BuiltinFn`].
     pub fn builtin_call(&self, expr: ExprId) -> Option<BuiltinFn> {
         self.builtin_calls.get(&expr).copied()
+    }
+
+    /// The signature and captures of the closure literal `expr`, or `None`
+    /// when `expr` is not a closure.
+    pub fn closure(&self, expr: ExprId) -> Option<&ClosureInfo> {
+        self.closures.get(&expr)
+    }
+
+    /// Every closure literal of the body, in arena order -- the order code
+    /// generation numbers them in.
+    pub fn closures(&self) -> Vec<(ExprId, &ClosureInfo)> {
+        let mut closures: Vec<_> = self.closures.iter().map(|(&e, c)| (e, c)).collect();
+        closures.sort_by_key(|(e, _)| e.into_raw());
+        closures
+    }
+
+    /// The function a path expression names when it is used as a function
+    /// value (`let f = square`), or `None` for any other expression.
+    /// Creating such a value allocates, like creating a closure does.
+    pub fn function_value(&self, expr: ExprId) -> Option<Function> {
+        self.fn_values.get(&expr).map(|&id| Function::from(id))
+    }
+
+    /// The type of every expression that has one.
+    pub fn expr_types(&self) -> impl Iterator<Item = (ExprId, &Ty)> {
+        self.type_of_expr.iter()
+    }
+
+    /// The type of every pattern that has one.
+    pub fn pat_types(&self) -> impl Iterator<Item = (PatId, &Ty)> {
+        self.type_of_pat.iter()
+    }
+
+    /// Every path expression of the body used as a function value, with the
+    /// function it names, in arena order.
+    pub fn function_values(&self) -> Vec<(ExprId, Function)> {
+        let mut values: Vec<_> = self
+            .fn_values
+            .iter()
+            .map(|(&e, &f)| (e, Function::from(f)))
+            .collect();
+        values.sort_by_key(|(e, _)| e.into_raw());
+        values
+    }
+
+    /// Whether `expr` is a call through a function value -- `f(x)` where
+    /// `f` has a function type, or `obj.f(x)` calling a field of function
+    /// type. The callee is not known statically: an analysis that needs to
+    /// know what a call does must treat such a call as unknown.
+    pub fn is_indirect_call(&self, expr: ExprId) -> bool {
+        self.indirect_calls.contains(&expr)
+    }
+
+    /// Whether the method-call expression `expr` calls the function value
+    /// stored in a field (`obj.on_event(x)`) rather than a method.
+    pub fn is_field_call(&self, expr: ExprId) -> bool {
+        self.field_calls.contains(&expr)
     }
 
     /// Every type this inference assigned to an expression or a pattern.
@@ -223,6 +297,21 @@ impl InferenceResult {
             variant_exprs: self.variant_exprs.clone(),
             variant_pats: self.variant_pats.clone(),
             standard_types: InternedStandardTypes::default(),
+            closures: self
+                .closures
+                .iter()
+                .map(|(expr, closure)| {
+                    let closure = ClosureInfo {
+                        captures: closure.captures.clone(),
+                        params: closure.params.iter().map(&mut f).collect(),
+                        ret: f(&closure.ret),
+                    };
+                    (*expr, closure)
+                })
+                .collect(),
+            fn_values: self.fn_values.clone(),
+            indirect_calls: self.indirect_calls.clone(),
+            field_calls: self.field_calls.clone(),
         }
     }
 
@@ -334,6 +423,12 @@ struct InferenceResultBuilder<'a> {
     /// inferred: what `resume` takes. `None` outside every arm.
     active_arm_ret: Option<Ty>,
 
+    /// The closures whose bodies are being inferred, innermost last.
+    closure_frames: Vec<closures::ClosureFrame>,
+    closures: FxHashMap<ExprId, ClosureInfo>,
+    fn_values: FxHashMap<ExprId, FunctionId>,
+    indirect_calls: FxHashSet<ExprId>,
+    field_calls: FxHashSet<ExprId>,
     /// Expressions implicitly wrapped into an optional
     optional_wraps: FxHashMap<ExprId, Ty>,
 
@@ -364,6 +459,11 @@ impl<'a> InferenceResultBuilder<'a> {
             builtin_calls: FxHashMap::default(),
             effects: effects::EffectResolutions::default(),
             active_arm_ret: None,
+            closure_frames: Vec::new(),
+            closures: FxHashMap::default(),
+            fn_values: FxHashMap::default(),
+            indirect_calls: FxHashSet::default(),
+            field_calls: FxHashSet::default(),
 
             optional_wraps: FxHashMap::default(),
             variant_exprs: FxHashMap::default(),
@@ -637,8 +737,14 @@ impl InferenceResultBuilder<'_> {
             Expr::Path(p) => {
                 // FIXME this could be more efficient...
                 let resolver = resolver_for_expr(self.db, self.body.owner(), tgt_expr);
-                self.infer_path_expr(&resolver, p, tgt_expr, check_params)
-                    .unwrap_or_else(error_type)
+                let ty = self
+                    .infer_path_expr(&resolver, p, tgt_expr, check_params)
+                    .unwrap_or_else(error_type);
+                if check_params.is_callee {
+                    ty
+                } else {
+                    self.function_item_as_value(tgt_expr, ty)
+                }
             }
             Expr::If {
                 condition,
@@ -669,6 +775,7 @@ impl InferenceResultBuilder<'_> {
                                 lhs: *lhs,
                             });
                         }
+                        self.check_captured_assignment(tgt_expr, *lhs);
                     };
                     let rhs_expected = op::binary_op_rhs_expectation(*op, lhs_ty.clone());
                     if matches!(lhs_ty.interned(), TyKind::TypeParam(..))
@@ -1027,6 +1134,11 @@ impl InferenceResultBuilder<'_> {
             Expr::ChannelReceive { channel } => self.infer_channel_receive(tgt_expr, *channel),
             Expr::Select { arms } => self.infer_select(arms, expected),
             Expr::Offer { endpoint, branches } => self.infer_offer(*endpoint, branches, expected),
+            Expr::Closure {
+                params,
+                ret_type,
+                body,
+            } => self.infer_closure(tgt_expr, params, *ret_type, *body, expected),
         };
 
         let ty = self.resolve_ty_as_far_as_possible(ty);
@@ -1239,9 +1351,26 @@ impl InferenceResultBuilder<'_> {
                 }
 
                 // Check if there is a field with the same name.
-                let field_with_same_name = self
-                    .lookup_field(receiver_ty.clone(), method_name)
-                    .map(|(field_ty, _is_visible)| field_ty);
+                let field = self.lookup_field(receiver_ty.clone(), method_name);
+                let field_with_same_name = field.as_ref().map(|(field_ty, _)| field_ty.clone());
+
+                // A field holding a function value is called like a method:
+                // `self.on_event(x)`.
+                if let Some((field_ty, is_visible)) = field {
+                    let field_ty = self.normalize(&field_ty);
+                    if matches!(field_ty.interned(), TyKind::Function(_)) {
+                        if !is_visible {
+                            self.diagnostics
+                                .push(InferenceDiagnostic::AccessPrivateField {
+                                    id: tgt_expr,
+                                    receiver_ty: receiver_ty.clone(),
+                                    name: method_name.clone(),
+                                });
+                        }
+                        self.field_calls.insert(tgt_expr);
+                        return self.infer_indirect_call(tgt_expr, &field_ty, args);
+                    }
+                }
 
                 // Check if there is an associated function with the same name.
                 let associated_function_with_same_name = lookup_method(
@@ -1582,10 +1711,13 @@ impl InferenceResultBuilder<'_> {
             &Expectation::none(),
             &CheckParams {
                 is_unit_struct: false,
+                is_callee: true,
             },
         );
+        let callee_ty = self.normalize(&callee_ty);
 
         match callee_ty.interned() {
+            TyKind::Function(_) => self.infer_indirect_call(tgt_expr, &callee_ty, args),
             TyKind::Struct(s, _) => {
                 // Erroneously found either a unit struct or record struct literal. Record
                 // struct literals can never be used as a value so that will
@@ -1947,7 +2079,10 @@ impl InferenceResultBuilder<'_> {
                     let ty = self.db.type_for_impl_self(i);
                     Some(ty)
                 }
-                ValueNs::LocalBinding(pat) => Some(self.type_of_pat.get(pat)?.clone()),
+                ValueNs::LocalBinding(pat) => {
+                    self.record_local_use(pat);
+                    Some(self.type_of_pat.get(pat)?.clone())
+                }
                 ValueNs::FunctionId(f) => {
                     let ty = self
                         .db
@@ -2019,6 +2154,16 @@ impl InferenceResultBuilder<'_> {
             }
             *ty = resolved;
         }
+        let mut closures = std::mem::take(&mut self.closures);
+        for closure in closures.values_mut() {
+            for ty in closure
+                .params
+                .iter_mut()
+                .chain(std::iter::once(&mut closure.ret))
+            {
+                *ty = self.type_variables.resolve_ty_completely(ty.clone());
+            }
+        }
         let mut optional_wraps = std::mem::take(&mut self.optional_wraps);
         for ty in optional_wraps.values_mut() {
             *ty = self.type_variables.resolve_ty_completely(ty.clone());
@@ -2032,6 +2177,7 @@ impl InferenceResultBuilder<'_> {
             }
             *ty = resolved;
         }
+        self.check_capture_types(&closures, &pat_types);
         let instantiations = self.resolve_instantiations();
         InferenceResult {
             //            field_resolutions: self.field_resolutions,
@@ -2044,6 +2190,10 @@ impl InferenceResultBuilder<'_> {
             method_resolutions: self.method_resolution,
             builtin_calls: self.builtin_calls,
             effects: self.effects,
+            closures,
+            fn_values: self.fn_values,
+            indirect_calls: self.indirect_calls,
+            field_calls: self.field_calls,
 
             optional_wraps,
             variant_exprs: self.variant_exprs,
@@ -2893,12 +3043,16 @@ impl Expectation {
 struct CheckParams {
     /// Checks whether a `Expr::Path` of type struct, is actually a unit struct
     is_unit_struct: bool,
+    /// The expression is the callee of a call, so a path naming a function
+    /// keeps its `FnDef` type instead of becoming a function value.
+    is_callee: bool,
 }
 
 impl Default for CheckParams {
     fn default() -> Self {
         Self {
             is_unit_struct: true,
+            is_callee: false,
         }
     }
 }

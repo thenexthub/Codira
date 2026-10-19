@@ -1,0 +1,43 @@
+public class Log {
+    public ring: [i64],
+    public seq: i64,
+    public sum: i64,
+}
+
+public func log_new() -> Log {
+    Log {
+        ring: [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+        seq: 0,
+        sum: 0,
+    }
+}
+
+@realtime
+func ring_pos(seq: i64, mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= 0 && result <= mask
+{
+    seq & mask
+}
+
+@realtime
+func fold(sum: i64, v: i64) -> i64
+    ensures result >= 0
+{
+    (sum * 31 + v) & 9223372036854775807
+}
+
+public class Audit {
+    op: i64,
+    key: i64,
+    val: i64,
+}
+
+public func log_append(l: Log, op: i64, key: i64, val: i64) {
+    let a = Audit { op: op, key: key, val: val }
+    let rec = a.op * 1000003 + a.val
+    let pos = ring_pos(l.seq, 63)
+    l.ring[pos] = rec
+    l.sum = fold(l.sum, rec)
+    l.seq += 1
+}

@@ -199,6 +199,8 @@ pub(crate) fn gen_file_ir<'ink>(
             fuel_counter,
             dispatch_table,
             type_table: type_table.map(|g| unsafe { Global::from_raw(g) }),
+            hardware_safety: code_gen.hardware_safety,
+            safety_refusals: code_gen.safety_refusals.clone(),
         }
     };
 
@@ -223,6 +225,33 @@ pub(crate) fn gen_file_ir<'ink>(
         );
 
         code_gen.gen_fn_body();
+    }
+
+    // The code of every function-value target: closure bodies and thunks
+    // (see `ir::closures`). Each is generated here, once, rather than where
+    // its value is created, so a target exists even when the function that
+    // creates it was folded to a constant.
+    for target in group_ir.dispatch_table.fn_values().targets() {
+        let code_type = code_gen.hir_types.get_fn_value_code_type(&target.fn_ty);
+        let llvm_function = llvm_module.add_function(&target.symbol, code_type, None);
+        let mut code_gen = BodyIrGenerator::new(
+            code_gen.context,
+            &llvm_module,
+            code_gen.db,
+            (
+                target.creator.clone(),
+                target.creator_infer.clone(),
+                llvm_function,
+            ),
+            &functions,
+            &group_ir.dispatch_table,
+            &group_ir.type_table,
+            external_globals.clone(),
+            &code_gen.hir_types,
+            module_group,
+            None,
+        );
+        code_gen.gen_fn_value_target(target);
     }
 
     for (hir_function, llvm_function) in wrapper_functions.iter() {
@@ -250,11 +279,23 @@ pub(crate) fn gen_file_ir<'ink>(
     // Optimize all generated function bodies in one pass now that they've
     // all been emitted (LLVM's new pass manager operates module-wide, not
     // per-function -- see `crate::code_gen::optimize_module`'s doc comment).
+    //
+    // The optimizer folds the offsets of nested aggregates into byte offsets
+    // (`{ i64, { i1, i64 }, { i64, i64 } }` becomes "8" and "24"), so it
+    // must fold them with the target's layout: this module is created
+    // without one, and LLVM's default aligns an `i64` to 4 bytes, which
+    // placed the second field of a class holding an optional and a tuple
+    // at offset 20 while the runtime's layout of the same object says 24.
+    // The layout is only lent for the pass, so the IR the module prints and
+    // the alignments already built into it do not change.
+    let default_layout = code_gen.context.create_module("default_layout");
+    llvm_module.set_data_layout(&code_gen.target_machine.get_target_data().get_data_layout());
     crate::code_gen::optimize_module(
         &llvm_module,
         &code_gen.target_machine,
         code_gen.optimization_level,
     );
+    llvm_module.set_data_layout(&default_layout.get_data_layout());
 
     // Filter private methods. Only the group's own non-generic functions
     // can be exported: an instance or a copy belongs to this module alone.

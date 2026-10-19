@@ -1,0 +1,23 @@
+#!/bin/bash
+source "$(dirname "$0")"/common.inc
+
+# The -v banner goes to stderr, as ld-prime's does, and stdout stays
+# empty. It lists the architectures the linker supports.
+banner='^funis-macho \|PROGRAM:ld'
+$funis -v > $t/out 2> $t/err
+[ ! -s $t/out ]
+grep "$banner" $t/err
+grep -Eq "^configured to support archs: (.* )?$ARCH( |$)" $t/err
+
+cat <<EOF | $CC -o $t/a.o -c -xc -
+#include <stdio.h>
+
+int main() {
+  printf("Hello world\n");
+}
+EOF
+
+$CC --ld-path=$funis -Wl,-v -o $t/exe $t/a.o > $t/out2 2> $t/err2
+[ ! -s $t/out2 ]
+grep "$banner" $t/err2
+$RUN $t/exe | grep 'Hello world'

@@ -535,6 +535,9 @@ impl<'a, 'db> Translator<'a, 'db> {
         let body = self.body.clone();
         match &body[id] {
             Expr::Literal(literal) => self.literal(id, literal),
+            Expr::Path(_) if self.infer.function_value(id).is_some() => {
+                self.unsupported("a function used as a value")
+            }
             Expr::Path(_) => match self.local(id) {
                 Some((var, _)) => Ok(Some(self.builder.use_var(var))),
                 None => self.unsupported("a path that is not a scalar local variable"),
@@ -681,6 +684,7 @@ impl<'a, 'db> Translator<'a, 'db> {
             // Structured concurrency lowers through the LLVM backend only.
             Expr::Select { .. } => self.unsupported("`select`"),
             Expr::Offer { .. } => self.unsupported("`offer`"),
+            Expr::Closure { .. } => self.unsupported("a closure"),
             _ => self.unsupported("this kind of expression"),
         }
     }
@@ -912,6 +916,9 @@ impl<'a, 'db> Translator<'a, 'db> {
                 self.print_text("\n")?;
             }
             return Ok(None);
+        }
+        if self.infer.is_indirect_call(id) {
+            return self.unsupported("a call through a function value");
         }
         let Some(CallableDef::Function(function)) = self.infer[callee].as_callable_def() else {
             return self.unsupported("a call to something other than a function");

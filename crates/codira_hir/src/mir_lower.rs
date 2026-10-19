@@ -466,6 +466,7 @@ fn ty_to_mir_type(ty: &Ty, layout: &TargetDataLayout) -> Option<TypeId> {
         | TyKind::Optional(_)
         | TyKind::Enum(..)
         | TyKind::FnDef(..)
+        | TyKind::Function(_)
         | TyKind::Never
         | TyKind::TypeAlias(_)
         | TyKind::InferenceVar(_)

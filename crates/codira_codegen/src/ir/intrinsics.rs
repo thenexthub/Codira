@@ -76,8 +76,16 @@ fn collect_expr<'ink>(
                 *needs_alloc = true;
             }
             Some(codira_hir::CallableDef::Function(_)) => (),
+            // A call through a function value calls no runtime function.
+            None if infer.is_indirect_call(expr_id) => (),
             None => panic!("expected a callable expression"),
         }
+    }
+
+    // Creating a function value allocates its object.
+    if matches!(expr, Expr::Closure { .. }) || infer.function_value(expr_id).is_some() {
+        collect_intrinsic(context, target, &intrinsics::new, intrinsics);
+        *needs_alloc = true;
     }
 
     if let Expr::RecordLit { .. } = expr {

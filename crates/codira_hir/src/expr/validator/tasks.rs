@@ -32,6 +32,11 @@
 //! * A `select` has at least one arm -- with none it would wait forever -- and
 //!   at most one `default`. Every other arm is a channel operation (`name =
 //!   <-ch`, `<-ch` or `ch <- value`), and only a receive binds a name.
+//! * A closure is a function of its own: a `scope` around the literal does not
+//!   cover a `spawn` in its body. `spawn` never runs a function *value* (a
+//!   closure, or a named function passed around as a value): a closure carries
+//!   captured references, and nothing proves those safe to share with another
+//!   task.
 use rustc_hash::FxHashSet;
 
 use super::ExprValidator;
@@ -78,6 +83,23 @@ impl ExprValidator<'_> {
                 )
                 || crate::expr::opened_session(self.db, &self.body, id).is_some()
         });
+        // A function value would let an endpoint out of the checker's sight.
+        for (expr, _) in self.body.exprs() {
+            let holds_endpoint = matches!(
+                self.infer[expr].interned(),
+                TyKind::Function(substs)
+                    if substs.iter().any(|ty| matches!(ty.interned(), TyKind::Session(..)))
+            );
+            if holds_endpoint {
+                self.push_task_error(
+                    expr,
+                    "a function value cannot take or return a session endpoint: pass the \
+                     endpoint to a named function of its session type instead"
+                        .to_string(),
+                    sink,
+                );
+            }
+        }
         // An endpoint parameter that is never used still has a protocol to
         // finish, so the checker's findings are reported either way.
         for (expr, message) in &self.db.session_flow(self.body.owner()).errors {
@@ -151,6 +173,10 @@ impl ExprValidator<'_> {
                 for arm in arms {
                     self.validate_task_exprs(arm.body, false, allowed, sink);
                 }
+                return;
+            }
+            Expr::Closure { body, .. } => {
+                self.validate_task_exprs(*body, false, allowed, sink);
                 return;
             }
             Expr::Spawn { call } => {
@@ -316,6 +342,19 @@ impl ExprValidator<'_> {
             _ => None,
         };
         let Some(function) = function else {
+            if let Expr::Call { callee, .. } = &self.body[call] {
+                if matches!(self.infer[*callee].interned(), TyKind::Function(_)) {
+                    self.push_task_error(
+                        call,
+                        "`spawn` cannot run a function value: a closure may carry references \
+                         to shared objects, and nothing proves them safe to use from another \
+                         task; spawn a named function of this module instead"
+                            .to_string(),
+                        sink,
+                    );
+                    return;
+                }
+            }
             self.push_task_error(
                 call,
                 "`spawn` takes a call to a function, `spawn f(args)`".to_string(),

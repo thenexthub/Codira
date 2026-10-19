@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> Received
+    Received --> Rejected: malformed
+    Received --> Checked: parse
+    Checked --> Rejected: any obligation not unsat,<br/>hash mismatch, budget exhausted
+    Checked --> Quiescing: admitted
+    Quiescing --> Aborted: deadline missed,<br/>affected frame still active
+    Quiescing --> Swapped: all tasks parked,<br/>no affected frame on any stack
+    Swapped --> RolledBack: fault during migration<br/>(old version kept, heap intact)
+    Swapped --> Committed: tasks resume
+    Committed --> RolledBack: fault in watch window<br/>(restore snapshot and v1 code)
+    Committed --> [*]: watch window closes clean
+    Rejected --> [*]
+    Aborted --> [*]
+    RolledBack --> [*]

@@ -540,6 +540,24 @@ pub enum Expr {
         endpoint: ExprId,
         branches: Vec<ExprId>,
     },
+    /// `func(a: T, b) -> R { body }`: a closure literal, a value of type
+    /// `func(T, ..) -> R`.
+    ///
+    /// The body lives in the enclosing function's arena, so it is named,
+    /// resolved and type-checked with everything else, but it runs as a
+    /// function of its own: `return` leaves the closure, and the locals of
+    /// the enclosing function it mentions are *captured by value* when the
+    /// closure is created (see `ty::infer::closures`).
+    Closure {
+        /// One pattern per parameter, with its written type, if any. A
+        /// missing type is taken from the function type the closure is
+        /// checked against.
+        params: Vec<(PatId, Option<LocalTypeRefId>)>,
+        /// The written return type; `None` means "from the expected
+        /// function type, else `()`".
+        ret_type: Option<LocalTypeRefId>,
+        body: ExprId,
+    },
 }
 
 /// One arm of a `select`: `op -> body`.
@@ -772,6 +790,10 @@ impl Expr {
                 f(*endpoint);
                 branches.iter().copied().for_each(f);
             }
+            // The body is a child like any other, so a walk that collects
+            // calls or uses sees inside closures; analyses for which the
+            // body is a separate function stop here themselves.
+            Expr::Closure { body, .. } => f(*body),
         }
     }
 }
@@ -1109,7 +1131,8 @@ impl<'a> ExprCollector<'a> {
                 }
                 ast::LiteralKind::String(lit) => {
                     let (value, errors) = string_lit(codira_syntax::AstToken::text(&lit));
-                    let expr_id = self.alloc_expr(Expr::Literal(Literal::String(value)), syntax_ptr);
+                    let expr_id =
+                        self.alloc_expr(Expr::Literal(Literal::String(value)), syntax_ptr);
 
                     for err in errors {
                         self.diagnostics
@@ -1118,9 +1141,7 @@ impl<'a> ExprCollector<'a> {
 
                     expr_id
                 }
-                ast::LiteralKind::Nil => {
-                    self.alloc_expr(Expr::Literal(Literal::Nil), syntax_ptr)
-                }
+                ast::LiteralKind::Nil => self.alloc_expr(Expr::Literal(Literal::Nil), syntax_ptr),
             },
             ast::ExprKind::PrefixExpr(e) => {
                 let expr = self.collect_expr_opt(e.expr());
@@ -1419,10 +1440,12 @@ impl<'a> ExprCollector<'a> {
             ast::ExprKind::ComptimeExpr(e) => {
                 let block = self.collect_block_opt(e.body());
                 match crate::comptime_fold::try_eval(&self.exprs, block) {
-                    Ok(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value) {
-                        Some(folded) => self.alloc_expr(folded, syntax_ptr),
-                        None => block,
-                    },
+                    Ok(value) => {
+                        match crate::comptime_fold::value_to_expr(&mut self.exprs, value) {
+                            Some(folded) => self.alloc_expr(folded, syntax_ptr),
+                            None => block,
+                        }
+                    }
                     // The block was meant to be evaluated now and could not
                     // be within the interpreter's budget: say so. It still
                     // lowers as an ordinary block, so the rest of the body
@@ -1435,15 +1458,7 @@ impl<'a> ExprCollector<'a> {
                     Err(crate::comptime_fold::NotFolded::Unsupported) => block,
                 }
             }
-            // `match` and postfix `!` (force-unwrap) are fully
-            // parsed (see `codira_syntax`), but HIR-level lowering -- pattern
-            // exhaustiveness checking and optional
-            // force-unwrap typing -- is follow-up work rather than implemented here
-            // without a way to verify it end-to-end. They currently lower to a
-            // `Missing` placeholder so surrounding code still type-checks.
-            // A closure literal (`func(a: T) -> R { .. }`) joins these: it
-            // parses, but there is no function-value representation, no
-            // capture analysis and no indirect-call op for it to lower to.
+            ast::ExprKind::ClosureExpr(e) => self.collect_closure(&e, syntax_ptr),
             ast::ExprKind::MatchExpr(e) => {
                 let scrutinee = self.collect_expr_opt(e.expr());
                 let arms = e
@@ -1468,11 +1483,10 @@ impl<'a> ExprCollector<'a> {
                 let inner = self.collect_expr_opt(e.expr());
                 self.alloc_expr(Expr::Unwrap { expr: inner }, syntax_ptr)
             }
-            ast::ExprKind::ClosureExpr(_)
             // `x^` transfer (see spec/LANGUAGE_SPEC.md section 14) is fully
             // parsed but lowers to a `Missing` placeholder: the HIR has no
             // move/borrow model yet.
-            | ast::ExprKind::TransferExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
+            ast::ExprKind::TransferExpr(_) => self.alloc_expr(Expr::Missing, syntax_ptr),
             // Synthesis holes have no code until `codira synth` writes some;
             // they lower to `Missing` and are listed in the contract table,
             // where the verifier and the synthesiser find them.
@@ -1646,6 +1660,36 @@ impl<'a> ExprCollector<'a> {
         let id = self.alloc_expr(Expr::While { condition, body }, syntax_node_ptr);
         self.collect_loop_contract(id, expr.invariant_clauses(), expr.decreases_clause());
         id
+    }
+
+    /// Lowers a closure literal. A `self` parameter is not a parameter of a
+    /// closure (it is rejected by `validator::closures`) and is skipped here.
+    fn collect_closure(&mut self, e: &ast::ClosureExpr, syntax_ptr: AstPtr<ast::Expr>) -> ExprId {
+        let params = e
+            .param_list()
+            .into_iter()
+            .flat_map(|list| list.params())
+            .map(|param| {
+                let pat = self.collect_pat_opt(param.pat());
+                let type_ref = param
+                    .ascribed_type()
+                    .map(|t| self.type_ref_builder.alloc_from_node(&t));
+                (pat, type_ref)
+            })
+            .collect();
+        let ret_type = e
+            .ret_type()
+            .and_then(|r| r.type_ref())
+            .map(|t| self.type_ref_builder.alloc_from_node(&t));
+        let body = self.collect_block_opt(e.body());
+        self.alloc_expr(
+            Expr::Closure {
+                params,
+                ret_type,
+                body,
+            },
+            syntax_ptr,
+        )
     }
 
     fn collect_for(&mut self, expr: ast::ForExpr) -> ExprId {

@@ -558,6 +558,21 @@ fn pat_name(body: &Body, pat: PatId, idx: usize) -> String {
     }
 }
 
+/// Whether anything below `expr` calls a function with a contract.
+fn subtree_calls_contracted(db: &dyn HirDatabase, frame: &Frame, expr: ExprId) -> bool {
+    let callee = match &frame.body[expr] {
+        Expr::Call { callee, .. } => frame.callee(*callee),
+        Expr::MethodCall { .. } => frame.infer.method_resolution(expr).map(Function::from),
+        _ => None,
+    };
+    if callee.is_some_and(|f| has_call_contract(db, f)) {
+        return true;
+    }
+    let mut any = false;
+    frame.body[expr].walk_child_exprs(|child| any |= subtree_calls_contracted(db, frame, child));
+    any
+}
+
 fn calls_contracted_function(db: &dyn HirDatabase, frame: &Frame) -> bool {
     frame.body.exprs().any(|(id, expr)| {
         let callee = match expr {
@@ -1013,6 +1028,31 @@ impl<'ctx> Exec<'_, 'ctx> {
             Expr::Offer { endpoint, branches } => {
                 self.eval(state, *endpoint)?;
                 self.eval_offer_branches(state, branches)
+            }
+            // A closure's body runs later, if ever, with arguments nobody
+            // knows here, so it is not evaluated at the literal. Its
+            // obligations are therefore not checked: where there are any (a
+            // verified function's own divisions, or a call to a function
+            // with a contract), that is reported rather than passed. A call
+            // through a function value is unknown and yields a fresh value
+            // (see `Expr::Call` above).
+            Expr::Closure {
+                body: closure_body, ..
+            } => {
+                if self.check_own || subtree_calls_contracted(self.db, &self.frame, *closure_body) {
+                    let text = self.frame.text(self.db, expr);
+                    self.oblige(
+                        state,
+                        ObligationKind::UnverifiedClosure,
+                        self.frame.site(expr),
+                        text,
+                        Err("the obligations in it (divisions, calls to functions with \
+                             contracts) would go unchecked; move that code into a named function"
+                            .to_string()),
+                        vec![],
+                    );
+                }
+                Some(self.fresh_for_ty(&self.frame.infer[expr].clone(), "closure"))
             }
             other => {
                 // Fields, indexing, literals of composite types: evaluate

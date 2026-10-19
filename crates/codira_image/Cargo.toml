@@ -1,0 +1,15 @@
+[package]
+name = "codira_image"
+description = "A purpose-built writer for Codira shared-library images, replacing the general linker for `.codiralib` files"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]

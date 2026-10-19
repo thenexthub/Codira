@@ -1,0 +1,90 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }\n\n    public func main(k: i32) -> i32 {\n        apply(func(x: i32) -> i32 { x + k }, 2)\n    }\n    "
+snapshot_kind: text
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+%DispatchTable = type { ptr, ptr, ptr }
+
+@allocatorHandle = external global ptr
+@dispatchTable = external global %DispatchTable
+@global_type_lookup_table = external global [2 x ptr]
+
+define i32 @apply(ptr %0, i32 %1) {
+body:
+  %x = alloca i32, align 4
+  store i32 %1, ptr %x, align 4
+  %f = alloca ptr, align 8
+  store ptr %0, ptr %f, align 8
+  %f1 = load ptr, ptr %f, align 8
+  %x2 = load i32, ptr %x, align 4
+  %fn_value.is_null = icmp eq ptr %f1, null
+  br i1 %fn_value.is_null, label %fn_value.empty, label %fn_value.present
+
+fn_value.empty:                                   ; preds = %body
+  call void @llvm.trap()
+  unreachable
+
+fn_value.present:                                 ; preds = %body
+  %fn_value.object = load ptr, ptr %f1, align 8
+  %fn_value.cell = load i64, ptr %fn_value.object, align 4
+  %fn_value.cell_ptr = inttoptr i64 %fn_value.cell to ptr
+  %fn_value.code = load ptr, ptr %fn_value.cell_ptr, align 8
+  %fn_value.call = call i32 %fn_value.code(ptr %f1, i32 %x2)
+  ret i32 %fn_value.call
+}
+
+define i32 @main(i32 %0) {
+body:
+  %k = alloca i32, align 4
+  store i32 %0, ptr %k, align 4
+  %capture.k = load i32, ptr %k, align 4
+  %new_ptr = load ptr, ptr @dispatchTable, align 8
+  %"main#closure0_ptr" = load ptr, ptr getelementptr ([2 x ptr], ptr @global_type_lookup_table, i64 0, i64 1), align 8
+  %allocator_handle = load ptr, ptr @allocatorHandle, align 8
+  %fn_value = call ptr %new_ptr(ptr %"main#closure0_ptr", ptr %allocator_handle)
+  %"fn_value->data" = load ptr, ptr %fn_value, align 8
+  %fn_cell_ptr = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 1), align 8
+  %cell = ptrtoint ptr %fn_cell_ptr to i64
+  %fn_value.field = getelementptr inbounds nuw { i64, i32 }, ptr %"fn_value->data", i32 0, i32 0
+  store i64 %cell, ptr %fn_value.field, align 4
+  %fn_value.field1 = getelementptr inbounds nuw { i64, i32 }, ptr %"fn_value->data", i32 0, i32 1
+  store i32 %capture.k, ptr %fn_value.field1, align 4
+  %apply = call i32 @apply(ptr %fn_value, i32 2)
+  ret i32 %apply
+}
+
+; Function Attrs: cold noreturn nounwind memory(inaccessiblemem: write)
+declare void @llvm.trap() #0
+
+define i32 @"main#closure0"(ptr %0, i32 %1) {
+body:
+  %x = alloca i32, align 4
+  %k2 = alloca i32, align 4
+  %"->data" = load ptr, ptr %0, align 8
+  %k = getelementptr inbounds nuw { i64, i32 }, ptr %"->data", i32 0, i32 1
+  %k1 = load i32, ptr %k, align 4
+  store i32 %k1, ptr %k2, align 4
+  store i32 %1, ptr %x, align 4
+  %x3 = load i32, ptr %x, align 4
+  %k4 = load i32, ptr %k2, align 4
+  %add = add i32 %x3, %k4
+  ret i32 %add
+}
+
+attributes #0 = { cold noreturn nounwind memory(inaccessiblemem: write) }
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+%DispatchTable = type { ptr, ptr, ptr }
+
+@dispatchTable = global %DispatchTable { ptr null, ptr null, ptr @"main#closure0" }
+@global_type_lookup_table = global [2 x ptr] zeroinitializer
+@allocatorHandle = unnamed_addr global ptr null
+
+declare i32 @"main#closure0"(ptr, i32)

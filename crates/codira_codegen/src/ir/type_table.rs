@@ -174,6 +174,8 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
                     self.maybe_collect_fn_signature(hir_fn);
                 }
                 Some(codira_hir::CallableDef::Struct(_)) => (),
+                // A call through a function value: no callee signature.
+                None if infer.is_indirect_call(expr_id) => (),
                 None => panic!("expected a callable expression"),
             }
         } else if let codira_hir::Expr::Array(..) = expr {
@@ -230,6 +232,22 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
         // Collect used types from body
         let body = hir_fn.body(self.db);
         self.collect_expr(body.body_expr(), &body, infer);
+    }
+
+    /// Collects the type of every function-value object the group allocates
+    /// (see `ir::closures`), and the signature of every function a thunk
+    /// calls, which a call through the dispatch table may need to box.
+    pub fn collect_fn_values(&mut self, fn_values: &crate::ir::closures::FnValueTargets) {
+        for target in fn_values.targets() {
+            self.collect_type(crate::ir::closures::FnValueTargets::object_type_id(
+                target,
+                self.db,
+                self.hir_types,
+            ));
+            if let crate::ir::closures::TargetKind::Item(item) = target.kind {
+                self.collect_fn_signature(item);
+            }
+        }
     }
 
     /// Collects unique `TypeInfo` from the specified struct type -- a

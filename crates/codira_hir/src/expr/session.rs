@@ -621,6 +621,12 @@ impl Checker<'_> {
                 true
             }
             Expr::Offer { endpoint, branches } => self.walk_offer(expr, *endpoint, branches, state),
+            // A closure body is a function of its own and runs later, if
+            // ever. It cannot capture an endpoint (inference refuses), and
+            // a function value cannot take one (the task validator), so
+            // nothing in it concerns the endpoints tracked here -- and its
+            // `return` does not leave this function.
+            Expr::Closure { .. } => true,
             Expr::If {
                 condition,
                 then_branch,
@@ -1062,6 +1068,27 @@ mod tests {
         assert_reports(
             "func f(ep: Ping, n: i64) { match n { 0 -> { ep <- 1 }, _ -> { } }; let x = <-ep; }",
             "the arms of this `match` leave `ep` at different points",
+        );
+    }
+
+    #[test]
+    fn closures_cannot_hold_endpoints() {
+        assert_reports(
+            "func f(ep: Ping) { let g = func() { ep <- 1 }; ep <- 1; let x = <-ep; }",
+            "this closure cannot capture `ep` of type `Ping`: a session endpoint is linear",
+        );
+        assert_reports(
+            "func f(ep: Ping) { let g = func(e: Ping) { e <- 1 }; ep <- 1; let x = <-ep; }",
+            "a function value cannot take or return a session endpoint",
+        );
+        let diags = check("func f(ep: Ping, g: func(i64) -> i64) { g(ep); }");
+        assert!(!diags.is_empty(), "an endpoint passed to a function value");
+    }
+
+    #[test]
+    fn a_closure_return_does_not_leave_the_function() {
+        assert_clean(
+            "func f(ep: Ping) { let g = func(a: i64) -> i64 { return a + 1 }; ep <- g(1); let x = <-ep; }",
         );
     }
 

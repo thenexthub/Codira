@@ -42,6 +42,10 @@ mod test_utils;
 /// Defines the current ABI version
 #[allow(clippy::zero_prefixed_literal)]
 pub const ABI_VERSION: u32 = 00_04_00;
+/// The extension of the temporary file the compiler writes a library to
+/// before renaming it onto its final path, so that the runtime never sees a
+/// torn `.codiralib`. The runtime ignores files with this extension.
+pub const OUTPUT_TEMP_EXTENSION: &str = "codira-tmp";
 /// Defines the name for the `get_info` function
 pub const GET_INFO_FN_NAME: &str = "get_info";
 /// Defines the name for the `get_version` function
@@ -55,6 +59,26 @@ pub const SET_FUEL_COUNTER_FN_NAME: &str = "set_fuel_counter";
 /// The name under which the runtime provides the function instrumented code
 /// calls when the fuel counter drops below zero.
 pub const FUEL_EXHAUSTED_FN_NAME: &str = "codira.fuel_exhausted";
+/// Prefix of the dispatch-table entries through which a module receives the
+/// runtime-owned *code cell* of a function value. The rest of the name is the
+/// target's key (`<target>:<signature>`); the runtime writes the address of
+/// the cell for that key into the slot, and keeps the cell pointing at the
+/// target's current code across hot reloads.
+pub const FN_VALUE_CELL_PREFIX: &str = "codira.fn_cell:";
+/// Prefix of the dispatch-table entries through which a module *offers* the
+/// code of a function-value target (a closure body, or a thunk for a named
+/// function used as a value). The compiler pre-fills the slot with the code's
+/// address; the runtime only reads it, to point the matching cells at it.
+pub const FN_VALUE_CODE_PREFIX: &str = "codira.fn_code:";
+/// Defines the name for the `set_hardware_safety` function. Only libraries
+/// built with an experimental hardware-safety mode (`--sanitize=memtag`,
+/// `--capabilities=soft`) export it. It receives the runtime's capability
+/// table (ignored by a memtag build) and returns the `HARDWARE_SAFETY_*`
+/// flags the library was built with, so the runtime can refuse a library it
+/// cannot honour.
+pub const SET_HARDWARE_SAFETY_FN_NAME: &str = "set_hardware_safety";
+/// `set_hardware_safety` flag: built with `--sanitize=memtag` (ARM MTE).
+pub const HARDWARE_SAFETY_MEMTAG: u32 = 1;
 
 /// Represents a globally unique identifier (GUID).
 #[repr(C)]

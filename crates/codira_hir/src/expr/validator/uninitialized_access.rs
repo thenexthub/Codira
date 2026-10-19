@@ -359,6 +359,17 @@ impl ExprValidator<'_> {
                     initialized_patterns.extend(after);
                 }
             }
+            // A closure reads its captures when it is created, so every
+            // variable its body mentions must be initialized at the literal;
+            // its own parameters always are. Nothing it assigns (it may
+            // assign only its own locals) is visible outside.
+            Expr::Closure { params, body, .. } => {
+                let mut closure_initialized = initialized_patterns.clone();
+                for &(param, _) in params {
+                    self.mark_initialized(&mut closure_initialized, param);
+                }
+                self.validate_expr_access(sink, &mut closure_initialized, *body, ExprKind::Normal);
+            }
             Expr::Literal(_) | Expr::Missing | Expr::Continue => {}
         }
     }

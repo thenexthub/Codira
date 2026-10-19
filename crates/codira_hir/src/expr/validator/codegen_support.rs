@@ -101,7 +101,7 @@ impl ExprValidator<'_> {
     /// Reports an `Expr::Missing` that stands in for a construct the front
     /// end parses but does not lower.
     ///
-    /// Several expression forms -- `match`, closures, postfix `!` and
+    /// Several expression forms -- `match`, postfix `!` and
     /// postfix `^` -- are fully parsed and then lowered to
     /// `Expr::Missing`, so that the code around them still type-checks.
     /// `Missing` infers to the error type, which unifies with everything and
@@ -130,10 +130,6 @@ impl ExprValidator<'_> {
         };
 
         let (what, because) = match node.kind() {
-            SyntaxKind::CLOSURE_EXPR => (
-                "a closure",
-                "there is no function-value representation or capture analysis yet",
-            ),
             SyntaxKind::TRANSFER_EXPR => (
                 "postfix `^` (transfer)",
                 "there is no move/ownership model in the code generator yet",

@@ -46,6 +46,7 @@ fn main() {
         LinkMode::InProcess if in_process_lld_available() => "in-process LLD",
         LinkMode::InProcess => "spawned linker (built without `in-process-lld`)",
         LinkMode::Subprocess => "spawned linker",
+        LinkMode::Direct => "direct image writer (LLD for what it declines)",
     };
 
     let config = Config {
