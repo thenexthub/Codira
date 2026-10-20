@@ -1020,6 +1020,42 @@ tree and index are not touched. Limits: enums and traits are not compared;
 there is no `codira publish` -- `--check` is the step a CI job or publish
 script runs.
 
+### Proof-gated live updates: the `codira_update` crate
+
+A running process should admit a new version of a library only if it carries a
+certificate it can re-check with Z3 alone. The checking side exists today as the
+crate `codira_update` (no parser, type checker or code generator): the intent
+file, the update certificate, the checker and the admission interface. The
+prover that writes certificates (the relational verifier) and the CLI
+(`codira update prove|check`) are not built yet; see the status lines below as
+they land.
+
+- **Intent** (`intent.toml`): `[[function]] name, relation = equal | refines |
+  replaces | added | removed`, optional `when = "<expr over parameters>"` for an
+  `equal` that is only required where it holds, `effects_may_differ`;
+  `[[field]] type, name, may_differ, migrate = "reject" | "saturating", drop`.
+  Whatever is not named is unchanged and must be proven unchanged.
+- **Certificate**: header (old and new library hashes, intent hash, solver id,
+  rlimit), per-function code and source hashes in both libraries, obligations
+  tagged `equivalence | contract | effect | migration` (SMT-LIB2 queries, each
+  `unsat`; effect obligations are *attested*, not re-proved), rejections, the
+  affected set and the migration plan. `codira_update::check(cert, old, new)`
+  re-decides every query under the checker's own rlimit, checks hashes and
+  coverage, recomputes the migration verdicts and the affected set.
+- **Admission**: `trait UpdateAdmission { fn check(&self, update: &[u8]) ->
+  Admission }`, `Admission::{Admitted(Box<Report>), Rejected(Vec<String>)}`.
+  `Z3Admission` is the real one; `TestAdmission` is a scripted double for the
+  runtime. An update travels as an `UpdateBundle` (certificate + new library).
+- **Affected set**: the functions of the old program whose frames must not be
+  live at the swap: the changed ones, those that touch or hold a type whose
+  layout changed (transitively), closure bodies and their creators, per generic
+  instance; plus `inlining_exposed`, the callers that may contain inlined
+  copies. `AffectedSet::blockers(active, assume_inlining)`.
+- **Trusted base**: Z3, the compiler's verification-condition generator and
+  call-graph fact extractor, the SHA-256 binding of queries to bytes. The
+  certificate does not show the intent is the right intent, nor that machine
+  code matches source. It is not signed.
+
 ### Targets
 
 `--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,

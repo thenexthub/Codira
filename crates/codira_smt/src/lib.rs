@@ -266,6 +266,67 @@ impl Context {
         unsafe { ffi::Z3_mk_bv_sort(self.raw, width) }
     }
 
+    fn raw_sort(&self, sort: &Sort) -> ffi::Z3_sort {
+        match sort {
+            Sort::Bool => self.bool_sort(),
+            Sort::Bv(width) => self.bv_sort(*width),
+            Sort::Array(index, elem) => unsafe {
+                ffi::Z3_mk_array_sort(self.raw, self.raw_sort(index), self.raw_sort(elem))
+            },
+        }
+    }
+
+    /// A free constant of any modelled sort.
+    pub fn var(&self, name: &str, sort: &Sort) -> Term<'_> {
+        let c_name = CString::new(name).expect("variable name must not contain a NUL byte");
+        let raw = unsafe {
+            let symbol = ffi::Z3_mk_string_symbol(self.raw, c_name.as_ptr());
+            ffi::Z3_mk_const(self.raw, symbol, self.raw_sort(sort))
+        };
+        Term::from_raw(self, raw).expect("a modelled sort")
+    }
+
+    /// A free array constant from `index` to `elem`.
+    pub fn array_var(&self, name: &str, index: &Sort, elem: &Sort) -> ArrExpr<'_> {
+        match self.var(
+            name,
+            &Sort::Array(Box::new(index.clone()), Box::new(elem.clone())),
+        ) {
+            Term::Array(a) => a,
+            _ => unreachable!("an array sort gives an array term"),
+        }
+    }
+
+    /// The array from `index` that holds `value` at every index.
+    pub fn const_array<'a>(&'a self, index: &Sort, value: Term<'a>) -> ArrExpr<'a> {
+        ArrExpr {
+            ctx: self,
+            raw: unsafe { ffi::Z3_mk_const_array(self.raw, self.raw_sort(index), value.raw()) },
+        }
+    }
+
+    /// Declares the uninterpreted function `name : domain -> range`.
+    /// Declaring the same name and sorts again gives the same function.
+    pub fn func(&self, name: &str, domain: &[Sort], range: &Sort) -> FuncDecl<'_> {
+        let c_name = CString::new(name).expect("function name must not contain a NUL byte");
+        let sorts: Vec<ffi::Z3_sort> = domain.iter().map(|s| self.raw_sort(s)).collect();
+        let raw = unsafe {
+            let symbol = ffi::Z3_mk_string_symbol(self.raw, c_name.as_ptr());
+            ffi::Z3_mk_func_decl(
+                self.raw,
+                symbol,
+                sorts.len() as std::ffi::c_uint,
+                sorts.as_ptr(),
+                self.raw_sort(range),
+            )
+        };
+        FuncDecl {
+            ctx: self,
+            raw,
+            range: range.clone(),
+        }
+    }
+
     /// Declares a free bitvector variable `width` bits wide: the exact
     /// model of a fixed-width machine integer of that width. Signedness is
     /// not part of the sort; it is chosen per operation (`slt` vs `ult`,
@@ -598,6 +659,12 @@ impl<'ctx> BvExpr<'ctx> {
         }
     }
 
+    /// `self` followed by `low`: a bit-vector as wide as both together, with
+    /// `self` in the high bits.
+    pub fn concat(self, low: BvExpr<'ctx>) -> BvExpr<'ctx> {
+        self.binop(low, ffi::Z3_mk_concat)
+    }
+
     /// Bits `high..=low` of this bitvector, as a `high - low + 1`-bit value.
     pub fn extract(self, high: u32, low: u32) -> BvExpr<'ctx> {
         BvExpr {
@@ -666,6 +733,15 @@ impl<'ctx> BoolExpr<'ctx> {
     /// [`BvExpr::is_identical`]).
     pub fn is_identical(self, other: BoolExpr<'ctx>) -> bool {
         self.raw == other.raw
+    }
+
+    /// This formula with each constant on the left of a pair replaced by the
+    /// term on the right, simultaneously.
+    pub fn substitute(self, pairs: &[(Term<'ctx>, Term<'ctx>)]) -> BoolExpr<'ctx> {
+        match Term::Bool(self).substitute(pairs) {
+            Term::Bool(b) => b,
+            _ => unreachable!("substitution keeps the sort"),
+        }
     }
 
     pub fn not(self) -> BoolExpr<'ctx> {
@@ -749,6 +825,198 @@ impl<'ctx> BoolExpr<'ctx> {
             ctx,
             raw: unsafe { ffi::Z3_mk_and(ctx.raw, raws.len() as c_int, raws.as_ptr()) },
         }
+    }
+}
+
+/// The sort of a value a [`Term`] stands for.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Sort {
+    Bool,
+    /// A bit-vector this many bits wide.
+    Bv(u32),
+    /// An array from the first sort to the second.
+    Array(Box<Sort>, Box<Sort>),
+}
+
+impl Sort {
+    /// An array from `width`-bit indices to `elem`.
+    pub fn array_from_bv(width: u32, elem: Sort) -> Sort {
+        Sort::Array(Box::new(Sort::Bv(width)), Box::new(elem))
+    }
+}
+
+/// An expression of any of the sorts in [`Sort`]: what arrays hold and
+/// uninterpreted functions take and return.
+#[derive(Clone, Copy)]
+pub enum Term<'ctx> {
+    Bool(BoolExpr<'ctx>),
+    Bv(BvExpr<'ctx>),
+    Array(ArrExpr<'ctx>),
+}
+
+impl<'ctx> From<BoolExpr<'ctx>> for Term<'ctx> {
+    fn from(value: BoolExpr<'ctx>) -> Self {
+        Term::Bool(value)
+    }
+}
+
+impl<'ctx> From<BvExpr<'ctx>> for Term<'ctx> {
+    fn from(value: BvExpr<'ctx>) -> Self {
+        Term::Bv(value)
+    }
+}
+
+impl<'ctx> From<ArrExpr<'ctx>> for Term<'ctx> {
+    fn from(value: ArrExpr<'ctx>) -> Self {
+        Term::Array(value)
+    }
+}
+
+impl<'ctx> Term<'ctx> {
+    fn raw(self) -> ffi::Z3_ast {
+        match self {
+            Term::Bool(b) => b.raw,
+            Term::Bv(b) => b.raw,
+            Term::Array(a) => a.raw,
+        }
+    }
+
+    fn ctx(self) -> &'ctx Context {
+        match self {
+            Term::Bool(b) => b.ctx,
+            Term::Bv(b) => b.ctx,
+            Term::Array(a) => a.ctx,
+        }
+    }
+
+    /// Wraps a raw term of a sort this crate models; `None` for any other.
+    fn from_raw(ctx: &'ctx Context, raw: ffi::Z3_ast) -> Option<Term<'ctx>> {
+        let kind = unsafe {
+            let sort = ffi::Z3_get_sort(ctx.raw, raw);
+            ffi::Z3_get_sort_kind(ctx.raw, sort)
+        };
+        match kind {
+            ffi::Z3_BOOL_SORT => Some(Term::Bool(BoolExpr { ctx, raw })),
+            ffi::Z3_BV_SORT => Some(Term::Bv(BvExpr { ctx, raw })),
+            ffi::Z3_ARRAY_SORT => Some(Term::Array(ArrExpr { ctx, raw })),
+            _ => None,
+        }
+    }
+
+    /// The sort of this term.
+    pub fn sort(self) -> Sort {
+        unsafe fn read(c: ffi::Z3_context, sort: ffi::Z3_sort) -> Sort {
+            match ffi::Z3_get_sort_kind(c, sort) {
+                ffi::Z3_BOOL_SORT => Sort::Bool,
+                ffi::Z3_BV_SORT => Sort::Bv(ffi::Z3_get_bv_sort_size(c, sort)),
+                ffi::Z3_ARRAY_SORT => Sort::Array(
+                    Box::new(read(c, ffi::Z3_get_array_sort_domain(c, sort))),
+                    Box::new(read(c, ffi::Z3_get_array_sort_range(c, sort))),
+                ),
+                other => panic!("a term of unmodelled sort kind {other}"),
+            }
+        }
+        let c = self.ctx().raw;
+        unsafe { read(c, ffi::Z3_get_sort(c, self.raw())) }
+    }
+
+    /// This term with each constant on the left of a pair replaced by the
+    /// term on the right (of the same sort), simultaneously.
+    pub fn substitute(self, pairs: &[(Term<'ctx>, Term<'ctx>)]) -> Term<'ctx> {
+        let from: Vec<ffi::Z3_ast> = pairs.iter().map(|(f, _)| f.raw()).collect();
+        let to: Vec<ffi::Z3_ast> = pairs.iter().map(|(_, t)| t.raw()).collect();
+        let raw = unsafe {
+            ffi::Z3_substitute(
+                self.ctx().raw,
+                self.raw(),
+                pairs.len() as std::ffi::c_uint,
+                from.as_ptr(),
+                to.as_ptr(),
+            )
+        };
+        Term::from_raw(self.ctx(), raw).expect("substitution keeps the sort")
+    }
+
+    /// `self = other`. Both must have the same sort.
+    pub fn eq(self, other: Term<'ctx>) -> BoolExpr<'ctx> {
+        BoolExpr {
+            ctx: self.ctx(),
+            raw: unsafe { ffi::Z3_mk_eq(self.ctx().raw, self.raw(), other.raw()) },
+        }
+    }
+
+    /// Whether `self` and `other` are the same term.
+    pub fn is_identical(self, other: Term<'ctx>) -> bool {
+        self.raw() == other.raw()
+    }
+
+    /// `if cond then then else otherwise`. Both branches must have the same
+    /// sort.
+    pub fn ite(cond: BoolExpr<'ctx>, then: Term<'ctx>, otherwise: Term<'ctx>) -> Term<'ctx> {
+        let raw = unsafe { ffi::Z3_mk_ite(cond.ctx.raw, cond.raw, then.raw(), otherwise.raw()) };
+        Term::from_raw(cond.ctx, raw).expect("an `ite` has its branches' sort")
+    }
+}
+
+/// An array-sorted Z3 expression: a total map from indices to elements, with
+/// Z3's extensional theory of arrays (`select`, `store`, equality of whole
+/// arrays).
+#[derive(Clone, Copy)]
+pub struct ArrExpr<'ctx> {
+    ctx: &'ctx Context,
+    raw: ffi::Z3_ast,
+}
+
+impl<'ctx> ArrExpr<'ctx> {
+    /// The element at `index`. `index` must have the array's index sort.
+    pub fn select(self, index: Term<'ctx>) -> Term<'ctx> {
+        let raw = unsafe { ffi::Z3_mk_select(self.ctx.raw, self.raw, index.raw()) };
+        Term::from_raw(self.ctx, raw).expect("an array holds a sort this crate models")
+    }
+
+    /// This array with the element at `index` replaced by `value`.
+    pub fn store(self, index: Term<'ctx>, value: Term<'ctx>) -> ArrExpr<'ctx> {
+        ArrExpr {
+            ctx: self.ctx,
+            raw: unsafe { ffi::Z3_mk_store(self.ctx.raw, self.raw, index.raw(), value.raw()) },
+        }
+    }
+
+    /// `self = other` as whole arrays (every index holds the same element).
+    pub fn eq(self, other: ArrExpr<'ctx>) -> BoolExpr<'ctx> {
+        Term::Array(self).eq(Term::Array(other))
+    }
+}
+
+/// An uninterpreted function: Z3 knows only that equal arguments give equal
+/// results. Two applications to the same arguments are the same value, which
+/// is how an unchanged callee is made to behave identically in two versions
+/// of a program.
+#[derive(Clone)]
+pub struct FuncDecl<'ctx> {
+    ctx: &'ctx Context,
+    raw: ffi::Z3_func_decl,
+    range: Sort,
+}
+
+impl<'ctx> FuncDecl<'ctx> {
+    /// `self(args)`. The arguments must have the declared sorts.
+    pub fn apply(&self, args: &[Term<'ctx>]) -> Term<'ctx> {
+        let raws: Vec<ffi::Z3_ast> = args.iter().map(|a| a.raw()).collect();
+        let raw = unsafe {
+            ffi::Z3_mk_app(
+                self.ctx.raw,
+                self.raw,
+                raws.len() as std::ffi::c_uint,
+                raws.as_ptr(),
+            )
+        };
+        Term::from_raw(self.ctx, raw).expect("a function returns a sort this crate models")
+    }
+
+    /// The declared result sort.
+    pub fn range(&self) -> &Sort {
+        &self.range
     }
 }
 
@@ -1401,5 +1669,101 @@ mod tests {
         let premise = clamp_def;
         let conclusion = clamped.ge(ctx.int_lit(1));
         assert!(implies(&ctx, premise, conclusion));
+    }
+
+    #[test]
+    fn arrays_obey_read_over_write_and_extensionality() {
+        let ctx = Context::new();
+        let index = Sort::Bv(8);
+        let elem = Sort::Bv(16);
+        let heap = ctx.array_var("heap", &index, &elem);
+        let (i, j) = (ctx.bv_var("i", 8), ctx.bv_var("j", 8));
+        let v = ctx.bv_var("v", 16);
+        let stored = heap.store(i.into(), v.into());
+        // A store is visible at its own index ...
+        let Term::Bv(read) = stored.select(i.into()) else {
+            panic!("a bit-vector array holds bit-vectors")
+        };
+        assert!(implies(&ctx, ctx.bool_true(), read.eq(v)));
+        // ... and invisible elsewhere ...
+        let Term::Bv(other) = stored.select(j.into()) else {
+            panic!("a bit-vector array holds bit-vectors")
+        };
+        let Term::Bv(before) = heap.select(j.into()) else {
+            panic!("a bit-vector array holds bit-vectors")
+        };
+        assert!(implies(&ctx, i.eq(j).not(), other.eq(before)));
+        // ... and overwriting with the old value changes nothing.
+        let Term::Bv(old) = heap.select(i.into()) else {
+            panic!("a bit-vector array holds bit-vectors")
+        };
+        let same = heap.store(i.into(), old.into());
+        assert!(implies(&ctx, ctx.bool_true(), same.eq(heap)));
+        // Two different writes are different arrays.
+        let other_write = heap.store(i.into(), v.add(ctx.bv_lit(1, 16)).into());
+        assert!(!implies(&ctx, ctx.bool_true(), stored.eq(other_write)));
+    }
+
+    #[test]
+    fn uninterpreted_functions_are_functions_and_nothing_more() {
+        let ctx = Context::new();
+        let f = ctx.func("f", &[Sort::Bv(32), Sort::Bool], &Sort::Bv(32));
+        let (x, y) = (ctx.bv_var("x", 32), ctx.bv_var("y", 32));
+        let b = ctx.bool_var("b");
+        let (Term::Bv(fx), Term::Bv(fy)) = (
+            f.apply(&[x.into(), b.into()]),
+            f.apply(&[y.into(), b.into()]),
+        ) else {
+            panic!("f returns a bit-vector")
+        };
+        // Equal arguments, equal results ...
+        assert!(implies(&ctx, x.eq(y), fx.eq(fy)));
+        // ... and different arguments prove nothing.
+        assert!(!implies(&ctx, ctx.bool_true(), fx.eq(fy)));
+        // Declaring it again gives the same function.
+        let again = ctx.func("f", &[Sort::Bv(32), Sort::Bool], &Sort::Bv(32));
+        let Term::Bv(fx2) = again.apply(&[x.into(), b.into()]) else {
+            panic!("f returns a bit-vector")
+        };
+        assert!(implies(&ctx, ctx.bool_true(), fx.eq(fx2)));
+    }
+
+    #[test]
+    fn concatenation_and_scalar_terms_round_trip_through_smtlib2() {
+        let ctx = Context::new();
+        let hi = ctx.bv_var("hi", 8);
+        let lo = ctx.bv_var("lo", 8);
+        let pair = hi.concat(lo);
+        assert_eq!(pair.width(), 16);
+        assert!(implies(
+            &ctx,
+            ctx.bool_true(),
+            pair.extract(15, 8).eq(hi).and(pair.extract(7, 0).eq(lo))
+        ));
+        // A query over an array and an uninterpreted function is plain
+        // SMT-LIB2 that a fresh context decides the same way.
+        let heap = ctx.array_var("heap", &Sort::Bv(8), &Sort::Bv(8));
+        let f = ctx.func(
+            "g",
+            &[Sort::Array(Box::new(Sort::Bv(8)), Box::new(Sort::Bv(8)))],
+            &Sort::Bv(8),
+        );
+        let (Term::Bv(a), Term::Bv(b)) = (
+            f.apply(&[heap.into()]),
+            f.apply(&[heap
+                .store(hi.into(), lo.into())
+                .store(hi.into(), heap.select(hi.into()))
+                .into()]),
+        ) else {
+            panic!("g returns a bit-vector")
+        };
+        let text = ctx.to_smtlib2(&[ctx.bool_true()], a.eq(b).not());
+        let fresh = Context::new();
+        let parsed = fresh.parse_smtlib2(&text).unwrap();
+        let solver = fresh.solver();
+        for assertion in parsed {
+            solver.assert(assertion);
+        }
+        assert_eq!(solver.check(), SatResult::Unsat);
     }
 }

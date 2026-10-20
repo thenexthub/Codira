@@ -228,6 +228,37 @@ extern "C" {
     pub fn Z3_ast_vector_get(c: Z3_context, v: Z3_ast_vector, i: std::ffi::c_uint) -> Z3_ast;
     pub fn Z3_get_sort_kind(c: Z3_context, t: Z3_sort) -> c_int;
 
+    // ---- arrays, uninterpreted functions, concatenation ---------------------
+    // What relational verification needs beyond the scalar theories: the
+    // heap as arrays, the unchanged callees as uninterpreted functions.
+    pub fn Z3_mk_array_sort(c: Z3_context, domain: Z3_sort, range: Z3_sort) -> Z3_sort;
+    pub fn Z3_mk_select(c: Z3_context, a: Z3_ast, i: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_store(c: Z3_context, a: Z3_ast, i: Z3_ast, v: Z3_ast) -> Z3_ast;
+    pub fn Z3_mk_concat(c: Z3_context, t1: Z3_ast, t2: Z3_ast) -> Z3_ast;
+    pub fn Z3_get_array_sort_range(c: Z3_context, t: Z3_sort) -> Z3_sort;
+    pub fn Z3_get_array_sort_domain(c: Z3_context, t: Z3_sort) -> Z3_sort;
+    pub fn Z3_mk_const_array(c: Z3_context, domain: Z3_sort, v: Z3_ast) -> Z3_ast;
+    pub fn Z3_substitute(
+        c: Z3_context,
+        a: Z3_ast,
+        num_exprs: std::ffi::c_uint,
+        from: *const Z3_ast,
+        to: *const Z3_ast,
+    ) -> Z3_ast;
+    pub fn Z3_mk_func_decl(
+        c: Z3_context,
+        s: Z3_symbol,
+        domain_size: std::ffi::c_uint,
+        domain: *const Z3_sort,
+        range: Z3_sort,
+    ) -> Z3_func_decl;
+    pub fn Z3_mk_app(
+        c: Z3_context,
+        d: Z3_func_decl,
+        num_args: std::ffi::c_uint,
+        args: *const Z3_ast,
+    ) -> Z3_ast;
+
     // ---- errors and versions ------------------------------------------------
     pub fn Z3_set_error_handler(c: Z3_context, h: Z3_error_handler);
     pub fn Z3_get_error_code(c: Z3_context) -> Z3_error_code;
@@ -237,3 +268,7 @@ extern "C" {
 
 /// `Z3_BOOL_SORT` of the C `Z3_sort_kind` enum.
 pub const Z3_BOOL_SORT: c_int = 1;
+/// `Z3_BV_SORT` of the C `Z3_sort_kind` enum.
+pub const Z3_BV_SORT: c_int = 4;
+/// `Z3_ARRAY_SORT` of the C `Z3_sort_kind` enum.
+pub const Z3_ARRAY_SORT: c_int = 5;

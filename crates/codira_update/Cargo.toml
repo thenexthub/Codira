@@ -1,0 +1,21 @@
+[package]
+name = "codira_update"
+description = "Proof-gated live updates: the intent file, the update certificate, the checker a running process uses to admit an update, and the set of functions that must not be active while it is swapped in"
+keywords = ["codira", "hot-reloading", "verification", "proof-carrying-code"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_certificate = { version = "0.6.0-dev", path = "../codira_certificate" }
+codira_smt = { version = "0.6.0-dev", path = "../codira_smt" }
+serde = { workspace = true, features = ["std"] }
+serde_derive = { workspace = true }
+serde_json = { workspace = true, features = ["std"] }
+toml = { workspace = true, features = ["parse"] }
