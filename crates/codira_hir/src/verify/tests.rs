@@ -1509,3 +1509,67 @@ fn a_loop_with_a_sound_continue_is_proven() {
     );
     assert!(all_proven(&r), "{r:?}");
 }
+
+/// `select` is an `ite` to the verifier, `likely`/`unlikely` are the identity,
+/// and `fma` and `array_filled` yield fresh unconstrained values.
+#[test]
+fn select_is_an_ite_and_hints_are_the_identity() {
+    let r = report(
+        r#"
+    func max_of(a: i64, b: i64) -> i64
+        ensures result >= a && result >= b
+    {
+        select(a > b, a, b)
+    }
+    "#,
+        "max_of",
+    );
+    assert!(all_proven(&r), "{r:?}");
+    let r = report(
+        r#"
+    func hinted(a: i64) -> i64
+        ensures result == a
+    {
+        if likely(a > 0) { a } else { unlikely(a <= 0); a }
+    }
+    "#,
+        "hinted",
+    );
+    assert!(all_proven(&r), "{r:?}");
+    // A wrong claim about `select` is refuted, not waved through.
+    let r = report(
+        r#"
+    func wrong(a: i64, b: i64) -> i64
+        ensures result == a
+    {
+        select(a > b, a, b)
+    }
+    "#,
+        "wrong",
+    );
+    assert!(!all_proven(&r), "{r:?}");
+}
+
+/// A secret condition of `select`, `likely` or `unlikely` is refused: LLVM may
+/// lower any of them to a branch, so only `ct_select` is constant-time.
+#[test]
+fn select_and_branch_hints_on_a_secret_are_refused() {
+    let diags = diagnostics(
+        r#"
+    @constant_time
+    func picks(s: secret bool, a: u64, b: u64) -> secret u64 {
+        select(s, a, b)
+    }
+    @constant_time
+    func hints(s: secret bool) -> secret bool {
+        likely(s)
+    }
+    @constant_time
+    func fine(s: secret bool, a: u64, b: u64) -> secret u64 {
+        ct_select(s, a, b)
+    }
+    "#,
+    );
+    let needle = "secret value used as the condition of a non-constant-time builtin";
+    assert_eq!(diags.matches(needle).count(), 2, "{diags}");
+}

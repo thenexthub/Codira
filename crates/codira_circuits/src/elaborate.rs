@@ -1073,7 +1073,7 @@ impl Elaborator<'_> {
     ) -> Eval {
         if let Some(builtin) = frame.infer.builtin_call(id) {
             return match builtin {
-                BuiltinFn::CtSelect if args.len() == 3 => {
+                BuiltinFn::CtSelect | BuiltinFn::Select if args.len() == 3 => {
                     let c = self.word(frame, args[0])?;
                     let a = self.word(frame, args[1])?;
                     let b = self.word(frame, args[2])?;

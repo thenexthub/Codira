@@ -167,7 +167,11 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
 
         // If this expression is a call, store it in the dispatch table. A
         // builtin call (`print`/`println`) has no callee signature to collect.
-        if infer.builtin_call(expr_id).is_some() {
+        if let Some(builtin) = infer.builtin_call(expr_id) {
+            // `array_filled` makes an array, whose type the runtime needs.
+            if builtin == codira_hir::BuiltinFn::ArrayFilled {
+                self.collect_type(self.hir_types.type_id(&infer[expr_id]));
+            }
         } else if let codira_hir::Expr::Call { callee, .. } = expr {
             match infer[*callee].as_callable_def() {
                 Some(codira_hir::CallableDef::Function(hir_fn)) => {

@@ -95,6 +95,12 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
     /// Records that the mode cannot protect `expr`; the build then fails
     /// with every such place listed.
     fn refuse_under_safety(&self, expr: ExprId, reason: &str) {
+        self.refuse_build(expr, reason);
+    }
+
+    /// Records that `expr` cannot be built for this target; the build then
+    /// fails with every such place listed.
+    pub(super) fn refuse_build(&self, expr: ExprId, reason: &str) {
         let location = self.location_text(expr);
         self.external_globals
             .safety_refusals

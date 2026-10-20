@@ -1860,6 +1860,117 @@ impl InferenceResultBuilder<'_> {
                 ty
             }
             BuiltinFn::Channel => self.infer_channel_new(tgt_expr, args),
+            BuiltinFn::ArrayFilled => {
+                if args.len() != 2 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`array_filled` takes a value and a count, found {} argument(s)",
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                let elem_ty = self.infer_expr(args[0], &Expectation::none());
+                self.infer_expr(
+                    args[1],
+                    &Expectation::has_type(TyKind::Int(IntTy::usize()).intern()),
+                );
+                let elem_ty = self.normalize(&elem_ty);
+                if !is_plain_scalar(&elem_ty) && !elem_ty.is_unknown() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`array_filled` makes an array of integers, floats or `bool`s, not of `{}`",
+                            elem_ty.display(self.db)
+                        ),
+                    });
+                }
+                TyKind::Array(elem_ty).intern()
+            }
+            BuiltinFn::Select => {
+                if args.len() != 3 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`select` takes a condition and two values, found {} argument(s)",
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                self.infer_expr(args[0], &Expectation::has_type(TyKind::Bool.intern()));
+                let ty = self.infer_expr(args[1], &Expectation::none());
+                let ty = self.infer_expr(args[2], &Expectation::has_type(ty));
+                let ty = self.normalize(&ty);
+                if !is_plain_scalar(&ty) && !ty.is_unknown() {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`select` chooses between integers, floats or `bool`s, not `{}`",
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                ty
+            }
+            BuiltinFn::Likely | BuiltinFn::Unlikely => {
+                if args.len() != 1 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`{}` takes exactly one `bool`, found {} argument(s)",
+                            builtin.name(),
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                self.infer_expr(args[0], &Expectation::has_type(TyKind::Bool.intern()));
+                TyKind::Bool.intern()
+            }
+            BuiltinFn::Fma => {
+                if args.len() != 3 {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`fma` takes three floats, found {} argument(s)",
+                            args.len()
+                        ),
+                    });
+                    for &arg in args {
+                        self.infer_expr(arg, &Expectation::none());
+                    }
+                    return error_type();
+                }
+                let ty = self.infer_expr(args[0], &Expectation::none());
+                self.infer_expr(args[1], &Expectation::has_type(ty.clone()));
+                let ty = self.infer_expr(args[2], &Expectation::has_type(ty));
+                let ty = self.normalize(&ty);
+                if !matches!(
+                    ty.interned(),
+                    TyKind::Float(_) | TyKind::InferenceVar(InferTy::Float(_))
+                ) && !ty.is_unknown()
+                {
+                    self.diagnostics.push(InferenceDiagnostic::ExprError {
+                        id: tgt_expr.into(),
+                        message: format!(
+                            "`fma` takes `f32` or `f64` operands, not `{}`",
+                            ty.display(self.db)
+                        ),
+                    });
+                }
+                ty
+            }
             BuiltinFn::ArrayLen | BuiltinFn::ArrayUncheckedGet | BuiltinFn::StrLen => {
                 unreachable!("method builtins are resolved by `infer_builtin_method`")
             }
@@ -2971,6 +3082,18 @@ fn is_printable(ty: &Ty) -> bool {
             | TyKind::Bool
             | TyKind::Str
             | TyKind::Unknown
+            | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
+    )
+}
+
+/// Whether `ty` is an integer, float or `bool` (a literal's not yet defaulted
+/// type included): what `array_filled` and `select` handle.
+fn is_plain_scalar(ty: &Ty) -> bool {
+    matches!(
+        ty.interned(),
+        TyKind::Int(_)
+            | TyKind::Float(_)
+            | TyKind::Bool
             | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
     )
 }

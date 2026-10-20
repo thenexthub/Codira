@@ -68,6 +68,11 @@ fn collect_expr<'ink>(
                 collect_intrinsic(context, target, intrinsic, intrinsics);
             }
         }
+        // `array_filled` allocates its array through the runtime.
+        if builtin == codira_hir::BuiltinFn::ArrayFilled {
+            collect_intrinsic(context, target, &intrinsics::new_array, intrinsics);
+            *needs_alloc = true;
+        }
     } else if let Expr::Call { callee, .. } = expr {
         match infer[*callee].as_callable_def() {
             Some(codira_hir::CallableDef::Struct(_)) => {

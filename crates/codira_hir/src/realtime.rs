@@ -649,8 +649,19 @@ impl Collector<'_> {
                     "`channel(..)` allocates a channel",
                 );
             }
+            BuiltinFn::ArrayFilled => {
+                self.source(
+                    expr,
+                    EffectSet::GC_ALLOC,
+                    "`array_filled(..)` allocates an array",
+                );
+            }
             BuiltinFn::Declassify
             | BuiltinFn::CtSelect
+            | BuiltinFn::Select
+            | BuiltinFn::Likely
+            | BuiltinFn::Unlikely
+            | BuiltinFn::Fma
             | BuiltinFn::ArrayLen
             | BuiltinFn::ArrayUncheckedGet
             | BuiltinFn::StrLen => {}

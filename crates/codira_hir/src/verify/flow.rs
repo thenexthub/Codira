@@ -508,10 +508,25 @@ impl Checker<'_> {
                             }
                         }
                     }
+                    // `select` and the branch hints are not constant-time: LLVM
+                    // may turn them into a branch. `ct_select` is the form for
+                    // a secret condition.
+                    Some(BuiltinFn::Select | BuiltinFn::Likely | BuiltinFn::Unlikely) => {
+                        if let Some(&cond) = args.first() {
+                            if self.tainted(cond) {
+                                self.error(
+                                    cond,
+                                    "secret value used as the condition of a non-constant-time builtin (use `ct_select`)",
+                                );
+                            }
+                        }
+                    }
                     // `len`/`unchecked_get` are methods, never a `Call`.
                     Some(
                         BuiltinFn::Declassify
                         | BuiltinFn::CtSelect
+                        | BuiltinFn::ArrayFilled
+                        | BuiltinFn::Fma
                         | BuiltinFn::Channel
                         | BuiltinFn::ArrayLen
                         | BuiltinFn::ArrayUncheckedGet

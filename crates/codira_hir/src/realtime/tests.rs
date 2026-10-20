@@ -645,3 +645,25 @@ fn summaries_collect_effects_through_calls_and_recursion() {
     assert_eq!(effects_of(source, "pure"), EffectSet::NONE);
     assert_eq!(effects_of(source, "rec"), set(&[Effect::Unbounded]));
 }
+
+#[test]
+fn array_filled_allocates_and_the_scalar_builtins_do_not() {
+    let diags = diagnostics(
+        r#"
+    @noalloc
+    func filled(n: usize) -> [f64] { array_filled(0.0, n) }
+    @realtime
+    func scalar(c: bool, a: f64, b: f64, d: f64) -> f64 {
+        if likely(c) { fma(a, b, d) } else { select(unlikely(c), a, b) }
+    }
+    "#,
+    );
+    assert_eq!(
+        diags
+            .matches("`array_filled(..)` allocates an array")
+            .count(),
+        1,
+        "{diags}"
+    );
+    assert!(!diags.contains("scalar"), "{diags}");
+}

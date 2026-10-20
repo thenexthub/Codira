@@ -986,6 +986,26 @@ impl<'ctx> Exec<'_, 'ctx> {
                         let c = self.bool_of(*cond, "ct_select");
                         return Some(merge_sym(c, *a, *b));
                     }
+                    (Some(crate::BuiltinFn::Select), [cond, a, b]) => {
+                        let c = self.bool_of(*cond, "select");
+                        return Some(merge_sym(c, *a, *b));
+                    }
+                    (Some(crate::BuiltinFn::Likely | crate::BuiltinFn::Unlikely), [value]) => {
+                        return Some(*value)
+                    }
+                    (
+                        Some(
+                            crate::BuiltinFn::ArrayFilled
+                            | crate::BuiltinFn::Fma
+                            | crate::BuiltinFn::Select
+                            | crate::BuiltinFn::Likely
+                            | crate::BuiltinFn::Unlikely,
+                        ),
+                        _,
+                    ) => {
+                        let ty = self.frame.infer[expr].clone();
+                        return Some(self.fresh_for_ty(&ty, "builtin"));
+                    }
                     (Some(_), _) => return Some(Sym::Unit),
                     (None, _) => {}
                 }

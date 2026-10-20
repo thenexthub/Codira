@@ -446,6 +446,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                     if builtin == BuiltinFn::Channel {
                         return self.gen_channel_new(expr, args);
                     }
+                    if builtin == BuiltinFn::ArrayFilled {
+                        return self.gen_array_filled(expr, args);
+                    }
                     return self.gen_builtin_call(builtin, args);
                 }
 
@@ -585,7 +588,161 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 Some(self.opt_deref_value(arg, value))
             }
             BuiltinFn::CtSelect => self.gen_ct_select(args),
+            BuiltinFn::Select => self.gen_value_select(args),
+            BuiltinFn::Likely | BuiltinFn::Unlikely => {
+                self.gen_branch_hint(args, builtin == BuiltinFn::Likely)
+            }
+            BuiltinFn::Fma => self.gen_fma(args),
+            BuiltinFn::ArrayFilled => unreachable!("lowered by `gen_array_filled`"),
         }
+    }
+
+    /// `select(c, a, b)`: both operands are evaluated, then one LLVM `select`
+    /// picks the result. Unlike `ct_select` it says nothing about
+    /// predictability, so the backend is free to pick a conditional move, a
+    /// blend or a branch, whichever its cost model prefers.
+    fn gen_value_select(&mut self, args: &[ExprId]) -> Option<BasicValueEnum<'ink>> {
+        let [cond, then_value, else_value] = args else {
+            return None;
+        };
+        let condition = self.gen_expr(*cond)?;
+        let condition = self.opt_deref_value(*cond, condition).into_int_value();
+        let then_ir = self.gen_expr(*then_value)?;
+        let else_ir = self.gen_expr(*else_value)?;
+        Some(
+            self.builder
+                .build_select(condition, then_ir, else_ir, "select")
+                .expect("failed to build select"),
+        )
+    }
+
+    /// `likely(c)` / `unlikely(c)`: `c` itself, through `llvm.expect.i1`, which
+    /// the optimizer turns into branch weights where `c` is a branch condition.
+    fn gen_branch_hint(&mut self, args: &[ExprId], likely: bool) -> Option<BasicValueEnum<'ink>> {
+        let [cond] = args else {
+            return None;
+        };
+        let condition = self.gen_expr(*cond)?;
+        let condition = self.opt_deref_value(*cond, condition).into_int_value();
+        let bool_ty = self.context.bool_type();
+        let expect = inkwell::intrinsics::Intrinsic::find("llvm.expect")
+            .and_then(|intrinsic| intrinsic.get_declaration(self.module, &[bool_ty.into()]))
+            .expect("llvm.expect is always available");
+        let expected = bool_ty.const_int(u64::from(likely), false);
+        self.builder
+            .build_call(
+                expect,
+                &[condition.into(), expected.into()],
+                if likely { "likely" } else { "unlikely" },
+            )
+            .expect("failed to build llvm.expect")
+            .try_as_basic_value()
+            .basic()
+    }
+
+    /// `fma(a, b, c)`: `llvm.fma`, one rounding, one instruction. It needs a
+    /// target with a fused multiply-add: without one LLVM would call libm's
+    /// `fma`, which a Codira assembly does not link (the build would die in the
+    /// linker with an undefined symbol), and an emulation or a plain
+    /// `a * b + c` would silently round twice. So the build is refused here,
+    /// naming the remedy.
+    fn gen_fma(&mut self, args: &[ExprId]) -> Option<BasicValueEnum<'ink>> {
+        let [a, b, c] = args else {
+            return None;
+        };
+        if !target_has_fused_multiply_add(&self.db.target()) {
+            self.refuse_build(
+                *a,
+                "`fma` needs a target with fused multiply-add; build with                  `--target-cpu haswell` (or newer) or `--target-feature +fma`",
+            );
+        }
+        let a = self.gen_expr(*a)?;
+        let b = self.gen_expr(*b)?;
+        let c = self.gen_expr(*c)?;
+        let fma = inkwell::intrinsics::Intrinsic::find("llvm.fma")
+            .and_then(|intrinsic| intrinsic.get_declaration(self.module, &[a.get_type()]))
+            .expect("llvm.fma is always available");
+        self.builder
+            .build_call(fma, &[a.into(), b.into(), c.into()], "fma")
+            .expect("failed to build llvm.fma")
+            .try_as_basic_value()
+            .basic()
+    }
+
+    /// `array_filled(value, count)`: allocate `count` elements, then store
+    /// `value` in each with a counted loop (which LLVM recognizes as a memset
+    /// for zero bytes and may vectorize otherwise).
+    fn gen_array_filled(&mut self, expr: ExprId, args: &[ExprId]) -> Option<BasicValueEnum<'ink>> {
+        let [value, count] = args else {
+            return None;
+        };
+        let value = self.gen_expr(*value)?;
+        let count = self.gen_expr(*count)?.into_int_value();
+        let array = self.alloc_array(expr, count);
+        let elements = array.get_elements(&self.builder);
+        let element_ty = array.element_ty();
+        let index_ty = count.get_type();
+
+        let before = self.builder.get_insert_block()?;
+        let cond_block = self.context.append_basic_block(self.fn_value, "fill.cond");
+        let body_block = self.context.append_basic_block(self.fn_value, "fill.body");
+        let done_block = self.context.append_basic_block(self.fn_value, "fill.done");
+        self.builder
+            .build_unconditional_branch(cond_block)
+            .expect("failed to build fill branch");
+
+        self.builder.position_at_end(cond_block);
+        let index = self
+            .builder
+            .build_phi(index_ty, "fill.i")
+            .expect("failed to build fill index");
+        let index_value = index.as_basic_value().into_int_value();
+        let in_range = self
+            .builder
+            .build_int_compare(
+                inkwell::IntPredicate::ULT,
+                index_value,
+                count,
+                "fill.in_range",
+            )
+            .expect("failed to build fill comparison");
+        self.builder
+            .build_conditional_branch(in_range, body_block, done_block)
+            .expect("failed to build fill branch");
+
+        self.builder.position_at_end(body_block);
+        // Safety: `index < count`, and the allocation holds `count` elements.
+        let slot = unsafe {
+            self.builder
+                .build_gep(element_ty, elements, &[index_value], "fill.slot")
+                .expect("failed to build GEP into array elements")
+        };
+        self.builder
+            .build_store(slot, value)
+            .expect("failed to store a filled element");
+        let next = self
+            .builder
+            .build_int_add(index_value, index_ty.const_int(1, false), "fill.next")
+            .expect("failed to build fill increment");
+        self.builder
+            .build_unconditional_branch(cond_block)
+            .expect("failed to build fill back edge");
+        index.add_incoming(&[(&index_ty.const_zero(), before), (&next, body_block)]);
+
+        self.builder.position_at_end(done_block);
+        let length_ty = array.length_ty();
+        let length = if length_ty == index_ty {
+            count
+        } else {
+            self.builder
+                .build_int_cast(count, length_ty, "fill.len")
+                .expect("failed to cast a filled array's length")
+        };
+        let array_length_ptr = array.get_length_ptr(&self.builder);
+        self.builder
+            .build_store(array_length_ptr, length)
+            .expect("failed to store a filled array's length");
+        Some(array.into())
     }
 
     /// `ct_select(c, a, b)`: both operands are evaluated, then one LLVM
@@ -668,6 +825,11 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             | BuiltinFn::Println
             | BuiltinFn::Declassify
             | BuiltinFn::CtSelect
+            | BuiltinFn::Select
+            | BuiltinFn::Likely
+            | BuiltinFn::Unlikely
+            | BuiltinFn::Fma
+            | BuiltinFn::ArrayFilled
             | BuiltinFn::Channel => {
                 unreachable!("free-function builtins are lowered by `gen_builtin_call`")
             }
@@ -3711,9 +3873,14 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         )
     }
 
-    /// Generates code to construct an array literal at runtime. Returns `None`
-    /// if the code generation for the array literal never returns.
-    fn gen_array(&mut self, expr: ExprId, exprs: &[ExprId]) -> Option<RuntimeArrayValue<'ink>> {
+    /// Allocates the array `expr` evaluates to, with room for `length_value`
+    /// elements. The length field is left for the caller to set once the
+    /// elements are stored.
+    fn alloc_array(
+        &mut self,
+        expr: ExprId,
+        length_value: inkwell::values::IntValue<'ink>,
+    ) -> RuntimeArrayValue<'ink> {
         let array_ty = &self.infer[expr];
         let element_ty = array_ty
             .as_array()
@@ -3735,11 +3902,6 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         );
 
         let allocator_handle = self.get_allocator_handle_ptr();
-
-        let length_value = self
-            .hir_types
-            .get_usize_type()
-            .const_int(exprs.len() as u64, false);
 
         // An object pointer adds an extra layer of indirection to allow for hot
         // reloading. To make it struct type agnostic, it is stored in a `*const
@@ -3764,8 +3926,18 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         // No cast needed under opaque pointers -- `untyped_array_ptr` is
         // treated as `**ArrayValueT` directly, see gen_struct_alloc_on_heap.
         let array_ty = self.hir_types.get_array_type(element_ty);
-        let array = RuntimeArrayValue::from_ptr(untyped_array_ptr, array_ty)
-            .expect("unable to convert pointer to typed reference");
+        RuntimeArrayValue::from_ptr(untyped_array_ptr, array_ty)
+            .expect("unable to convert pointer to typed reference")
+    }
+
+    /// Generates code to construct an array literal at runtime. Returns `None`
+    /// if the code generation for the array literal never returns.
+    fn gen_array(&mut self, expr: ExprId, exprs: &[ExprId]) -> Option<RuntimeArrayValue<'ink>> {
+        let length_value = self
+            .hir_types
+            .get_usize_type()
+            .const_int(exprs.len() as u64, false);
+        let array = self.alloc_array(expr, length_value);
         let array_elements = array.get_elements(&self.builder);
         let element_basic_ty = array.element_ty();
         for (idx, expr) in exprs.iter().enumerate() {
@@ -4060,4 +4232,21 @@ fn deref_heap_value<'ink>(
     builder
         .build_load(value_type, mem_ptr, "deref")
         .expect("failed to build load for heap value deref")
+}
+
+/// Whether code for `target` can use a fused multiply-add instruction for
+/// `llvm.fma`: every `AArch64` CPU has one; on x86 it is the `fma` feature
+/// (`--target-cpu haswell` or newer, or `--target-feature +fma`). Any other
+/// architecture is treated as lacking one, which errs toward refusing.
+fn target_has_fused_multiply_add(target: &codira_target::spec::Target) -> bool {
+    match &*target.arch {
+        "aarch64" | "arm64" => true,
+        "x86_64" | "x86" => target
+            .options
+            .features
+            .split(',')
+            .map(str::trim)
+            .any(|feature| feature == "+fma"),
+        _ => false,
+    }
 }

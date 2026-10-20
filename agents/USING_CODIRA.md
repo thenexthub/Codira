@@ -149,6 +149,36 @@ An out-of-range index prints `panic at mod.code:7:13: index out of bounds: the
 length is 3 but the index is -1` to stderr and ends the program with exit
 status 101. A panic cannot be caught from Codira yet.
 
+### Hot-loop builtins: `array_filled`, `select`, `fma`, `likely`, `unlikely`
+
+```
+let xs = array_filled(0.0, n)        // [f64] of n copies; n is a usize
+let m  = select(a > b, a, b)         // both operands evaluated, then one LLVM `select`
+let y  = fma(x, w, acc)              // x * w + acc, rounded once (f32 or f64)
+if unlikely(i >= limit) { .. }       // branch weights for the optimizer
+```
+
+- `array_filled(v, n)` is the only way to make an array whose length is not
+  written out in the source. `v` is an integer, float or `bool`; the fill is a
+  counted loop that LLVM turns into a `memset` or vector stores. It allocates,
+  so `@noalloc` rejects it.
+- `select(c, a, b)` takes integers, floats or `bool`s (it is a call; the
+  channel statement `select { .. }` is a different construct, told apart by the
+  `{`). Unlike `ct_select` it
+  makes no promise about the machine code (the backend may emit a branch), so
+  a secret condition is an error: use `ct_select` there.
+- `fma(a, b, c)` is `llvm.fma`: one instruction on a target that has FMA
+  (`--target-cpu haswell`, `znver4`, ...), a libm call on the default x86-64
+  target, which is correct but slower than `a * b + c`.
+- `likely(c)` / `unlikely(c)` return `c` and become `llvm.expect`, then branch
+  weights. The verifier treats them as the identity.
+- Float sums are not reassociated, so LLVM will not vectorize a float
+  reduction on its own. Write the accumulators out (`a0..a3`, each updated with
+  `fma`) to get independent dependency chains; integer reductions vectorize at
+  `-O3` without help. There are no vector (`<4 x f64>`) types in the language
+  yet: lane-level control and an automatic accumulator split are not done.
+- Tests that read the generated IR: `crates/codira/tests/perf_builtins.rs`.
+
 ### Records (value) vs classes (reference)
 
 ```codira
@@ -1592,6 +1622,8 @@ Verified through the full pipeline (parser → HIR → LLVM → link → run):
 - arrays: literals, bounds-checked indexing and element assignment, `len()`,
   `unchecked_get(i)` (arrays of tuples type-check but do not link yet: the
   runtime has no type info for tuple element types)
+- `array_filled(v, n)`, `select`, `fma`, `likely`/`unlikely` (see "Hot-loop
+  builtins"; not supported by the Cranelift `--jit` backend, which refuses them)
 - `str` literals, and `print`/`println` (`codira run` shows the output)
 - optionals (`T?`, `nil`, `if let`, `while let`, postfix `!`, `== nil`) and
   `match` over literals, tuples, strings and optionals, checked exhaustive
