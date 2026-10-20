@@ -27,12 +27,12 @@ func fresh() -> Acct {
 
 public func ledger_new() -> Ledger {
     Ledger {
-        accts: [fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh()],
         n: 32,
         total: 32000,
+        fee_shift: 0,
         ok: 0,
         denied: 0,
-        fee_shift: 0,
+        accts: [fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh(), fresh()],
     }
 }
 

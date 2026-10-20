@@ -1,4 +1,10 @@
 import root.accounts.{ Ledger, ledger_new, deposit, withdraw, transfer, set_frozen, audit }
+import root.inspect.{ ledger_n }
+
+// Keeps the inspection module loaded with the service (the evaluation harness reads state through it).
+public func ledger_size(l: Ledger) -> i64 {
+    ledger_n(l)
+}
 
 public func ledger_stat(l: Ledger, which: i64) -> i64 {
     if which == 0 {

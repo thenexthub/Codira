@@ -80,6 +80,20 @@ impl Index<ModuleGroupId> for ModulePartition {
 /// Builds a module partition from the contents of the database
 pub(crate) fn build_partition(db: &dyn CodeGenDatabase) -> Arc<ModulePartition> {
     let mut partition = ModulePartition::default();
+    if db.no_hot_reload() {
+        // One assembly for the whole package: calls between its modules
+        // are direct, and nothing in it can be reloaded on its own.
+        let modules: Vec<codira_hir::Module> = codira_hir::Package::all(db)
+            .into_iter()
+            .flat_map(|package| package.modules(db))
+            .collect();
+        let native_symbols = Arc::new(db.native_inputs().symbols.clone());
+        partition.add_group(
+            db,
+            ModuleGroup::new(db, String::from("mod"), modules).with_native_symbols(native_symbols),
+        );
+        return Arc::new(partition);
+    }
     for module in codira_hir::Package::all(db)
         .into_iter()
         .flat_map(|package| package.modules(db))

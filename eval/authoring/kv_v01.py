@@ -197,6 +197,7 @@ public func log_sum(l: Log) -> i64 { l.sum }
 
 MOD = '''import root.table.{ Table, table_new, table_get, table_put, table_del, table_scan, table_count }
 import root.wal.{ Log, log_new, log_append }
+import root.inspect.{ table_used }
 
 public class Store {
     table: Table,
@@ -237,6 +238,11 @@ public func kv_scan(s: Store, lo: i64, hi: i64) -> i64
 {
     let r = table_scan(s.table, lo, hi)
     if r < 0 { 0 } else { r }
+}
+
+// Keeps the inspection module loaded with the service (the evaluation harness reads state through it).
+public func kv_used(s: Store) -> i64 {
+    table_used(s.table)
 }
 
 public func kv_count(s: Store) -> i64 {

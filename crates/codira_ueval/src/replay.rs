@@ -357,3 +357,94 @@ pub fn compare_with_fresh(updated: &RunOutput, fresh: &RunOutput, prefix: usize)
             && !updated.dump_final.is_empty(),
     }
 }
+
+fn join(v: &[impl ToString]) -> String {
+    v.iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn split(s: &str) -> Vec<i64> {
+    s.split(',')
+        .filter(|x| !x.is_empty())
+        .map(|x| x.parse().unwrap_or(0))
+        .collect()
+}
+
+impl RunOutput {
+    /// A line-oriented text form, so a worker process can hand its result to
+    /// the orchestrator.
+    pub fn to_text(&self) -> String {
+        let mut s = String::new();
+        let mut line = |k: &str, v: String| {
+            s.push_str(k);
+            s.push('=');
+            s.push_str(&v);
+            s.push('\n');
+        };
+        line("outputs", join(&self.outputs));
+        line("latencies_ns", join(&self.latencies_ns));
+        line("service_ns", join(&self.service_ns));
+        line("dump_before", join(&self.dump_before));
+        line("dump_after", join(&self.dump_after));
+        line("dump_final", join(&self.dump_final));
+        if let Some(t) = &self.timing {
+            line(
+                "timing_ns",
+                format!(
+                    "{},{},{}",
+                    t.install.as_nanos(),
+                    t.detect.as_nanos(),
+                    t.relink_call.as_nanos()
+                ),
+            );
+        }
+        if let Some(d) = self.downtime {
+            line("downtime_ns", d.as_nanos().to_string());
+        }
+        if let Some(e) = &self.apply_error {
+            line("apply_error", e.replace('\n', " "));
+        }
+        if let Some((i, e)) = &self.exec_error {
+            line("exec_error", format!("{i}:{}", e.replace('\n', " ")));
+        }
+        s
+    }
+
+    /// Parses [`RunOutput::to_text`].
+    pub fn from_text(text: &str) -> RunOutput {
+        let mut o = RunOutput::default();
+        for l in text.lines() {
+            let Some((k, v)) = l.split_once('=') else {
+                continue;
+            };
+            match k {
+                "outputs" => o.outputs = split(v),
+                "latencies_ns" => o.latencies_ns = split(v).into_iter().map(|x| x as u64).collect(),
+                "service_ns" => o.service_ns = split(v).into_iter().map(|x| x as u64).collect(),
+                "dump_before" => o.dump_before = split(v),
+                "dump_after" => o.dump_after = split(v),
+                "dump_final" => o.dump_final = split(v),
+                "timing_ns" => {
+                    let t = split(v);
+                    if t.len() == 3 {
+                        o.timing = Some(ApplyTiming {
+                            install: Duration::from_nanos(t[0] as u64),
+                            detect: Duration::from_nanos(t[1] as u64),
+                            relink_call: Duration::from_nanos(t[2] as u64),
+                        });
+                    }
+                }
+                "downtime_ns" => o.downtime = v.parse().ok().map(Duration::from_nanos),
+                "apply_error" => o.apply_error = Some(v.to_owned()),
+                "exec_error" => {
+                    let (i, e) = v.split_once(':').unwrap_or(("0", v));
+                    o.exec_error = Some((i.parse().unwrap_or(0), e.to_owned()));
+                }
+                _ => {}
+            }
+        }
+        o
+    }
+}

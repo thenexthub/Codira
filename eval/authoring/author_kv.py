@@ -320,6 +320,10 @@ U.append(Update(
     edits=[
         (T, "    public slots: [Entry],\n    public cap: i64,\n    public mask: i64,\n    public used: i64,\n    public tomb: i64,\n}",
             "    public cap: i64,\n    public mask: i64,\n    public tomb: i64,\n    public used: i64,\n    public slots: [Entry],\n}"),
+        # A struct literal must list its fields in declaration order (a toolchain
+        # defect, see UEVAL_RESULTS.txt), so the literal follows the new order.
+        (T, "        slots: [" + kv_v01.blanks(128) + "],\n        cap: 128,\n        mask: 127,\n        used: 0,\n        tomb: 0,\n",
+            "        cap: 128,\n        mask: 127,\n        tomb: 0,\n        used: 0,\n        slots: [" + kv_v01.blanks(128) + "],\n"),
         (T, '''    var sum = 0
     var i = 0
     while i < t.cap {

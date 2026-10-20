@@ -34,6 +34,13 @@ impl CompileTestDriver {
     ///    mod.code
     /// ```
     pub fn from_fixture(text: &str) -> Self {
+        Self::from_fixture_with(text, |_| {})
+    }
+
+    /// Like [`CompileTestDriver::from_fixture`], letting `configure` adjust
+    /// the compiler driver (for instance [`Driver::set_no_hot_reload`])
+    /// before it checks and generates code.
+    pub fn from_fixture_with(text: &str, configure: impl FnOnce(&mut Driver)) -> Self {
         let temp_output_dir = tempfile::TempDir::new().unwrap();
         let config = Config {
             out_dir: Some(temp_output_dir.path().to_path_buf()),
@@ -51,6 +58,7 @@ impl CompileTestDriver {
         // Initialize the driver from the fixture content
         let (_, mut driver) =
             Driver::with_package_path(temp_source_dir.path().join("codira.toml"), config).unwrap();
+        configure(&mut driver);
         if let Some(compiler_errors) = driver
             .emit_diagnostics_to_string(DisplayColor::Disable)
             .expect("could not create diagnostics")
@@ -191,6 +199,19 @@ impl CompileAndRunTestDriver {
         Ok(Self { driver, runtime })
     }
 
+    /// Like [`CompileAndRunTestDriver::from_fixture`], letting `configure`
+    /// adjust the compiler driver first.
+    pub fn from_fixture_with_driver(
+        fixture: &str,
+        configure: impl FnOnce(&mut Driver),
+    ) -> Result<Self, InitError> {
+        let driver = CompileTestDriver::from_fixture_with(fixture, configure);
+        // Safety: We compiled the library ourselves, therefor loading the codiralib is
+        // safe.
+        let runtime = unsafe { Runtime::builder(driver.lib_path()).finish() }?;
+        Ok(Self { driver, runtime })
+    }
+
     /// Like [`CompileAndRunTestDriver::new`], but compiles with fuel
     /// instrumentation (`codira build --fuel`).
     pub fn with_fuel_instrumentation(
@@ -206,6 +227,11 @@ impl CompileAndRunTestDriver {
         let runtime = unsafe { build.finish() }?;
 
         Ok(Self { driver, runtime })
+    }
+
+    /// The path of the entry library.
+    pub fn lib_path(&self) -> &Path {
+        self.driver.lib_path()
     }
 
     /// Updates the text of the Codira source and ensures that the generated
