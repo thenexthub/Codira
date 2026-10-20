@@ -386,6 +386,17 @@ impl Driver {
         }
     }
 
+    /// Builds the package without hot reload (`codira build
+    /// --no-hot-reload`): every module goes into one library, so a call from
+    /// one module to another is a direct call and not a dispatch-table
+    /// lookup. Runtime services (allocation, printing, tasks) are still
+    /// reached through the runtime's table.
+    pub fn set_no_hot_reload(&mut self, enabled: bool) {
+        if self.db.no_hot_reload() != enabled {
+            self.db.set_no_hot_reload(enabled);
+        }
+    }
+
     /// Sets the experimental hardware-safety mode for the code this driver
     /// generates (`codira build --sanitize=memtag`). Whether the target can
     /// honour it is checked when the assembly is built.

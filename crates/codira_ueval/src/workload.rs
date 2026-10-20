@@ -22,6 +22,8 @@ pub struct Req {
     pub b: i64,
     /// Third argument.
     pub c: i64,
+    /// Fourth argument (a logical clock for workloads that need one).
+    pub d: i64,
 }
 
 /// A service driven through `Runtime::invoke`.

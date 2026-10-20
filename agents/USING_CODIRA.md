@@ -865,6 +865,13 @@ Useful `build` options: `-O 0..3` (default `2`), `--emit-ir`, `--watch`,
   know. `native` is resolved to the concrete host CPU and its features
   before the build starts, and is refused when cross-compiling.
 
+- `--no-hot-reload`: build the package as one library. Calls between its
+  modules become direct calls instead of dispatch-table lookups (allocation,
+  printing and tasks still go through the runtime's table). The result runs
+  the same; it can no longer be reloaded module by module. Not combinable
+  with `--watch` or `--daemon`. Measured cost of the table: see
+  `crates/codira_ueval` (`ueval bench`).
+
 Eidos's search is bounded per region by an optional `[eidos]` table in
 `codira.toml`. Every bound counts work, never time, so the same sources
 always build to the same program:

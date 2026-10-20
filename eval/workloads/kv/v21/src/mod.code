@@ -1,5 +1,6 @@
 import root.table.{ Table, table_new, table_get, table_put, table_del, table_scan, table_count, table_expire, table_del_range }
 import root.wal.{ Log, log_new, log_append }
+import root.inspect.{ table_used }
 
 public class Store {
     table: Table,
@@ -52,6 +53,11 @@ public func kv_del(s: Store, key: i64) -> i64 {
 public func kv_scan(s: Store, lo: i64, hi: i64) -> i64 {
     if lo > hi { return -1 }
     table_scan(s.table, lo, hi)
+}
+
+// Keeps the inspection module loaded with the service (the evaluation harness reads state through it).
+public func kv_used(s: Store) -> i64 {
+    table_used(s.table)
 }
 
 public func kv_incr(s: Store, key: i64, delta: i64) -> i64 {

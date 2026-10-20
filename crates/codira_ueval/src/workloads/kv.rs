@@ -45,6 +45,7 @@ impl Workload for Kv {
                     a: i as i64,
                     b: val.abs(),
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 40 {
                 Req {
@@ -52,6 +53,7 @@ impl Workload for Kv {
                     a: key,
                     b: 0,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 68 {
                 Req {
@@ -59,6 +61,7 @@ impl Workload for Kv {
                     a: key,
                     b: val,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 80 {
                 Req {
@@ -66,6 +69,7 @@ impl Workload for Kv {
                     a: key,
                     b: 0,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 86 {
                 let lo = rng.below(KEY_SPACE) as i64;
@@ -79,6 +83,7 @@ impl Workload for Kv {
                     a: lo,
                     b: hi,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 89 {
                 Req {
@@ -86,6 +91,7 @@ impl Workload for Kv {
                     a: 0,
                     b: 0,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 94 {
                 Req {
@@ -93,6 +99,7 @@ impl Workload for Kv {
                     a: key,
                     b: rng.range(-5, 20),
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 97 {
                 Req {
@@ -100,6 +107,7 @@ impl Workload for Kv {
                     a: key,
                     b: i as i64 + rng.below(50) as i64,
                     c: 0,
+                    d: 0,
                 }
             } else if roll < 98 {
                 let lo = rng.below(KEY_SPACE) as i64;
@@ -108,6 +116,7 @@ impl Workload for Kv {
                     a: lo,
                     b: lo + rng.below(6) as i64,
                     c: 0,
+                    d: 0,
                 }
             } else {
                 Req {
@@ -115,6 +124,7 @@ impl Workload for Kv {
                     a: key,
                     b: val,
                     c: 0,
+                    d: 0,
                 }
             };
             out.push(req);
@@ -134,14 +144,14 @@ impl Workload for Kv {
         let store = state.as_ref(rt);
         let table = field_struct(&store, "table")?;
         let log = field_struct(&store, "log")?;
-        let cap = call_i64(rt, "table_capacity", (table,))?;
+        let cap = call_i64(rt, "inspect::table_capacity", (table,))?;
         let table = field_struct(&store, "table")?;
         let mut entries = Vec::new();
         for i in 0..cap {
             let t = field_struct(&store, "table")?;
-            if call_i64(rt, "slot_live", (t, i))? == 1 {
-                let k = call_i64(rt, "slot_key", (field_struct(&store, "table")?, i))?;
-                let v = call_i64(rt, "slot_val", (field_struct(&store, "table")?, i))?;
+            if call_i64(rt, "inspect::slot_live", (t, i))? == 1 {
+                let k = call_i64(rt, "inspect::slot_key", (field_struct(&store, "table")?, i))?;
+                let v = call_i64(rt, "inspect::slot_val", (field_struct(&store, "table")?, i))?;
                 entries.push((k, v));
             }
         }
@@ -151,9 +161,13 @@ impl Workload for Kv {
             out.push(k);
             out.push(v);
         }
-        out.push(call_i64(rt, "table_used", (table,))?);
-        out.push(call_i64(rt, "log_seq", (field_struct(&store, "log")?,))?);
-        out.push(call_i64(rt, "log_sum", (log,))?);
+        out.push(call_i64(rt, "inspect::table_used", (table,))?);
+        out.push(call_i64(
+            rt,
+            "inspect::log_seq",
+            (field_struct(&store, "log")?,),
+        )?);
+        out.push(call_i64(rt, "inspect::log_sum", (log,))?);
         Ok(out)
     }
 

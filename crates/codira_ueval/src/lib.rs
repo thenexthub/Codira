@@ -10,6 +10,7 @@
 #![warn(missing_docs)]
 
 pub mod manifest;
+pub mod mutate;
 pub mod replay;
 pub mod rng;
 pub mod session;

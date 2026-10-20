@@ -152,10 +152,8 @@ impl Builder {
 }
 
 impl BuildOptions {
-    fn apply(self, _driver: &mut Driver) {
-        // `no_hot_reload` is wired to the compiler in the commit that adds
-        // the option; until then the field is always false.
-        let _ = self.no_hot_reload;
+    fn apply(self, driver: &mut Driver) {
+        driver.set_no_hot_reload(self.no_hot_reload);
     }
 }
 
@@ -283,4 +281,13 @@ impl Deployment {
             std::thread::sleep(Duration::from_micros(100));
         }
     }
+}
+
+/// Writes a library set into `dir` (created if needed).
+pub fn write_libs(dir: &Path, libs: &LibSet) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    for (name, bytes) in libs {
+        std::fs::write(dir.join(name), bytes)?;
+    }
+    Ok(())
 }

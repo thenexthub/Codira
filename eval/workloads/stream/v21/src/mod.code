@@ -1,7 +1,11 @@
 import root.window.{ Agg, agg_new, agg_pct, agg_window_sum, agg_mean, agg_recent, agg_extreme, agg_clear }
 import root.pipeline.{ process_batch }
+import root.inspect.{ agg_total }
 
 public func stream_new() -> Agg { agg_new() }
+
+// Keeps the inspection module loaded with the service (the evaluation harness reads state through it).
+public func stream_events(a: Agg) -> i64 { agg_total(a) }
 
 enum Op {
     Batch,

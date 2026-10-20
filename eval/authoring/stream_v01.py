@@ -197,8 +197,12 @@ public func agg_newest(a: Agg) -> i64 { a.newest }
 
 MOD = '''import root.window.{ Agg, agg_new, agg_pct, agg_window_sum }
 import root.pipeline.{ process_batch }
+import root.inspect.{ agg_total }
 
 public func stream_new() -> Agg { agg_new() }
+
+// Keeps the inspection module loaded with the service (the evaluation harness reads state through it).
+public func stream_events(a: Agg) -> i64 { agg_total(a) }
 
 // One entry point for the request stream:
 // 0 batch(n=x, seed=y, ts0=z), 1 percentile(p=x), 2 window sum (window id x),

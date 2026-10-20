@@ -93,6 +93,12 @@ pub struct Args {
     #[clap(long, conflicts_with_all = ["watch", "daemon"])]
     fuel: bool,
 
+    /// Build without hot reload: all modules go into one library, so calls
+    /// between modules are direct calls instead of dispatch-table lookups.
+    /// For production builds that will never be reloaded.
+    #[clap(long, conflicts_with_all = ["watch", "daemon"])]
+    no_hot_reload: bool,
+
     /// Write a proof certificate next to every library
     /// (`<library>.cert.json`): each function's verified obligations as
     /// SMT-LIB2 queries, with hashes of its source and machine code.
@@ -256,6 +262,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         display_colors,
         |driver| {
             driver.set_fuel_instrumentation(args.fuel);
+            driver.set_no_hot_reload(args.no_hot_reload);
             driver.set_certify(args.certify);
             driver.set_hardware_safety(safety);
         },

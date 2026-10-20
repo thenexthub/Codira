@@ -59,6 +59,13 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// (`--sanitize=memtag`; see [`crate::HardwareSafety`]).
     #[salsa::input]
     fn hardware_safety(&self) -> crate::HardwareSafety;
+
+    /// Whether the package is built without hot reload (`--no-hot-reload`):
+    /// all of its modules form one assembly, so calls between modules are
+    /// direct calls instead of dispatch-table lookups. Such a build cannot
+    /// be reloaded module by module.
+    #[salsa::input]
+    fn no_hot_reload(&self) -> bool;
     /// The package's native code (C, C++, assembly), linked into every module
     /// group that calls it. See `crate::native`.
     #[salsa::input]
