@@ -143,6 +143,10 @@ fn write_type_ref(
             write!(f, "?")
         }
         TypeRef::Refinement(inner) => write_type_ref(*inner, container, f),
+        TypeRef::Dual(inner) => {
+            write!(f, "dual ")?;
+            write_type_ref(*inner, container, f)
+        }
         TypeRef::Tuple(elems) => {
             write!(f, "(")?;
             for (idx, elem) in elems.iter().enumerate() {

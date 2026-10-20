@@ -45,8 +45,18 @@ fn collect_structural_types(
 ) {
     use codira_hir::{TyKind, TypeWalk};
     ty.walk(&mut |inner| {
+        // A tuple holding a channel or a session endpoint -- the pair
+        // `S.open()` returns -- is local to the function: those handles never
+        // cross into the runtime, and have no exported layout.
+        let holds_handle = || {
+            let mut found = false;
+            inner.walk(&mut |t| {
+                found |= matches!(t.interned(), TyKind::Channel(_) | TyKind::Session(..));
+            });
+            found
+        };
         let structural = match inner.interned() {
-            TyKind::Tuple(arity, _) => *arity > 0,
+            TyKind::Tuple(arity, _) => *arity > 0 && !holds_handle(),
             TyKind::Optional(_) | TyKind::Str => true,
             _ => false,
         };

@@ -12,7 +12,7 @@ use super::PackageDefs;
 use crate::{
     ids::{
         EffectLoc, EnumLoc, FunctionLoc, ImplLoc, Intern, ItemContainerId, ItemDefinitionId,
-        StructLoc, TypeAliasLoc,
+        SessionLoc, StructLoc, TypeAliasLoc,
     },
     item_scope::{ImportType, ItemScope, PerNsGlobImports},
     item_tree::{
@@ -552,6 +552,7 @@ impl<'a> ModCollectorContext<'a, '_> {
                 ModItem::Struct(id) => self.collect_struct(id),
                 ModItem::TypeAlias(id) => self.collect_type_alias(id),
                 ModItem::Effect(id) => self.collect_effect(id),
+                ModItem::Session(id) => self.collect_session(id),
                 ModItem::Enum(id) => self.collect_enum(id),
                 ModItem::Import(id) => {
                     self.collect_import(id);
@@ -683,6 +684,25 @@ impl<'a> ModCollectorContext<'a, '_> {
             .into(),
             name: &effect.name,
             visibility: &self.item_tree[effect.visibility],
+            has_constructor: false,
+        }
+    }
+
+    /// Collects the definition data from a `session` declaration.
+    fn collect_session(&self, id: LocalItemTreeId<item_tree::Session>) -> DefData<'a> {
+        let session = &self.item_tree[id];
+        DefData {
+            id: SessionLoc {
+                module: ModuleId {
+                    package: self.def_collector.package_id,
+                    local_id: self.module_id,
+                },
+                id: ItemTreeId::new(self.file_id, id),
+            }
+            .intern(self.def_collector.db)
+            .into(),
+            name: &session.name,
+            visibility: &self.item_tree[session.visibility],
             has_constructor: false,
         }
     }

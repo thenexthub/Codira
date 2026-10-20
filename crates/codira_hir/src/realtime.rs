@@ -38,7 +38,8 @@
 //!   writes under standard output's lock;
 //! * `channel(n)`, `scope { .. }` (its task bookkeeping; its end waits for
 //!   every task) and `spawn` (copies the arguments to the heap and queues the
-//!   task); a channel send can grow the channel's queue;
+//!   task); a channel send can grow the channel's queue; `select` (its wait
+//!   list, with or without `default`) and `S.open()` (a session's channels);
 //! * a call to a function of *another module* with a value-struct parameter or
 //!   result: such calls go through the runtime's dispatch table, whose calling
 //!   convention boxes those structs on the GC heap.
@@ -46,7 +47,8 @@
 //! String literals are constants and allocate nothing; value structs,
 //! tuples and effect handler records live on the stack.
 //!
-//! Block: channel send and receive, the end of a `scope`, and the
+//! Block: channel send and receive (on a session endpoint too, and
+//! `ep.choose(..)` and `offer`), `select`, the end of a `scope`, and the
 //! allocations above (locks).
 //!
 //! Panic (anything that ends the call abnormally):
@@ -114,7 +116,7 @@ use crate::{
     resolve::{resolver_for_expr, ValueNs},
     verify::{exec::Frame, ObligationKind, Verdict, VerificationReport},
     BuiltinFn, CallableDef, Expr, ExprId, HasSource, HirDatabase, Literal, Module, Path,
-    StructMemoryKind,
+    StructMemoryKind, TyKind,
 };
 
 #[cfg(test)]
@@ -516,6 +518,26 @@ impl Collector<'_> {
                     }
                 }
             }
+            // `S.open()`: the runtime allocates the pair's channels.
+            Expr::MethodCall { .. }
+                if crate::expr::opened_session(self.db, &self.frame.body, expr).is_some() =>
+            {
+                self.source(
+                    expr,
+                    EffectSet::GC_ALLOC,
+                    "opening a session allocates its two channels",
+                );
+            }
+            // `ep.choose(k)`: a send on the session's channel.
+            Expr::MethodCall { receiver, .. }
+                if matches!(self.frame.infer[*receiver].interned(), TyKind::Session(..)) =>
+            {
+                self.source(
+                    expr,
+                    EffectSet::of(&[Effect::Block]),
+                    "`choose` waits while the other endpoint has not taken the previous message",
+                );
+            }
             Expr::MethodCall { .. } => {
                 if let Some(builtin) = self.frame.infer.builtin_call(expr) {
                     self.builtin(expr, builtin);
@@ -579,6 +601,26 @@ impl Collector<'_> {
                 expr,
                 EffectSet::of(&[Effect::Block]),
                 "channel receive waits while the channel is empty",
+            ),
+            // Even with `default` a select takes its channels' locks; it
+            // also builds its wait list on the heap.
+            Expr::Select { arms } => self.source(
+                expr,
+                EffectSet::GC_ALLOC,
+                if arms
+                    .iter()
+                    .any(|arm| matches!(arm.op, crate::SelectOp::Default))
+                {
+                    "`select` locks its channels and allocates its wait list"
+                } else {
+                    "`select` waits until one of its channels is ready, and allocates its wait \
+                     list"
+                },
+            ),
+            Expr::Offer { .. } => self.source(
+                expr,
+                EffectSet::of(&[Effect::Block]),
+                "`offer` waits for the other endpoint's choice",
             ),
         }
 

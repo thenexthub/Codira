@@ -13,7 +13,7 @@ use crate::{
     has_module::HasModule,
     ids::{
         DefWithBodyId, EffectId, EnumId, FunctionId, GenericDefId, ImplId, ItemContainerId,
-        ItemDefinitionId, Lookup, StructId, TypeAliasId, TypeParamId,
+        ItemDefinitionId, Lookup, SessionId, StructId, TypeAliasId, TypeParamId,
     },
     item_scope::BUILTIN_SCOPE,
     name,
@@ -205,6 +205,7 @@ impl Resolver {
                     | ItemDefinitionId::TypeAliasId(_)
                     | ItemDefinitionId::PrimitiveType(_)
                     | ItemDefinitionId::EffectId(_)
+                    | ItemDefinitionId::SessionId(_)
                     | ItemDefinitionId::EnumId(_),
                     _,
                 ) => return None,
@@ -272,7 +273,8 @@ impl Resolver {
                                 (
                                     ItemDefinitionId::ModuleId(_)
                                     | ItemDefinitionId::FunctionId(_)
-                                    | ItemDefinitionId::EffectId(_),
+                                    | ItemDefinitionId::EffectId(_)
+                                    | ItemDefinitionId::SessionId(_),
                                     _,
                                 ) => return None,
                             };
@@ -317,7 +319,8 @@ impl Resolver {
                 (
                     ItemDefinitionId::ModuleId(_)
                     | ItemDefinitionId::FunctionId(_)
-                    | ItemDefinitionId::EffectId(_),
+                    | ItemDefinitionId::EffectId(_)
+                    | ItemDefinitionId::SessionId(_),
                     _,
                 ) => {
                     return None;
@@ -387,6 +390,26 @@ impl Resolver {
         }
         match module_def.take_types()? {
             (ItemDefinitionId::EffectId(id), vis) => Some((id, vis)),
+            _ => None,
+        }
+    }
+
+    /// Resolves the specified `path` as a session type (`Checkout` in
+    /// `ep: Checkout` or `Checkout.open()`). Like an effect, a session is
+    /// reached only this way; type lowering turns it into
+    /// `TyKind::Session`.
+    pub fn resolve_path_as_session(
+        &self,
+        db: &dyn DefDatabase,
+        path: &Path,
+    ) -> Option<(SessionId, Visibility)> {
+        let (package_defs, module_id) = self.module_scope()?;
+        let (module_def, idx) = package_defs.resolve_path_in_module(db, module_id, path);
+        if idx.is_some() {
+            return None;
+        }
+        match module_def.take_types()? {
+            (ItemDefinitionId::SessionId(id), vis) => Some((id, vis)),
             _ => None,
         }
     }
@@ -510,6 +533,12 @@ impl HasResolver for StructId {
         self.module(db)
             .resolver(db)
             .push_generic_param_scope(self.into())
+    }
+}
+
+impl HasResolver for SessionId {
+    fn resolver(self, db: &dyn DefDatabase) -> Resolver {
+        self.module(db).resolver(db)
     }
 }
 

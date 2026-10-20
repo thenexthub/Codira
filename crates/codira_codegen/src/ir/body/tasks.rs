@@ -30,11 +30,29 @@
 //! bytes before `scope_spawn` returns, so the struct can live in the
 //! spawning frame. The HIR validator guarantees that `f` takes only scalars
 //! and channel handles, so the copy shares nothing with the spawner.
-use codira_hir::{Expr, ExprId, TyKind};
+//!
+//! # `select`
+//!
+//! A `select` evaluates every arm's channel and sent value in source order,
+//! storing each sent value in a stack slot and allocating a slot for each
+//! received one, and lays the operations out as an array of
+//! `(channel, kind, slot address)` triples for `codira.channel_select`. The
+//! index it returns -- or the operation count, for `default` -- switches to
+//! the chosen arm, which loads its received value (if it binds one) and runs
+//! its body; the arms meet in one block with a phi of their values.
+//!
+//! # Sessions
+//!
+//! `S.open()` asks the runtime for two endpoint handles and makes the tuple
+//! of them. On an endpoint, `ep <- v` and `<-ep` go through
+//! `codira.session_send` / `codira.session_receive` with the payload's
+//! size; `ep.choose(k)` sends `k` as an `i64`, and `offer` receives that
+//! `i64` and switches on it to the branch blocks.
+use codira_hir::{Expr, ExprId, SelectArm, SelectOp, Ty, TyKind};
 use inkwell::{
     module::Linkage,
     types::BasicTypeEnum,
-    values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, IntValue},
+    values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
 
@@ -272,7 +290,7 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
             .expect("the task validator only allows scalar channel elements")
     }
 
-    /// `channel <- value`.
+    /// `channel <- value`, or a send on a session endpoint.
     pub(super) fn gen_channel_send(
         &mut self,
         channel: ExprId,
@@ -280,6 +298,10 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
     ) -> Option<BasicValueEnum<'ink>> {
         let handle = self.gen_expr(channel)?;
         let value = self.gen_expr(value)?;
+        if self.is_endpoint(channel) {
+            self.session_send(handle.into_int_value(), value);
+            return Some(self.gen_empty());
+        }
         let element_ty = self.channel_element_type(channel);
         let slot = self
             .new_alloca_builder()
@@ -293,9 +315,360 @@ impl<'ink> BodyIrGenerator<'_, 'ink, '_> {
         Some(self.gen_empty())
     }
 
-    /// `<-channel`.
-    pub(super) fn gen_channel_receive(&mut self, channel: ExprId) -> Option<BasicValueEnum<'ink>> {
+    /// Whether `expr` evaluates to a session endpoint.
+    pub(super) fn is_endpoint(&self, expr: ExprId) -> bool {
+        matches!(self.infer[expr].interned(), TyKind::Session(..))
+    }
+
+    /// `S.open()`: the tuple of the two endpoints.
+    pub(super) fn gen_session_open(&mut self, expr: ExprId) -> Option<BasicValueEnum<'ink>> {
+        let usize_ty = self.hir_types.get_usize_type();
+        let scope = *self
+            .tasks
+            .scopes
+            .last()
+            .expect("the task validator rejects a session opened outside a `scope`");
+        let out = self
+            .new_alloca_builder()
+            .build_alloca(usize_ty.array_type(2), "endpoints")
+            .expect("failed to allocate the endpoints");
+        let address = self.address_of(out);
+        self.call_runtime(&intrinsics::session_open, &[scope.into(), address.into()]);
+        let tuple_ty = self
+            .hir_types
+            .get_basic_type(&self.infer[expr])
+            .expect("a pair of endpoints has a basic type")
+            .into_struct_type();
+        let mut tuple = tuple_ty.get_undef();
+        for idx in 0..2u32 {
+            // SAFETY: `idx` is below the array's length of two.
+            let slot = unsafe {
+                self.builder
+                    .build_gep(
+                        usize_ty,
+                        out,
+                        &[usize_ty.const_int(u64::from(idx), false)],
+                        "endpoint",
+                    )
+                    .expect("failed to address an endpoint")
+            };
+            let handle = self
+                .builder
+                .build_load(usize_ty, slot, "endpoint")
+                .expect("failed to load an endpoint");
+            tuple = self
+                .builder
+                .build_insert_value(tuple, handle, idx, "endpoints")
+                .expect("failed to build the endpoint pair")
+                .into_struct_value();
+        }
+        Some(tuple.into())
+    }
+
+    /// Sends `value`, a `ty`, on the endpoint `handle`.
+    fn session_send(&mut self, handle: IntValue<'ink>, value: BasicValueEnum<'ink>) {
+        let slot = self
+            .new_alloca_builder()
+            .build_alloca(value.get_type(), "sent")
+            .expect("failed to allocate a session payload");
+        self.builder
+            .build_store(slot, value)
+            .expect("failed to store a session payload");
+        let size = self.size_of(value.get_type());
+        let address = self.address_of(slot);
+        self.call_runtime(
+            &intrinsics::session_send,
+            &[handle.into(), address.into(), size.into()],
+        );
+    }
+
+    /// Receives a value of LLVM type `ty` on the endpoint `handle`.
+    fn session_receive(
+        &mut self,
+        handle: IntValue<'ink>,
+        ty: BasicTypeEnum<'ink>,
+    ) -> BasicValueEnum<'ink> {
+        let slot = self
+            .new_alloca_builder()
+            .build_alloca(ty, "received")
+            .expect("failed to allocate a session payload");
+        let size = self.size_of(ty);
+        let address = self.address_of(slot);
+        self.call_runtime(
+            &intrinsics::session_receive,
+            &[handle.into(), address.into(), size.into()],
+        );
+        self.builder
+            .build_load(ty, slot, "received")
+            .expect("failed to load a session payload")
+    }
+
+    fn size_of(&self, ty: BasicTypeEnum<'ink>) -> IntValue<'ink> {
+        let size = self.hir_types.target_data().get_abi_size(&ty);
+        self.hir_types.get_usize_type().const_int(size, false)
+    }
+
+    /// `ep.choose(k)`: sends the branch index.
+    pub(super) fn gen_session_choose(
+        &mut self,
+        receiver: ExprId,
+        args: &[ExprId],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let handle = self.gen_expr(receiver)?.into_int_value();
+        let Some(Expr::Literal(codira_hir::Literal::Int(branch))) =
+            args.first().map(|&arg| &self.body[arg])
+        else {
+            unreachable!("the session checker rejects a `choose` without a literal branch");
+        };
+        let branch = self.context.i64_type().const_int(
+            u64::try_from(branch.value).expect("the session checker bounds the branch"),
+            false,
+        );
+        self.session_send(handle, branch.into());
+        Some(self.gen_empty())
+    }
+
+    /// `offer ep { .. } or { .. }`.
+    pub(super) fn gen_offer(
+        &mut self,
+        endpoint: ExprId,
+        branches: &[ExprId],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let handle = self.gen_expr(endpoint)?.into_int_value();
+        let i64_ty = self.context.i64_type();
+        let chosen = self.session_receive(handle, i64_ty.into()).into_int_value();
+        let blocks: Vec<_> = branches
+            .iter()
+            .map(|_| {
+                self.context
+                    .append_basic_block(self.fn_value, "offer_branch")
+            })
+            .collect();
+        let none = self.context.append_basic_block(self.fn_value, "offer_none");
+        let cases: Vec<_> = blocks
+            .iter()
+            .enumerate()
+            .map(|(idx, block)| (i64_ty.const_int(idx as u64, false), *block))
+            .collect();
+        self.builder
+            .build_switch(chosen, none, &cases)
+            .expect("failed to build the offer switch");
+        // Both sides follow dual protocols, so the other side only ever
+        // chooses a branch that exists.
+        self.builder.position_at_end(none);
+        self.builder
+            .build_unreachable()
+            .expect("failed to build unreachable");
+
+        let merge = self
+            .context
+            .append_basic_block(self.fn_value, "offer_merge");
+        let mut incoming = Vec::new();
+        for (idx, &branch) in branches.iter().enumerate() {
+            self.builder.position_at_end(blocks[idx]);
+            if let Some(value) = self.gen_expr(branch) {
+                let block = self
+                    .builder
+                    .get_insert_block()
+                    .expect("a branch ends in a block");
+                self.builder
+                    .build_unconditional_branch(merge)
+                    .expect("failed to branch out of an offer");
+                incoming.push((value, block));
+            }
+        }
+        let Some(&(first, _)) = incoming.first() else {
+            merge
+                .remove_from_function()
+                .expect("the merge block is in the function");
+            return None;
+        };
+        self.builder.position_at_end(merge);
+        let phi = self
+            .builder
+            .build_phi(first.get_type(), "offer_value")
+            .expect("failed to build phi");
+        for (value, block) in &incoming {
+            phi.add_incoming(&[(value, *block)]);
+        }
+        Some(phi.as_basic_value())
+    }
+
+    /// The LLVM type of the value `<-ep` at `expr` receives.
+    fn received_type(&self, expr: ExprId) -> BasicTypeEnum<'ink> {
+        let ty: &Ty = &self.infer[expr];
+        self.hir_types
+            .get_basic_type(ty)
+            .expect("a session payload is a scalar")
+    }
+
+    /// `select { arm, .. }`.
+    pub(super) fn gen_select(
+        &mut self,
+        _expr: ExprId,
+        arms: &[SelectArm],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let usize_ty = self.hir_types.get_usize_type();
+
+        // The operands, in source order: (arm, channel, kind, slot).
+        let mut cases: Vec<(usize, IntValue<'ink>, u64, PointerValue<'ink>)> = Vec::new();
+        let mut slots: Vec<Option<(BasicTypeEnum<'ink>, PointerValue<'ink>)>> =
+            vec![None; arms.len()];
+        let mut default_arm = None;
+        for (idx, arm) in arms.iter().enumerate() {
+            match arm.op {
+                SelectOp::Receive { channel } => {
+                    let handle = self.gen_expr(channel)?.into_int_value();
+                    let element_ty = self.channel_element_type(channel);
+                    let slot = self
+                        .new_alloca_builder()
+                        .build_alloca(element_ty, "selected")
+                        .expect("failed to allocate a channel element");
+                    cases.push((idx, handle, 0, slot));
+                    slots[idx] = Some((element_ty, slot));
+                }
+                SelectOp::Send { channel, value } => {
+                    let handle = self.gen_expr(channel)?.into_int_value();
+                    let value = self.gen_expr(value)?;
+                    let element_ty = self.channel_element_type(channel);
+                    let slot = self
+                        .new_alloca_builder()
+                        .build_alloca(element_ty, "offered")
+                        .expect("failed to allocate a channel element");
+                    self.builder
+                        .build_store(slot, value)
+                        .expect("failed to store a channel element");
+                    cases.push((idx, handle, 1, slot));
+                }
+                SelectOp::Default => default_arm = Some(idx),
+                SelectOp::Invalid { .. } => {
+                    unreachable!(
+                        "the task validator rejects a `select` arm that is not a channel operation"
+                    )
+                }
+            }
+        }
+
+        // The case array: three `usize`s per operation.
+        let words = u32::try_from(cases.len() * 3)
+            .expect("a `select` has fewer than 2^32 arms")
+            .max(1);
+        let array = self
+            .new_alloca_builder()
+            .build_alloca(usize_ty.array_type(words), "select_cases")
+            .expect("failed to allocate the select cases");
+        let mut word = 0u64;
+        for &(_, handle, kind, slot) in &cases {
+            let address = self.address_of(slot);
+            for value in [handle, usize_ty.const_int(kind, false), address] {
+                // SAFETY: `word` is below the array's length.
+                let field = unsafe {
+                    self.builder
+                        .build_gep(usize_ty, array, &[usize_ty.const_int(word, false)], "case")
+                        .expect("failed to address a select case")
+                };
+                self.builder
+                    .build_store(field, value)
+                    .expect("failed to store a select case");
+                word += 1;
+            }
+        }
+        let array_address = self.address_of(array);
+        let count = usize_ty.const_int(cases.len() as u64, false);
+        let has_default = usize_ty.const_int(u64::from(default_arm.is_some()), false);
+        let chosen = self
+            .call_runtime(
+                &intrinsics::channel_select,
+                &[array_address.into(), count.into(), has_default.into()],
+            )
+            .expect("`codira.channel_select` returns the chosen case")
+            .into_int_value();
+
+        // Switch to the chosen arm.
+        let arm_blocks: Vec<_> = (0..arms.len())
+            .map(|_| self.context.append_basic_block(self.fn_value, "select_arm"))
+            .collect();
+        let otherwise = if let Some(idx) = default_arm {
+            arm_blocks[idx]
+        } else {
+            // The runtime returns `count` only for a `default` arm.
+            let block = self
+                .context
+                .append_basic_block(self.fn_value, "select_none");
+            let current = self.builder.get_insert_block();
+            self.builder.position_at_end(block);
+            self.builder
+                .build_unreachable()
+                .expect("failed to build unreachable");
+            if let Some(current) = current {
+                self.builder.position_at_end(current);
+            }
+            block
+        };
+        let switch_cases: Vec<_> = cases
+            .iter()
+            .enumerate()
+            .map(|(case, &(arm, ..))| (usize_ty.const_int(case as u64, false), arm_blocks[arm]))
+            .collect();
+        self.builder
+            .build_switch(chosen, otherwise, &switch_cases)
+            .expect("failed to build the select switch");
+
+        let merge = self
+            .context
+            .append_basic_block(self.fn_value, "select_merge");
+        let mut incoming = Vec::new();
+        for (idx, arm) in arms.iter().enumerate() {
+            self.builder.position_at_end(arm_blocks[idx]);
+            if let (Some(binding), Some((element_ty, slot))) = (arm.binding, slots[idx]) {
+                let value = self
+                    .builder
+                    .build_load(element_ty, slot, "received")
+                    .expect("failed to load a channel element");
+                self.bind_pattern_to_value(binding, value);
+            }
+            if let Some(value) = self.gen_expr(arm.body) {
+                let block = self
+                    .builder
+                    .get_insert_block()
+                    .expect("an arm ends in a block");
+                self.builder
+                    .build_unconditional_branch(merge)
+                    .expect("failed to branch out of a select arm");
+                incoming.push((value, block));
+            }
+        }
+
+        let Some(&(first, _)) = incoming.first() else {
+            // Every arm diverges, so the `select` does too.
+            merge
+                .remove_from_function()
+                .expect("the merge block is in the function");
+            return None;
+        };
+        self.builder.position_at_end(merge);
+        let phi = self
+            .builder
+            .build_phi(first.get_type(), "select_value")
+            .expect("failed to build phi");
+        for (value, block) in &incoming {
+            phi.add_incoming(&[(value, *block)]);
+        }
+        Some(phi.as_basic_value())
+    }
+
+    /// `<-channel`, or a receive on a session endpoint (`expr` is the
+    /// receive itself).
+    pub(super) fn gen_channel_receive(
+        &mut self,
+        expr: ExprId,
+        channel: ExprId,
+    ) -> Option<BasicValueEnum<'ink>> {
         let handle = self.gen_expr(channel)?;
+        if self.is_endpoint(channel) {
+            let ty = self.received_type(expr);
+            return Some(self.session_receive(handle.into_int_value(), ty));
+        }
         let element_ty = self.channel_element_type(channel);
         let slot = self
             .new_alloca_builder()

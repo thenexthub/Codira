@@ -462,6 +462,7 @@ fn ty_to_mir_type(ty: &Ty, layout: &TargetDataLayout) -> Option<TypeId> {
         | TyKind::Struct(..)
         | TyKind::Array(_)
         | TyKind::Channel(_)
+        | TyKind::Session(..)
         | TyKind::Optional(_)
         | TyKind::Enum(..)
         | TyKind::FnDef(..)

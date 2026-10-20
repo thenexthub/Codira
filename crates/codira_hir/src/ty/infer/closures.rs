@@ -231,11 +231,17 @@ impl InferenceResultBuilder<'_> {
                 if is_capturable(ty) || ty.is_unknown() {
                     continue;
                 }
+                let reason = if matches!(ty.interned(), TyKind::Session(..)) {
+                    "a session endpoint is linear and lives only as long as its `scope`, so a \
+                     closure cannot keep it"
+                } else {
+                    "a channel is a handle that lives only as long as its `scope`, so a closure \
+                     cannot keep it"
+                };
                 self.diagnostics.push(InferenceDiagnostic::ExprError {
                     id: expr.into(),
                     message: format!(
-                        "this closure cannot capture `{}` of type `{}`: a channel is a handle \
-                         that lives only as long as its `scope`, so a closure cannot keep it",
+                        "this closure cannot capture `{}` of type `{}`: {reason}",
                         binding_name(self.body, capture),
                         ty.display(self.db)
                     ),

@@ -29,7 +29,8 @@
 //! * a secret value may not reach a non-secret sink: returned from a function
 //!   whose result is not `secret`, passed to a non-`secret` parameter
 //!   (including `print`/`println`), bound by a `let` declared with a non-secret
-//!   type, or stored through a field or index;
+//!   type, stored through a field or index, or sent on a channel (plain or in a
+//!   `select` arm);
 //!
 //! and in a `@constant_time`/`oblivious` function, where the time taken must
 //! not depend on secrets:
@@ -81,6 +82,10 @@ use crate::{
     expr::{ArithOp, BinaryOp, LogicOp, Statement},
     BuiltinFn, Expr, ExprId, HasSource, HirDatabase, Pat, PatId,
 };
+
+const SECRET_ON_CHANNEL: &str =
+    "secret value sent on a channel: what a channel delivers is public (declassify it first if \
+     that is intended)";
 
 /// What a function's signature says about secrets.
 #[derive(Debug, Clone, Default)]
@@ -516,6 +521,20 @@ impl Checker<'_> {
                 }
             }
             Expr::MethodCall { receiver, args, .. } => self.check_call(id, args, Some(*receiver)),
+            // A channel is a public sink: whatever is received from it is
+            // public, so a secret sent on one would come out declassified.
+            Expr::ChannelSend { value, .. } if self.tainted(*value) => {
+                self.error(*value, SECRET_ON_CHANNEL);
+            }
+            Expr::Select { arms } => {
+                for arm in arms {
+                    if let crate::SelectOp::Send { value, .. } = arm.op {
+                        if self.tainted(value) {
+                            self.error(value, SECRET_ON_CHANNEL);
+                        }
+                    }
+                }
+            }
             Expr::BinaryOp {
                 lhs,
                 rhs,

@@ -11,10 +11,11 @@ use super::{
     CHOOSE_EXPR, CLOSURE_EXPR, COMPTIME_EXPR, CONDITION, CONTINUE_EXPR, DECREASES_CLAUSE, EOF,
     ERROR, EXPR_STMT, FIELD_EXPR, FLOAT_NUMBER, FOR_EXPR, HANDLER_ARM, HANDLER_ARM_LIST,
     HANDLE_EXPR, HOLE_EXPR, IDENT, IF_EXPR, INDEX, INDEX_EXPR, INT_NUMBER, INVARIANT_CLAUSE,
-    LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, PARAM, PARAM_LIST,
-    PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR, RANGE_EXPR, RECORD_FIELD,
-    RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SCOPE_EXPR, SPAWN_EXPR, STRING,
-    TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR, WHILE_EXPR,
+    LET_STMT, LITERAL, LOOP_EXPR, MATCH_ARM, MATCH_ARM_LIST, MATCH_EXPR, OFFER_EXPR, PARAM,
+    PARAM_LIST, PAREN_EXPR, PATH_EXPR, PATH_TYPE, PERFORM_EXPR, PREFIX_EXPR, RANGE_EXPR,
+    RECORD_FIELD, RECORD_FIELD_LIST, RECORD_LIT, RETURN_EXPR, RET_TYPE, SCOPE_EXPR, SELECT_ARM,
+    SELECT_ARM_LIST, SELECT_EXPR, SPAWN_EXPR, STRING, TRANSFER_EXPR, TRY_EXPR, TUPLE_EXPR,
+    WHILE_EXPR,
 };
 use crate::{parsing::grammar::paths::PATH_FIRST, SyntaxKind::METHOD_CALL_EXPR};
 
@@ -276,6 +277,9 @@ fn current_op(p: &Parser<'_>) -> (u8, SyntaxKind) {
         T![+] if p.at(T![+=]) => (1, T![+=]),
         T![+] => (11, T![+]),
         T![-] if p.at(T![-=]) => (1, T![-=]),
+        // `->` is never an operator: it ends a `select` arm's operation
+        // (`ch <- x -> body`), so `x` must not become `x - (> ..)`.
+        T![-] if p.at(T![->]) => (0, T![_]),
         T![-] => (11, T![-]),
         T![*] if p.at(T![*=]) => (1, T![*=]),
         T![*] => (12, T![*]),
@@ -516,6 +520,18 @@ fn atom_expr(p: &mut Parser<'_>, r: Restrictions) -> Option<(CompletedMarker, Bl
         return Some((scope_expr(p), BlockLike::Block));
     }
 
+    // `offer ep { .. } or { .. }`: the branch the session's other endpoint
+    // chose. Promoted only before a name and `{`.
+    if !r.forbid_structs && p.at_contextual_kw("offer") && p.nth(1) == IDENT && p.nth_at(2, T!['{'])
+    {
+        return Some((offer_expr(p), BlockLike::Block));
+    }
+
+    // `select { .. }`, under the same condition as `scope`.
+    if !r.forbid_structs && p.at_contextual_kw("select") && p.nth_at(1, T!['{']) {
+        return Some((select_expr(p), BlockLike::Block));
+    }
+
     // `??` -- a hole for `codira synth` to fill. Two `?` tokens; a single
     // `?` never starts an expression.
     if p.at(T![?]) && p.nth_at(1, T![?]) {
@@ -634,6 +650,67 @@ fn scope_expr(p: &mut Parser<'_>) -> CompletedMarker {
     p.bump_remap(T![scope]);
     block(p);
     m.complete(p, SCOPE_EXPR)
+}
+
+/// `select { arm, .. }`: waits until one of the arms' channel operations can
+/// proceed, performs it and runs that arm (see `codira_hir::expr::tasks`).
+fn select_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    assert!(p.at_contextual_kw("select"));
+    let m = p.start();
+    p.bump_remap(T![select]);
+    let arms = p.start();
+    p.bump(T!['{']);
+    while !p.at(EOF) && !p.at(T!['}']) {
+        if !p.at_ts(EXPR_FIRST) && !p.at(T![<-]) {
+            // Nothing an arm can start with: skip it rather than loop.
+            p.error_and_bump("expected a `select` arm");
+            continue;
+        }
+        select_arm(p);
+    }
+    p.expect(T!['}']);
+    arms.complete(p, SELECT_ARM_LIST);
+    m.complete(p, SELECT_EXPR)
+}
+
+/// `offer ep { .. } or { .. }`: runs the block for the branch the other
+/// endpoint of the session chose (see `codira_hir::expr::session`).
+fn offer_expr(p: &mut Parser<'_>) -> CompletedMarker {
+    assert!(p.at_contextual_kw("offer"));
+    let m = p.start();
+    p.bump_remap(T![offer]);
+    let endpoint = p.start();
+    paths::expr_path(p);
+    endpoint.complete(p, PATH_EXPR);
+    block_expr(p);
+    while p.at_contextual_kw("or") && p.nth_at(1, T!['{']) {
+        p.bump_remap(T![or]);
+        block_expr(p);
+    }
+    m.complete(p, OFFER_EXPR)
+}
+
+/// One `select` arm: `name = <-ch -> body`, `<-ch -> body`,
+/// `ch <- value -> body` or `default -> body`.
+fn select_arm(p: &mut Parser<'_>) {
+    let m = p.start();
+    if p.at_contextual_kw("default") && p.nth_at(1, T![->]) {
+        p.bump_remap(T![default]);
+    } else {
+        // `name = <-ch`: the received value is bound to `name` in the body.
+        if p.at(IDENT) && p.nth_at(1, T![=]) && !p.nth_at(1, T![==]) {
+            patterns::pattern(p);
+            p.bump(T![=]);
+        }
+        expr(p);
+    }
+    if p.expect(T![->]) {
+        expr(p);
+    }
+    if !p.at(T!['}']) {
+        p.eat(T![,]);
+    }
+    m.complete(p, SELECT_ARM);
 }
 
 /// `perform Effect.op(args)`: invokes an algebraic effect operation.

@@ -18,8 +18,8 @@ pub use salsa;
 
 pub use self::code_model::{
     Effect, EffectData, EffectOpSig, Enum, EnumLayout, EnumSlot, EnumVariant, Field, Function,
-    FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Struct, StructMemoryKind,
-    TypeAlias, VariantKind,
+    FunctionData, HasSource, Module, ModuleDef, Package, PrimitiveType, Protocol, ProtocolStep,
+    Session, Struct, StructMemoryKind, TypeAlias, VariantKind,
 };
 pub use crate::{
     builtin::BuiltinFn,
@@ -30,9 +30,9 @@ pub use crate::{
     diagnostics::{Diagnostic, DiagnosticSink},
     display::HirDisplay,
     expr::{
-        ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes, HandlerArm,
-        Literal, LogicOp, LoopContract, MatchArm, MatchSource, Ordering, Pat, PatId,
-        RecordLitField, Statement, UnaryOp,
+        opened_session, ArithOp, BinaryOp, Body, BodyContracts, CmpOp, Expr, ExprId, ExprScopes,
+        HandlerArm, Literal, LogicOp, LoopContract, MatchArm, MatchSource, Ordering, Pat, PatId,
+        RecordLitField, SelectArm, SelectOp, SessionFlow, Statement, UnaryOp,
     },
     ids::{AssocItemId, ItemLoc},
     in_file::InFile,

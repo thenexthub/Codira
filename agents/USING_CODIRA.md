@@ -511,6 +511,139 @@ public func sum_of_squares(n: i32) -> i32 {
   receives still block forever, as with any blocking channel.
 - Output printed by a task is not captured by `capture_output` (it is
   per-thread); a task's `print` goes to standard output.
+- A secret (`secret T`) cannot be sent on a channel: what a channel delivers
+  is public.
+
+#### `select`: wait on several channel operations
+
+```codira
+func collect(jobs: Channel[i64], results: Channel[i64], quit: Channel[bool]) -> i64 {
+    let total = 0
+    let sent = 0
+    let idle = 0
+    let x = 7
+    select {
+        v = <-jobs -> total += v,       // receive, bind the value in this arm
+        <-quit -> {},                   // receive, discard the value
+        results <- x -> sent += 1,      // send
+        default -> idle += 1,           // optional: makes the select non-blocking
+    }
+    let first = select {                // a select is an expression
+        a = <-jobs -> a,
+        b = <-results -> b * 2,
+    }
+    total + first
+}
+```
+
+- `select` is a contextual keyword (only before `{`; `if select { .. }`
+  tests a variable). Arms are separated by commas (optional after a block)
+  and use `->` like `match`. An arm's operation is `name = <-ch`, `<-ch`,
+  `ch <- value` or `default`; `name` is a new binding visible only in that
+  arm's body.
+- Semantics (Go's): every arm's channel and sent value is evaluated first,
+  top to bottom. Then the select waits until at least one operation can
+  proceed (a receive: the channel has a value; a send: it has room),
+  performs exactly one and runs that arm. When several are ready, one is
+  chosen uniformly at random, so a ready arm is never starved by the
+  others. `default` runs when none is ready, and then the select never
+  waits.
+- The arms' bodies have one type, which is the select's value.
+- Rejected at compile time: a select with no arms (it would wait forever),
+  more than one `default`, an arm that is not a channel operation, a binding
+  on anything but a receive, arms of different types.
+- A waiting select sleeps (no polling) and counts as blocked for the worker
+  pool, like a blocked send or receive. The verifier treats the chosen arm
+  as unknown and a received value as unconstrained. Cranelift (`--jit`)
+  declines `select`, as it declines channels.
+
+#### Session types: protocols checked at compile time
+
+```codira
+session Checkout {                  // what the customer's endpoint does
+    send i64; recv i64              // send an item, receive its price
+    choose { send bool; recv i64 }  // branch 0: pay (or not), get a receipt
+    or { send i32 }                 // branch 1: give a reason and stop
+}
+
+func shop(ep: dual Checkout) {      // the other side: send<->recv, choose<->offer
+    let item = <-ep
+    ep <- item * 100
+    offer ep {                      // runs the branch the customer chose
+        let pay = <-ep
+        if pay { ep <- 1 } else { ep <- 0 }
+    } or {
+        let reason = <-ep
+    }
+}
+
+public func buy(item: i64, budget: i64) -> i64 {
+    scope {
+        let (me, them) = Checkout.open()   // me: Checkout, them: dual Checkout
+        spawn shop(them)                   // the task owns `them` now
+        me <- item
+        let price = <-me
+        if price <= budget {
+            me.choose(0)
+            me <- true
+            let receipt = <-me
+            price * 10 + receipt
+        } else {
+            me.choose(1)
+            me <- 7
+            -1
+        }
+    }
+}
+```
+
+- `session Name { .. }` (contextual keyword, only before a name and `{`)
+  lists the steps one endpoint takes: `send T`, `recv T`,
+  `choose { .. } or { .. } ..` (this side picks a branch) and
+  `offer { .. } or { .. } ..` (the other side picks). `;` between steps is
+  optional. Steps after a `choose`/`offer` continue every branch. Payloads
+  are integers, floats or `bool`, as on channels. There is no repetition
+  (no recursive protocols).
+- Types: `Name` is an endpoint following the protocol as written,
+  `dual Name` one following its dual (every `send` a `recv`, every `choose`
+  an `offer`, and back).
+- `let (a, b) = Name.open()` -- only inside a `scope`, which owns the pair
+  and frees it when it ends -- makes a connected pair: `a: Name`,
+  `b: dual Name`. Both names must be bound.
+- On an endpoint: `ep <- v` sends, `<-ep` receives (its type is the
+  payload type at that step), `ep.choose(k)` takes branch `k` (an integer
+  literal), `offer ep { .. } or { .. }` runs the block for the branch the
+  other side chose (one block per branch, in order; it is an expression
+  whose blocks share one type).
+- An endpoint is passed to a function or `spawn` whose parameter has its
+  exact session type (`Name` or `dual Name`), and only before it has been
+  used; the callee then owns it. Two tasks talk by spawning a function
+  with one endpoint and keeping the other.
+- The compiler follows every endpoint along every path and rejects:
+  an operation other than the one the protocol expects next (or a payload
+  of the wrong type); any use after the protocol ended, or after the
+  endpoint was passed on; branches of an `if`/`select`/`offer` (and the two
+  outcomes of `&&`/`||`, and an `if` without `else`) that leave an endpoint
+  at different steps; a loop that moves an endpoint (body end, `break`,
+  `continue`); a function or the block that opened a pair ending -- by any
+  path, `return` included -- before every endpoint reached the end of its
+  protocol (or was passed on); a `perform`, or a call to a `uses` function,
+  while an endpoint is part-way through its protocol (a handler could
+  abandon the function there); a handler arm that moves an endpoint; and
+  copying, storing or returning an endpoint (endpoints are linear: used
+  only with `<-`, `.choose`, `offer`, or as an argument). A `select` waits
+  on channels only, not endpoints.
+- What that guarantees: **protocol fidelity** for each pair -- every send
+  meets a receive of the same type, every `choose` an `offer` with that
+  branch, and neither side stops early. **Deadlock freedom only for a
+  single session between two tasks that block on nothing else.** Tasks
+  that interleave several sessions or channels can still deadlock each
+  other, and one task holding both endpoints of a pair can deadlock itself;
+  neither is checked.
+- Runtime: a pair is two one-slot channels, one each way; a step's payload
+  size is passed with it. A secret cannot be sent on an endpoint (same rule
+  as channels). Cranelift and quantum kernels decline sessions; the
+  verifier treats `offer`'s branch as unknown.
 
 ### Contracts and verification
 
@@ -713,11 +846,13 @@ What counts, exactly (today's code generator and runtime):
 
 - **Allocates** (and so may also block on the heap's lock and abort when the
   heap limit or memory runs out): constructing a `class`, an array literal,
-  `print`/`println`, `channel(n)`, `scope`, `spawn`, a channel send, and a
+  `print`/`println`, `channel(n)`, `scope`, `spawn`, a channel send, `select`
+  (even with `default`), opening a session (`S.open()`), and a
   call to a function of *another module* that takes or returns a value
   struct (the cross-module calling convention boxes it). String literals,
   value structs, tuples and effect handler records allocate nothing.
-- **Blocks**: channel send and receive, the end of a `scope`, and the
+- **Blocks**: channel send and receive (also on a session endpoint, and
+  `ep.choose(..)` and `offer`), `select`, the end of a `scope`, and the
   allocations above.
 - **Panics**: `a[i]` and `a[i] = v` (bounds check; `a.unchecked_get(i)` is
   the unchecked escape hatch), integer `/` and `%` (and `/=`, `%=`), calling a
@@ -1571,7 +1706,10 @@ their module).
 
 Structured concurrency (`scope`, `spawn`, `channel(n)`, `ch <- v`, `<-ch`)
 on a worker pool; see "Structured concurrency" above for what may cross
-between tasks (scalars and channels only). No `select` yet.
+between tasks (scalars and channels only), `select` over channel
+operations (fair, with an optional `default`), and session types (two
+tasks following dual protocols, checked at compile time; see "Session
+types").
 
 Parsed but **not yet lowered** -- the compiler stops with "... is not
 supported by the code generator yet" naming the construct: postfix `^`. Not available at

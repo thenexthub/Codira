@@ -115,6 +115,11 @@ pub enum TyKind {
     /// is the `scope` that created it.
     Channel(Ty),
 
+    /// An endpoint of a session: `S` (`false`) or `dual S` (`true`). A
+    /// runtime handle, linear and scope-bound like a channel; the point of
+    /// its protocol it has reached is tracked by `expr::session`, not by
+    /// the type.
+    Session(crate::code_model::Session, bool),
     /// `T?`: a `T`, or `nil`. Represented as a present flag and a payload,
     /// with no allocation -- see `codira_codegen`'s `get_optional_type`.
     Optional(Ty),
@@ -353,6 +358,12 @@ impl Ty {
             TyKind::Int(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Array(ty) => Some(format!("[{}]", ty.display(db))),
             TyKind::Channel(ty) => Some(format!("core::Channel[{}]", ty.guid_string(db)?)),
+            TyKind::Session(session, dual) => Some(format!(
+                "{}session {}::{}",
+                if *dual { "dual " } else { "" },
+                session.module(db).name(db).unwrap_or_default(),
+                session.name(db)
+            )),
             // Structural: two function types are the same exactly when their
             // signatures are. Elements go through `guid_string` like a
             // tuple's, so a struct parameter's layout is part of the name.
@@ -445,6 +456,7 @@ impl Ty {
             | (TyKind::Channel(_), TyKind::Channel(_))
             | (TyKind::Optional(_), TyKind::Optional(_))
             | (TyKind::Bool, TyKind::Bool) => true,
+            (TyKind::Session(s1, d1), TyKind::Session(s2, d2)) => s1 == s2 && d1 == d2,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
             (TyKind::Int(i1), TyKind::Int(i2)) => i1 == i2,
             (TyKind::FnDef(def, _), TyKind::FnDef(def2, _)) => def == def2,
@@ -621,6 +633,10 @@ impl HirDisplay for Ty {
             }
             TyKind::Array(elem_ty) => write!(f, "[{}]", elem_ty.display(f.db)),
             TyKind::Channel(elem_ty) => write!(f, "Channel[{}]", elem_ty.display(f.db)),
+            TyKind::Session(session, dual) => {
+                let prefix = if *dual { "dual " } else { "" };
+                write!(f, "{prefix}{}", session.name(f.db))
+            }
             TyKind::Optional(inner) => write!(f, "{}?", inner.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }
