@@ -37,8 +37,16 @@ pub enum TypeRef {
     /// itself is parsed but not yet checked by inference; like `Optional`,
     /// this lowers transparently to its base type for now.
     Refinement(LocalTypeRefId),
+    /// `dual S`: the other endpoint's view of session `S`.
+    Dual(LocalTypeRefId),
     Never,
     Tuple(Vec<LocalTypeRefId>),
+    /// `func(A, B) -> R` -- the type of a function value. A missing `-> R`
+    /// is `()`, exactly as for a function declaration.
+    Function {
+        params: Vec<LocalTypeRefId>,
+        ret: LocalTypeRefId,
+    },
     Error,
 }
 
@@ -123,8 +131,8 @@ impl TypeRefMapBuilder {
     /// `TypeRef`.
     pub fn alloc_from_node(&mut self, node: &ast::TypeRef) -> LocalTypeRefId {
         use codira_syntax::ast::TypeRefKind::{
-            ArrayType, FunctionType, NeverType, OptionalType, ParenType, PathType, ReferenceType,
-            RefinementType, SecretType, TupleType, UnitType, VariadicType,
+            ArrayType, DualType, FunctionType, NeverType, OptionalType, ParenType, PathType,
+            ReferenceType, RefinementType, SecretType, TupleType, UnitType, VariadicType,
         };
 
         let ptr = AstPtr::new(node);
@@ -170,14 +178,22 @@ impl TypeRefMapBuilder {
             ReferenceType(inner) => {
                 return self.alloc_from_node_opt(inner.type_ref().as_ref());
             }
-            // `func(A, B) -> R` and `...` both parse but have nothing to
-            // lower to: there are no function *values* yet (LANGUAGE_SPEC
-            // section 12 lists closures as unimplemented) and no
+            // `func(A, B) -> R`: the type of a function value (a named
+            // function used as a value, or a closure).
+            FunctionType(inner) => {
+                let params = inner.params().map(|p| self.alloc_from_node(&p)).collect();
+                let ret = match inner.ret_type().and_then(|r| r.type_ref()) {
+                    Some(ret) => self.alloc_from_node(&ret),
+                    None => self.unit(),
+                };
+                TypeRef::Function { params, ret }
+            }
+            // `...` parses but has nothing to lower to: there is no
             // argument-pack model. `Error` rather than a silent stand-in, so
             // a signature mentioning one is readable while any *use* reports
             // instead of quietly type-checking against a type that does not
             // exist.
-            FunctionType(_) | VariadicType(_) => TypeRef::Error,
+            VariadicType(_) => TypeRef::Error,
             OptionalType(inner) => {
                 TypeRef::Optional(self.alloc_from_node_opt(inner.type_ref().as_ref()))
             }
@@ -190,6 +206,7 @@ impl TypeRefMapBuilder {
             SecretType(inner) => {
                 return self.alloc_from_node_opt(inner.type_ref().as_ref());
             }
+            DualType(inner) => TypeRef::Dual(self.alloc_from_node_opt(inner.type_ref().as_ref())),
             // `T unit(..)` is `T`; the dimension is read back from the
             // syntax tree by `crate::verify::units`.
             UnitType(inner) => {

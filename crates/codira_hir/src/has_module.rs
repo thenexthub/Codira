@@ -9,7 +9,7 @@ use codira_hir_input::ModuleId;
 use crate::{
     ids::{
         AssocItemId, AssocItemLoc, EffectId, EnumId, FunctionId, ImplId, ItemContainerId, Lookup,
-        StructId, TypeAliasId, VariantId,
+        SessionId, StructId, TypeAliasId, VariantId,
     },
     item_tree::ItemTreeNode,
     DefDatabase,
@@ -66,6 +66,12 @@ impl HasModule for EnumId {
 }
 
 impl HasModule for EffectId {
+    fn module(&self, db: &dyn DefDatabase) -> ModuleId {
+        self.lookup(db).module
+    }
+}
+
+impl HasModule for SessionId {
     fn module(&self, db: &dyn DefDatabase) -> ModuleId {
         self.lookup(db).module
     }

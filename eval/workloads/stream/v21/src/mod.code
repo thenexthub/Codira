@@ -1,0 +1,50 @@
+import root.window.{ Agg, agg_new, agg_pct, agg_window_sum, agg_mean, agg_recent, agg_extreme, agg_clear }
+import root.pipeline.{ process_batch }
+
+public func stream_new() -> Agg { agg_new() }
+
+enum Op {
+    Batch,
+    Pct,
+    WindowSum,
+    Total,
+    Late,
+    Mean,
+    Recent,
+    Clear,
+    Extreme,
+    Unknown,
+}
+
+func decode(code: i64) -> Op {
+    match code {
+        0 -> Op.Batch,
+        1 -> Op.Pct,
+        2 -> Op.WindowSum,
+        3 -> Op.Total,
+        4 -> Op.Late,
+        5 -> Op.Mean,
+        6 -> Op.Recent,
+        7 -> Op.Clear,
+        8 -> Op.Extreme,
+        _ -> Op.Unknown,
+    }
+}
+
+public func stream_handle(a: Agg, op: i64, x: i64, y: i64, z: i64) -> i64 {
+    match decode(op) {
+        Op.Batch -> if x < 0 || x > 60 { -1 } else { process_batch(a, x, y, z) },
+        Op.Pct -> if x < 1 || x > 100 { -3 } else { agg_pct(a, x) },
+        Op.WindowSum -> agg_window_sum(a, x),
+        Op.Total -> a.total,
+        Op.Late -> a.late,
+        Op.Mean -> agg_mean(a),
+        Op.Recent -> agg_recent(a, x),
+        Op.Clear -> {
+            agg_clear(a)
+            0
+        },
+        Op.Extreme -> agg_extreme(a, x),
+        Op.Unknown -> -2,
+    }
+}

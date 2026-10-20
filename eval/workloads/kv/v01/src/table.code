@@ -1,0 +1,114 @@
+public struct Entry {
+    public key: i64,
+    public val: i64,
+    public state: i64,
+}
+
+// state: 1 = empty, 2 = full, 3 = tombstone
+public class Table {
+    public slots: [Entry],
+    public cap: i64,
+    public used: i64,
+    public tomb: i64,
+}
+
+func blank() -> Entry {
+    Entry { key: 0, val: 0, state: 1 }
+}
+
+public func table_new() -> Table {
+    Table {
+        slots: [blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank()],
+        cap: 128,
+        used: 0,
+        tomb: 0,
+    }
+}
+
+@realtime
+func mix(key: i64) -> i64
+    ensures result >= 0
+{
+    ((key * 2654435761) >> 7) & 2147483647
+}
+
+@realtime
+func slot_of(key: i64, mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= 0 && result <= mask
+{
+    mix(key) & mask
+}
+
+@noalloc
+func find_slot(t: Table, key: i64) -> i64 {
+    let mask = t.cap - 1
+    if mask < 0 { return -1 }
+    var i = slot_of(key, mask)
+    var n = 0
+    while n < t.cap {
+        let s = t.slots[i].state
+        if s == 1 { return -1 }
+        if s == 2 && t.slots[i].key == key { return i }
+        i = (i + 1) & mask
+        n += 1
+    }
+    -1
+}
+
+public func table_get(t: Table, key: i64) -> i64? {
+    let at = find_slot(t, key)
+    if at < 0 { return nil }
+    t.slots[at].val
+}
+
+@noalloc
+public func table_put(t: Table, key: i64, val: i64) -> bool {
+    let at = find_slot(t, key)
+    if at >= 0 {
+        t.slots[at].val = val
+        return true
+    }
+    if t.used + t.tomb + 1 > t.cap { return false }
+    let mask = t.cap - 1
+    if mask < 0 { return false }
+    var i = slot_of(key, mask)
+    while t.slots[i].state == 2 {
+        i = (i + 1) & mask
+    }
+    if t.slots[i].state == 3 { t.tomb -= 1 }
+    t.slots[i].key = key
+    t.slots[i].val = val
+    t.slots[i].state = 2
+    t.used += 1
+    true
+}
+
+@noalloc
+public func table_del(t: Table, key: i64) -> bool {
+    let at = find_slot(t, key)
+    if at < 0 { return false }
+    t.slots[at].state = 1
+    true
+}
+
+@noalloc
+public func table_scan(t: Table, lo: i64, hi: i64) -> i64 {
+    var sum = 0
+    var i = 0
+    while i < t.cap {
+        if t.slots[i].state != 1 {
+            let k = t.slots[i].key
+            if k >= lo && k <= hi {
+                sum += t.slots[i].val
+            }
+        }
+        i += 1
+    }
+    sum
+}
+
+@noalloc
+public func table_count(t: Table) -> i64 {
+    t.used
+}

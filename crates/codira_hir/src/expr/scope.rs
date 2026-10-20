@@ -211,6 +211,26 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
                 compute_expr_scopes(arm.body, body, scopes, arm_scope);
             }
         }
+        // A `select` arm's binding is visible only in that arm's body; the
+        // operands are evaluated before any arm runs.
+        Expr::Select { arms } => {
+            for arm in arms {
+                for operand in arm.operands() {
+                    compute_expr_scopes(operand, body, scopes, scope);
+                }
+            }
+            for arm in arms {
+                let arm_scope = match arm.binding {
+                    Some(binding) => {
+                        let arm_scope = scopes.new_scope(scope);
+                        scopes.add_bindings(body, arm_scope, binding);
+                        arm_scope
+                    }
+                    None => scope,
+                };
+                compute_expr_scopes(arm.body, body, scopes, arm_scope);
+            }
+        }
         Expr::Match { expr, arms, .. } => {
             compute_expr_scopes(*expr, body, scopes, scope);
             for arm in arms {
@@ -230,6 +250,18 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
             let loop_scope = scopes.new_scope(scope);
             scopes.add_bindings(body, loop_scope, *pat);
             compute_expr_scopes(*loop_body, body, scopes, loop_scope);
+        }
+        // A closure's parameters are visible only in its body; the body
+        // still sees everything around the literal (that is what it
+        // captures).
+        Expr::Closure {
+            params,
+            body: closure_body,
+            ..
+        } => {
+            let closure_scope = scopes.new_scope(scope);
+            scopes.add_params_bindings(body, closure_scope, params.iter().map(|(pat, _)| pat));
+            compute_expr_scopes(*closure_body, body, scopes, closure_scope);
         }
         e => e.walk_child_exprs(|e| compute_expr_scopes(e, body, scopes, scope)),
     };

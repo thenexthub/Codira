@@ -9,6 +9,11 @@
 #define CODIRA_ABI_VERSION 400
 
 /**
+ * `set_hardware_safety` flag: built with `--sanitize=memtag` (ARM MTE).
+ */
+#define CodiraHARDWARE_SAFETY_MEMTAG 1
+
+/**
  * Represents the kind of memory management a struct uses.
  */
 enum CodiraStructMemoryKind

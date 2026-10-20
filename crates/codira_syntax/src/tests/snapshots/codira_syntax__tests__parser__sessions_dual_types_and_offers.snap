@@ -1,0 +1,190 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        public session Checkout {\n            send i64; recv i64\n            choose { send bool; recv i64 } or { send i32 }\n        }\n        func shop(ep: dual Checkout) {\n            offer ep { ep <- 1 } or { let x = <-ep }\n            ep.choose(0)\n            let session = 1\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..298
+  WHITESPACE@0..9 "\n        "
+  SESSION_DEF@9..134
+    VISIBILITY@9..15
+      PUBLIC_KW@9..15 "public"
+    WHITESPACE@15..16 " "
+    SESSION_KW@16..23 "session"
+    WHITESPACE@23..24 " "
+    NAME@24..32
+      IDENT@24..32 "Checkout"
+    WHITESPACE@32..33 " "
+    SESSION_PROTOCOL@33..134
+      L_CURLY@33..34 "{"
+      WHITESPACE@34..47 "\n            "
+      SESSION_STEP@47..55
+        SEND_KW@47..51 "send"
+        WHITESPACE@51..52 " "
+        PATH_TYPE@52..55
+          PATH@52..55
+            PATH_SEGMENT@52..55
+              NAME_REF@52..55
+                IDENT@52..55 "i64"
+      SEMI@55..56 ";"
+      WHITESPACE@56..57 " "
+      SESSION_STEP@57..65
+        RECV_KW@57..61 "recv"
+        WHITESPACE@61..62 " "
+        PATH_TYPE@62..65
+          PATH@62..65
+            PATH_SEGMENT@62..65
+              NAME_REF@62..65
+                IDENT@62..65 "i64"
+      WHITESPACE@65..78 "\n            "
+      SESSION_STEP@78..124
+        CHOOSE_KW@78..84 "choose"
+        WHITESPACE@84..85 " "
+        SESSION_PROTOCOL@85..108
+          L_CURLY@85..86 "{"
+          WHITESPACE@86..87 " "
+          SESSION_STEP@87..96
+            SEND_KW@87..91 "send"
+            WHITESPACE@91..92 " "
+            PATH_TYPE@92..96
+              PATH@92..96
+                PATH_SEGMENT@92..96
+                  NAME_REF@92..96
+                    IDENT@92..96 "bool"
+          SEMI@96..97 ";"
+          WHITESPACE@97..98 " "
+          SESSION_STEP@98..106
+            RECV_KW@98..102 "recv"
+            WHITESPACE@102..103 " "
+            PATH_TYPE@103..106
+              PATH@103..106
+                PATH_SEGMENT@103..106
+                  NAME_REF@103..106
+                    IDENT@103..106 "i64"
+          WHITESPACE@106..107 " "
+          R_CURLY@107..108 "}"
+        WHITESPACE@108..109 " "
+        OR_KW@109..111 "or"
+        WHITESPACE@111..112 " "
+        SESSION_PROTOCOL@112..124
+          L_CURLY@112..113 "{"
+          WHITESPACE@113..114 " "
+          SESSION_STEP@114..122
+            SEND_KW@114..118 "send"
+            WHITESPACE@118..119 " "
+            PATH_TYPE@119..122
+              PATH@119..122
+                PATH_SEGMENT@119..122
+                  NAME_REF@119..122
+                    IDENT@119..122 "i32"
+          WHITESPACE@122..123 " "
+          R_CURLY@123..124 "}"
+      WHITESPACE@124..133 "\n        "
+      R_CURLY@133..134 "}"
+  FUNCTION_DEF@134..289
+    WHITESPACE@134..143 "\n        "
+    FUNC_KW@143..147 "func"
+    WHITESPACE@147..148 " "
+    NAME@148..152
+      IDENT@148..152 "shop"
+    PARAM_LIST@152..171
+      L_PAREN@152..153 "("
+      PARAM@153..170
+        BIND_PAT@153..155
+          NAME@153..155
+            IDENT@153..155 "ep"
+        COLON@155..156 ":"
+        WHITESPACE@156..157 " "
+        DUAL_TYPE@157..170
+          DUAL_KW@157..161 "dual"
+          WHITESPACE@161..162 " "
+          PATH_TYPE@162..170
+            PATH@162..170
+              PATH_SEGMENT@162..170
+                NAME_REF@162..170
+                  IDENT@162..170 "Checkout"
+      R_PAREN@170..171 ")"
+    WHITESPACE@171..172 " "
+    BLOCK_EXPR@172..289
+      L_CURLY@172..173 "{"
+      WHITESPACE@173..186 "\n            "
+      EXPR_STMT@186..226
+        OFFER_EXPR@186..226
+          OFFER_KW@186..191 "offer"
+          WHITESPACE@191..192 " "
+          PATH_EXPR@192..194
+            PATH@192..194
+              PATH_SEGMENT@192..194
+                NAME_REF@192..194
+                  IDENT@192..194 "ep"
+          WHITESPACE@194..195 " "
+          BLOCK_EXPR@195..206
+            L_CURLY@195..196 "{"
+            WHITESPACE@196..197 " "
+            CHANNEL_SEND_EXPR@197..204
+              PATH_EXPR@197..199
+                PATH@197..199
+                  PATH_SEGMENT@197..199
+                    NAME_REF@197..199
+                      IDENT@197..199 "ep"
+              WHITESPACE@199..200 " "
+              LARROW@200..202 "<-"
+              WHITESPACE@202..203 " "
+              LITERAL@203..204
+                INT_NUMBER@203..204 "1"
+            WHITESPACE@204..205 " "
+            R_CURLY@205..206 "}"
+          WHITESPACE@206..207 " "
+          OR_KW@207..209 "or"
+          WHITESPACE@209..210 " "
+          BLOCK_EXPR@210..226
+            L_CURLY@210..211 "{"
+            WHITESPACE@211..212 " "
+            LET_STMT@212..224
+              LET_KW@212..215 "let"
+              WHITESPACE@215..216 " "
+              BIND_PAT@216..217
+                NAME@216..217
+                  IDENT@216..217 "x"
+              WHITESPACE@217..218 " "
+              EQ@218..219 "="
+              WHITESPACE@219..220 " "
+              CHANNEL_RECV_EXPR@220..224
+                LARROW@220..222 "<-"
+                PATH_EXPR@222..224
+                  PATH@222..224
+                    PATH_SEGMENT@222..224
+                      NAME_REF@222..224
+                        IDENT@222..224 "ep"
+            WHITESPACE@224..225 " "
+            R_CURLY@225..226 "}"
+      WHITESPACE@226..239 "\n            "
+      EXPR_STMT@239..251
+        METHOD_CALL_EXPR@239..251
+          PATH_EXPR@239..241
+            PATH@239..241
+              PATH_SEGMENT@239..241
+                NAME_REF@239..241
+                  IDENT@239..241 "ep"
+          DOT@241..242 "."
+          NAME_REF@242..248
+            IDENT@242..248 "choose"
+          ARG_LIST@248..251
+            L_PAREN@248..249 "("
+            LITERAL@249..250
+              INT_NUMBER@249..250 "0"
+            R_PAREN@250..251 ")"
+      WHITESPACE@251..264 "\n            "
+      LET_STMT@264..279
+        LET_KW@264..267 "let"
+        WHITESPACE@267..268 " "
+        BIND_PAT@268..275
+          NAME@268..275
+            IDENT@268..275 "session"
+        WHITESPACE@275..276 " "
+        EQ@276..277 "="
+        WHITESPACE@277..278 " "
+        LITERAL@278..279
+          INT_NUMBER@278..279 "1"
+      WHITESPACE@279..288 "\n        "
+      R_CURLY@288..289 "}"
+  WHITESPACE@289..298 "\n        "

@@ -21,7 +21,7 @@ use codira_memory::{
 };
 use itertools::Itertools;
 
-use crate::{garbage_collector::GarbageCollector, DispatchTable};
+use crate::{fn_cells::FnCells, garbage_collector::GarbageCollector, DispatchTable};
 
 /// An error that occurs upon loading of a Codira library.
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +32,10 @@ pub enum LoadError {
     FailedToLoadSharedLibrary(#[from] codira_libloader::InitError),
     #[error("ABI version mismatch. codiralib is `{actual}` but runtime is `{expected}`")]
     MismatchedAbiVersions { expected: u32, actual: u32 },
+    /// The library was built with a hardware-safety mode this host cannot
+    /// honour (for instance `--sanitize=memtag` without MTE).
+    #[error(transparent)]
+    Memtag(#[from] crate::memtag::MemtagError),
     #[error(transparent)]
     Other(#[from] io::Error),
 }
@@ -137,6 +141,14 @@ impl Assembly {
         library.set_allocator_handle(allocator_ptr);
         let fuel_instrumented = library.set_fuel_counter(fuel_counter);
 
+        // A `--sanitize=memtag` library runs only with tag checking on: its
+        // MTE instructions do not exist on other CPUs, and running it with
+        // checks off would claim a protection it does not have.
+        let safety = library.set_hardware_safety(std::ptr::null_mut());
+        if safety & abi::HARDWARE_SAFETY_MEMTAG != 0 {
+            crate::memtag::activate()?;
+        }
+
         let assembly = Assembly {
             info: library.get_info(),
             library_path: library_path.to_path_buf(),
@@ -184,6 +196,7 @@ impl Assembly {
     fn link_all_functions<'abi>(
         dispatch_table: &DispatchTable,
         type_table: &TypeTable,
+        fn_cells: &mut FnCells,
         to_link: impl Iterator<Item = (&'abi mut *const c_void, &'abi abi::FunctionPrototype<'abi>)>,
     ) -> Result<(), LinkFunctionsError> {
         let mut to_link: Vec<_> = to_link.collect();
@@ -263,8 +276,14 @@ impl Assembly {
         }
 
         // Anything still unresolved is not defined by another Codira assembly.
-        // It may still be an `extern "C"` symbol -- see `resolve_native_symbol`.
+        // A function-value cell slot receives the runtime's cell for its key
+        // (see `fn_cells`). Anything else may still be an `extern "C"` symbol
+        // -- see `resolve_native_symbol`.
         to_link.retain_mut(|(dispatch_ptr, fn_prototype)| {
+            if let Some(key) = fn_prototype.name().strip_prefix(abi::FN_VALUE_CELL_PREFIX) {
+                **dispatch_ptr = fn_cells.cell_for(key);
+                return false;
+            }
             match resolve_native_symbol(fn_prototype.name()) {
                 Some(address) => {
                     // SAFETY: the dispatch slot holds a function pointer, and
@@ -299,6 +318,7 @@ impl Assembly {
         assemblies: impl Iterator<Item = &'a mut Assembly>,
         dispatch_table: &DispatchTable,
         type_table: &TypeTable,
+        fn_cells: &mut FnCells,
     ) -> Result<(DispatchTable, TypeTable), LinkError> {
         let mut assemblies: Vec<&'a mut _> = assemblies.collect();
 
@@ -335,7 +355,7 @@ impl Assembly {
             // by the compiler.
             .filter(|(ptr, _)| ptr.is_null());
 
-        Assembly::link_all_functions(&dispatch_table, &type_table, functions_to_link)?;
+        Assembly::link_all_functions(&dispatch_table, &type_table, fn_cells, functions_to_link)?;
 
         // Collect remaining types
         Type::collect_unreferenced_type_data();
@@ -351,6 +371,7 @@ impl Assembly {
         linked_assemblies: &mut HashMap<PathBuf, Assembly>,
         dispatch_table: &DispatchTable,
         type_table: &TypeTable,
+        fn_cells: &mut FnCells,
     ) -> Result<(DispatchTable, TypeTable), LinkError> {
         let mut dependencies: HashMap<String, Vec<String>> = unlinked_assemblies
             .values()
@@ -476,7 +497,12 @@ impl Assembly {
             //
             // Note that linking may fail because for instance functions remaining unlinked
             // (missing) or the signature of a function doesnt match.
-            Assembly::link_all_functions(&dispatch_table, &type_table, functions_to_link)?;
+            Assembly::link_all_functions(
+                &dispatch_table,
+                &type_table,
+                fn_cells,
+                functions_to_link,
+            )?;
 
             // Remove this assembly from the dependencies
             for dependencies in dependencies.values_mut() {

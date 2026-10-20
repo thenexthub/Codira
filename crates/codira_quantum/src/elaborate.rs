@@ -698,10 +698,20 @@ impl Elaborator<'_> {
             Expr::Scope { .. }
             | Expr::Spawn { .. }
             | Expr::ChannelSend { .. }
-            | Expr::ChannelReceive { .. } => Err(self.error(
+            | Expr::ChannelReceive { .. }
+            | Expr::Select { .. }
+            | Expr::Offer { .. } => Err(self.error(
                 frame,
                 id,
-                "`scope`, `spawn` and channels are not supported in quantum kernels".into(),
+                "`scope`, `spawn`, channels, `select` and sessions are not supported in quantum \
+                 kernels"
+                    .into(),
+            )),
+            Expr::Closure { .. } => Err(self.error(
+                frame,
+                id,
+                "closures are not supported in quantum kernels: a circuit has no function values"
+                    .into(),
             )),
             Expr::Perform { .. } | Expr::Handle { .. } | Expr::Resume { .. } => Err(self.error(
                 frame,

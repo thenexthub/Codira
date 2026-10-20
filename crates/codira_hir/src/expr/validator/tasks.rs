@@ -24,14 +24,27 @@
 //!   lexical, so a channel cannot be named after its scope ends, and a function
 //!   it is passed to cannot keep it (no return, no field, no array can hold
 //!   one); a task it is passed to is joined no later than the scope that owns
-//!   the channel.
+//!   the channel. A `select` arm's channel is a use like `<-`.
+//! * Session endpoints (`expr::session`) follow the same "only used" rule, with
+//!   `.choose(..)` and `offer` as further uses; `S.open()` appears only inside
+//!   a `scope`, which owns the pair; a spawned function may take endpoints. The
+//!   protocol checker's findings are reported here too.
+//! * A `select` has at least one arm -- with none it would wait forever -- and
+//!   at most one `default`. Every other arm is a channel operation (`name =
+//!   <-ch`, `<-ch` or `ch <- value`), and only a receive binds a name.
+//! * A closure is a function of its own: a `scope` around the literal does not
+//!   cover a `spawn` in its body. `spawn` never runs a function *value* (a
+//!   closure, or a named function passed around as a value): a closure carries
+//!   captured references, and nothing proves those safe to share with another
+//!   task.
 use rustc_hash::FxHashSet;
 
 use super::ExprValidator;
 use crate::{
     diagnostics::{DiagnosticSink, EffectError},
     resolve::{resolver_for_expr, ValueNs},
-    BuiltinFn, Expr, ExprId, HasSource, HirDisplay, Pat, Statement, Ty, TyKind,
+    BuiltinFn, Expr, ExprId, HasSource, HirDisplay, Pat, SelectArm, SelectOp, Statement, Ty,
+    TyKind,
 };
 
 /// Whether values of `ty` may cross between tasks.
@@ -46,6 +59,7 @@ fn is_scalar(ty: &Ty) -> bool {
 fn is_task_argument(ty: &Ty) -> bool {
     match ty.interned() {
         TyKind::Channel(element) => is_scalar(element),
+        TyKind::Session(..) => true,
         _ => is_scalar(ty),
     }
 }
@@ -60,9 +74,37 @@ impl ExprValidator<'_> {
                     | Expr::Spawn { .. }
                     | Expr::ChannelSend { .. }
                     | Expr::ChannelReceive { .. }
+                    | Expr::Select { .. }
+                    | Expr::Offer { .. }
             ) || self.infer.builtin_call(id) == Some(BuiltinFn::Channel)
-                || matches!(self.infer[id].interned(), TyKind::Channel(_))
+                || matches!(
+                    self.infer[id].interned(),
+                    TyKind::Channel(_) | TyKind::Session(..)
+                )
+                || crate::expr::opened_session(self.db, &self.body, id).is_some()
         });
+        // A function value would let an endpoint out of the checker's sight.
+        for (expr, _) in self.body.exprs() {
+            let holds_endpoint = matches!(
+                self.infer[expr].interned(),
+                TyKind::Function(substs)
+                    if substs.iter().any(|ty| matches!(ty.interned(), TyKind::Session(..)))
+            );
+            if holds_endpoint {
+                self.push_task_error(
+                    expr,
+                    "a function value cannot take or return a session endpoint: pass the \
+                     endpoint to a named function of its session type instead"
+                        .to_string(),
+                    sink,
+                );
+            }
+        }
+        // An endpoint parameter that is never used still has a protocol to
+        // finish, so the checker's findings are reported either way.
+        for (expr, message) in &self.db.session_flow(self.body.owner()).errors {
+            self.push_task_error(*expr, message.clone(), sink);
+        }
         if !uses_tasks {
             return;
         }
@@ -74,6 +116,18 @@ impl ExprValidator<'_> {
         for (expr, _) in self.body.exprs() {
             if self.body.contracts().ghost_exprs.contains(&expr) {
                 continue;
+            }
+            if matches!(self.infer[expr].interned(), TyKind::Session(..))
+                && !allowed.contains(&expr)
+            {
+                self.push_task_error(
+                    expr,
+                    "a session endpoint can only be used with `<-`, `.choose(..)` or `offer`, or \
+                     passed to a function or to `spawn`: it is linear, so it cannot be copied, \
+                     stored or returned"
+                        .to_string(),
+                    sink,
+                );
             }
             if matches!(self.infer[expr].interned(), TyKind::Channel(_)) && !allowed.contains(&expr)
             {
@@ -121,6 +175,10 @@ impl ExprValidator<'_> {
                 }
                 return;
             }
+            Expr::Closure { body, .. } => {
+                self.validate_task_exprs(*body, false, allowed, sink);
+                return;
+            }
             Expr::Spawn { call } => {
                 if !in_scope {
                     self.push_task_error(
@@ -138,11 +196,34 @@ impl ExprValidator<'_> {
                     allowed.insert(*channel);
                 }
             }
+            Expr::Select { arms } => self.validate_select(expr, arms, allowed, sink),
+            Expr::Offer { endpoint, .. } => {
+                if matches!(self.body[*endpoint], Expr::Path(_)) {
+                    allowed.insert(*endpoint);
+                }
+            }
             Expr::Call { args, .. } | Expr::MethodCall { args, .. } => {
                 for &arg in args {
                     if matches!(self.body[arg], Expr::Path(_)) {
                         allowed.insert(arg);
                     }
+                }
+                // `ep.choose(k)`.
+                if let Expr::MethodCall { receiver, .. } = &self.body[expr] {
+                    if matches!(self.body[*receiver], Expr::Path(_))
+                        && matches!(self.infer[*receiver].interned(), TyKind::Session(..))
+                    {
+                        allowed.insert(*receiver);
+                    }
+                }
+                if crate::expr::opened_session(self.db, &self.body, expr).is_some() && !in_scope {
+                    self.push_task_error(
+                        expr,
+                        "a session must be opened inside a `scope { .. }` block, which owns its \
+                         endpoints and frees them when it ends"
+                            .to_string(),
+                        sink,
+                    );
                 }
             }
             Expr::Block { statements, .. } => {
@@ -192,6 +273,59 @@ impl ExprValidator<'_> {
             .walk_child_exprs(|child| self.validate_task_exprs(child, in_scope, allowed, sink));
     }
 
+    /// The `select`-specific rules; collects each arm's channel as a use.
+    fn validate_select(
+        &self,
+        select: ExprId,
+        arms: &[SelectArm],
+        allowed: &mut FxHashSet<ExprId>,
+        sink: &mut DiagnosticSink<'_>,
+    ) {
+        if arms.is_empty() {
+            self.push_task_error(
+                select,
+                "a `select` with no arms waits forever: give it a channel operation or a \
+                 `default` arm"
+                    .to_string(),
+                sink,
+            );
+        }
+        let mut seen_default = false;
+        for arm in arms {
+            match arm.op {
+                SelectOp::Receive { channel } | SelectOp::Send { channel, .. } => {
+                    if matches!(self.body[channel], Expr::Path(_)) {
+                        allowed.insert(channel);
+                    }
+                }
+                SelectOp::Default => {
+                    if seen_default {
+                        self.push_task_error(
+                            arm.body,
+                            "a `select` has at most one `default` arm".to_string(),
+                            sink,
+                        );
+                    }
+                    seen_default = true;
+                }
+                SelectOp::Invalid { expr } => self.push_task_error(
+                    expr,
+                    "a `select` arm waits on a channel operation: `name = <-ch -> ..`, \
+                     `<-ch -> ..`, `ch <- value -> ..`, or `default -> ..`"
+                        .to_string(),
+                    sink,
+                ),
+            }
+            if arm.binding.is_some() && !matches!(arm.op, SelectOp::Receive { .. }) {
+                self.push_task_error(
+                    arm.body,
+                    "only a receive arm binds a name: `name = <-ch -> ..`".to_string(),
+                    sink,
+                );
+            }
+        }
+    }
+
     /// `spawn f(args)`: a direct call to a module-local, non-generic,
     /// effect-free function whose parameters can cross between tasks.
     fn validate_spawned_call(&self, call: ExprId, sink: &mut DiagnosticSink<'_>) {
@@ -208,6 +342,19 @@ impl ExprValidator<'_> {
             _ => None,
         };
         let Some(function) = function else {
+            if let Expr::Call { callee, .. } = &self.body[call] {
+                if matches!(self.infer[*callee].interned(), TyKind::Function(_)) {
+                    self.push_task_error(
+                        call,
+                        "`spawn` cannot run a function value: a closure may carry references \
+                         to shared objects, and nothing proves them safe to use from another \
+                         task; spawn a named function of this module instead"
+                            .to_string(),
+                        sink,
+                    );
+                    return;
+                }
+            }
             self.push_task_error(
                 call,
                 "`spawn` takes a call to a function, `spawn f(args)`".to_string(),
@@ -376,5 +523,86 @@ mod tests {
     #[test]
     fn send_to_a_non_channel() {
         assert_reports("func main() { let x = 1; x <- 2 }", "`<-` needs a channel");
+    }
+
+    #[test]
+    fn well_formed_selects_are_clean() {
+        assert_clean(
+            r"
+    func pump(a: Channel[i64], b: Channel[i64], flags: Channel[bool]) -> i64 {
+        let total = 0;
+        let x = 3;
+        select {
+            v = <-a -> total += v,
+            <-b -> {},
+            flags <- x > 2 -> total += 1,
+            default -> total -= 1,
+        };
+        let picked = select {
+            v = <-a -> v,
+            w = <-b -> w * 2,
+        };
+        total + picked
+    }
+    ",
+        );
+    }
+
+    #[test]
+    fn select_without_arms_waits_forever() {
+        assert_reports(
+            "func main() { select {} }",
+            "a `select` with no arms waits forever",
+        );
+    }
+
+    #[test]
+    fn select_with_two_defaults() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { <-a -> {}, default -> {}, default -> {} } }",
+            "at most one `default` arm",
+        );
+    }
+
+    #[test]
+    fn select_arm_must_be_a_channel_operation() {
+        assert_reports(
+            "func g() -> i32 { 1 }\nfunc f() { select { g() -> {} } }",
+            "a `select` arm waits on a channel operation",
+        );
+    }
+
+    #[test]
+    fn only_a_receive_arm_binds() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { v = a <- 1 -> {} } }",
+            "only a receive arm binds a name",
+        );
+    }
+
+    #[test]
+    fn select_arm_types_must_agree() {
+        assert_reports(
+            "func f(a: Channel[i32]) -> i32 { select { v = <-a -> v, default -> true } }",
+            "every `select` arm must have the same type",
+        );
+    }
+
+    #[test]
+    fn select_binding_is_scoped_to_its_arm() {
+        let diags = diagnostics(
+            "func f(a: Channel[i32]) -> i32 { select { v = <-a -> {}, default -> {} }; v }",
+        );
+        assert!(!diags.is_empty(), "`v` is not visible after the select");
+    }
+
+    #[test]
+    fn select_channel_operands_follow_the_channel_rules() {
+        assert_reports(
+            "func f(a: Channel[i32]) { select { <-a -> {}, default -> {} }; let b = a; }",
+            "a channel can only be used with `<-`",
+        );
+        let diags = diagnostics("func f(a: Channel[i32]) { select { a <- true -> {} } }");
+        assert!(!diags.is_empty(), "a `bool` sent on a `Channel[i32]`");
     }
 }

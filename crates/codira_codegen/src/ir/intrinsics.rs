@@ -53,7 +53,10 @@ fn collect_expr<'ink>(
             | Expr::Spawn { .. }
             | Expr::ChannelSend { .. }
             | Expr::ChannelReceive { .. }
-    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel);
+            | Expr::Select { .. }
+            | Expr::Offer { .. }
+    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel)
+        || matches!(infer[expr_id].interned(), codira_hir::TyKind::Session(..));
     if uses_tasks {
         for intrinsic in intrinsics::task_functions() {
             collect_intrinsic(context, target, intrinsic, intrinsics);
@@ -65,6 +68,11 @@ fn collect_expr<'ink>(
                 collect_intrinsic(context, target, intrinsic, intrinsics);
             }
         }
+        // `array_filled` allocates its array through the runtime.
+        if builtin == codira_hir::BuiltinFn::ArrayFilled {
+            collect_intrinsic(context, target, &intrinsics::new_array, intrinsics);
+            *needs_alloc = true;
+        }
     } else if let Expr::Call { callee, .. } = expr {
         match infer[*callee].as_callable_def() {
             Some(codira_hir::CallableDef::Struct(_)) => {
@@ -73,8 +81,16 @@ fn collect_expr<'ink>(
                 *needs_alloc = true;
             }
             Some(codira_hir::CallableDef::Function(_)) => (),
+            // A call through a function value calls no runtime function.
+            None if infer.is_indirect_call(expr_id) => (),
             None => panic!("expected a callable expression"),
         }
+    }
+
+    // Creating a function value allocates its object.
+    if matches!(expr, Expr::Closure { .. }) || infer.function_value(expr_id).is_some() {
+        collect_intrinsic(context, target, &intrinsics::new, intrinsics);
+        *needs_alloc = true;
     }
 
     if let Expr::RecordLit { .. } = expr {

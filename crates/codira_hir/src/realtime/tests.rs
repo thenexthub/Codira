@@ -259,6 +259,51 @@ fn noblock_rejects_channels_scopes_and_printing() {
     assert_eq!(count("`fine`"), 0, "{diags}");
 }
 
+/// `select` (even with `default`, which still locks its channels) and every
+/// session operation may block; `select` and `open` also allocate.
+#[test]
+fn select_and_sessions_block() {
+    let diags = diagnostics(
+        r#"
+    session Ping { send i64; recv i64 }
+    @noblock
+    func polls(ch: Channel[i32]) -> i32 { select { v = <-ch -> v, default -> 0 } }
+    @noalloc
+    func waits(ch: Channel[i32]) -> i32 { select { v = <-ch -> v } }
+    @noblock
+    func pings(ep: Ping) { ep <- 1; let x = <-ep; }
+    "#,
+    );
+    let count = |needle: &str| diags.matches(needle).count();
+    assert_eq!(
+        count("`polls` is `@noblock` but may block here: `select` locks its channels"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("`waits` is `@noalloc` but allocates here: `select` waits"),
+        1,
+        "{diags}"
+    );
+    assert_eq!(
+        count("`pings` is `@noblock` but may block here"),
+        2,
+        "{diags}"
+    );
+    let opened = effects_of(
+        "session P { send i64 }\n\
+         func peer(ep: dual P) { let x = <-ep; }\n\
+         func f() { scope { let (a, b) = P.open(); spawn peer(b); a <- 1; } }",
+        "f",
+    );
+    let wanted = set(&[Effect::Alloc, Effect::Block]);
+    assert_eq!(
+        opened.intersection(wanted),
+        wanted,
+        "opening a session allocates and blocks"
+    );
+}
+
 #[test]
 fn the_diagnostic_shows_the_chain_of_calls() {
     let diags = diagnostics(
@@ -599,4 +644,26 @@ fn summaries_collect_effects_through_calls_and_recursion() {
     assert_eq!(effects_of(source, "spin"), set(&[Effect::Unbounded]));
     assert_eq!(effects_of(source, "pure"), EffectSet::NONE);
     assert_eq!(effects_of(source, "rec"), set(&[Effect::Unbounded]));
+}
+
+#[test]
+fn array_filled_allocates_and_the_scalar_builtins_do_not() {
+    let diags = diagnostics(
+        r#"
+    @noalloc
+    func filled(n: usize) -> [f64] { array_filled(0.0, n) }
+    @realtime
+    func scalar(c: bool, a: f64, b: f64, d: f64) -> f64 {
+        if likely(c) { fma(a, b, d) } else { select(unlikely(c), a, b) }
+    }
+    "#,
+    );
+    assert_eq!(
+        diags
+            .matches("`array_filled(..)` allocates an array")
+            .count(),
+        1,
+        "{diags}"
+    );
+    assert!(!diags.contains("scalar"), "{diags}");
 }

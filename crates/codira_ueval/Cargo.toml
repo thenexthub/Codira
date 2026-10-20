@@ -1,0 +1,22 @@
+[package]
+name = "codira_ueval"
+description = "Evaluation harness for proof-gated live updates: workloads, replay, baselines, fault injection"
+keywords = ["hot-reloading", "language", "codira", "evaluation"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_compiler = { version = "0.6.0-dev", path = "../codira_compiler" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+anyhow = { workspace = true, features = ["std"] }
+log = { workspace = true }
+tempfile = { workspace = true }
+toml = { workspace = true, features = ["parse"] }

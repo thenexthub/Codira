@@ -39,6 +39,7 @@ fn kind_text(kind: &ObligationKind) -> String {
         ObligationKind::DivisionOverflow => "no signed division overflow".to_string(),
         ObligationKind::UncheckableClause => "contract clause".to_string(),
         ObligationKind::ChoosePredicate => "`choose` predicate".to_string(),
+        ObligationKind::UnverifiedClosure => "closure body (not verified)".to_string(),
     }
 }
 

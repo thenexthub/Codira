@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+. $(dirname $0)/common.inc
+
+root=$PWD/$t/root
+mkdir -p "$root"
+echo 'void _start() {}' | $CC -c -xc -o "$root/a.o" -
+
+for mode in executable relocatable; do
+  flags=
+  [ "$mode" = executable ] || flags=-r
+  output=$PWD/$t/$mode
+  mkdir -p "$(dirname "$root$output")"
+  rm -f "$output" "$root$output"
+
+  ./funis $flags --chroot "$root" /a.o -o "$output"
+  test -f "$root$output"
+  not test -e "$output"
+  readelf -h "$root$output" | grep ELF
+done
+
+# The --repro archive is written next to the output.
+output=$PWD/$t/repro
+rm -f "$output.repro.tar" "$root$output.repro.tar"
+./funis --chroot "$root" /a.o -o "$output" --repro
+tar -tf "$root$output.repro.tar" | grep "$root/a.o\$"
+not test -e "$output.repro.tar"

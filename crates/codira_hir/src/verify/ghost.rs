@@ -58,6 +58,7 @@ pub(super) fn ghost_diagnostics(
                 Expr::Return { .. } => "a `return`",
                 Expr::Break { .. } => "a `break`",
                 Expr::Loop { .. } | Expr::While { .. } => "a loop",
+                Expr::Closure { .. } => "a closure",
                 _ => continue,
             };
             push(

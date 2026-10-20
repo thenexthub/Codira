@@ -1,0 +1,19 @@
+// Token bucket arithmetic. Pure, so every function here can be proven in
+// isolation and called from a real-time path.
+
+@realtime
+public func rate() -> i64
+    ensures result == 1
+{ 1 }
+
+@realtime
+public func burst() -> i64
+    ensures result == 10
+{ 10 }
+
+@realtime
+public func refill(tokens: i64, last: i64, now: i64, rate: i64, burst: i64) -> i64
+    requires rate >= 0
+{
+    tokens + (now - last) * rate
+}

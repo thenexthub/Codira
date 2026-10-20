@@ -54,6 +54,11 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// certificate names each function's machine code by these symbols.
     #[salsa::input]
     fn keep_function_symbols(&self) -> bool;
+
+    /// The experimental hardware-safety mode generated code is built with
+    /// (`--sanitize=memtag`; see [`crate::HardwareSafety`]).
+    #[salsa::input]
+    fn hardware_safety(&self) -> crate::HardwareSafety;
     /// The package's native code (C, C++, assembly), linked into every module
     /// group that calls it. See `crate::native`.
     #[salsa::input]

@@ -2561,6 +2561,61 @@ fn infer_builtin_print() {
     "#);
 }
 
+/// Function types, named functions used as values, closures (with written
+/// and expected parameter types) and calls through a value.
+#[test]
+fn infer_function_values_and_closures() {
+    insta::assert_snapshot!(infer(
+        r#"
+    func square(x: i32) -> i32 { x * x }
+    func apply(f: func(i32) -> i32, x: i32) -> i32 { f(x) }
+    func g(k: i32) -> i32 {
+        let s = square
+        let c = func(a: i32) -> i32 { a + k }
+        apply(func(b) { b * k }, s(2)) + c(1)
+    }
+    "#),
+    @"
+    12..13 'x': i32
+    27..36 '{ x * x }': i32
+    29..30 'x': i32
+    29..34 'x * x': i32
+    33..34 'x': i32
+    48..49 'f': func(i32) -> i32
+    69..70 'x': i32
+    84..92 '{ f(x) }': i32
+    86..87 'f': func(i32) -> i32
+    86..90 'f(x)': i32
+    88..89 'x': i32
+    100..101 'k': i32
+    115..221 '{     ...c(1) }': i32
+    125..126 's': func(i32) -> i32
+    129..135 'square': func(i32) -> i32
+    144..145 'c': func(i32) -> i32
+    148..177 'func(a... + k }': func(i32) -> i32
+    153..154 'a': i32
+    168..177 '{ a + k }': i32
+    170..171 'a': i32
+    170..175 'a + k': i32
+    174..175 'k': i32
+    182..187 'apply': function apply(func(i32) -> i32, i32) -> i32
+    182..212 'apply(... s(2))': i32
+    182..219 'apply(...+ c(1)': i32
+    188..205 'func(b... * k }': func(i32) -> i32
+    193..194 'b': i32
+    196..205 '{ b * k }': i32
+    198..199 'b': i32
+    198..203 'b * k': i32
+    202..203 'k': i32
+    207..208 's': func(i32) -> i32
+    207..211 's(2)': i32
+    209..210 '2': i32
+    215..216 'c': func(i32) -> i32
+    215..219 'c(1)': i32
+    217..218 '1': i32
+    ");
+}
+
 /// `for` over a range binds the bounds' integer type; over an array, the
 /// element type, destructured by a tuple pattern. An array of tuples unifies
 /// element by element.

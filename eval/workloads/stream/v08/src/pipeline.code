@@ -1,0 +1,60 @@
+import root.hist.{ bucket_of }
+import root.window.{ Agg, agg_add }
+
+func worker(jobs: Channel[i64], results: Channel[i64]) {
+    var running = true
+    while running {
+        let x = <-jobs
+        if x < 0 {
+            running = false
+        } else {
+            let tsx = x >> 20
+            let v = x & 1048575
+            let b = bucket_of(v)
+            results <- (tsx << 24) | (b << 20) | v
+        }
+    }
+}
+
+func event_value(seed: i64, i: i64) -> i64 {
+    (((seed + i) * 2654435761) >> 7) & 65535
+}
+
+func reduce_one(a: Agg, r: i64) {
+    let ts = (r >> 24) - 1073741824
+    let b = (r >> 20) & 15
+    let v = r & 1048575
+    agg_add(a, ts, b, v)
+}
+
+// Folds n events (n <= 60: the channels hold 64) through three workers.
+public func process_batch(a: Agg, n: i64, seed: i64, ts0: i64) -> i64
+    requires n >= 0 && n <= 60
+{
+    scope {
+        let jobs = channel(64)
+        let results = channel(64)
+        var w = 0
+        while w < 4 {
+            spawn worker(jobs, results)
+            w += 1
+        }
+        var i = 0
+        while i < n {
+            jobs <- ((ts0 + i * 3 + 1073741824) << 20) | event_value(seed, i)
+            i += 1
+        }
+        w = 0
+        while w < 4 {
+            jobs <- -1
+            w += 1
+        }
+        var got = 0
+        while got < n {
+            let r = <-results
+            reduce_one(a, r)
+            got += 1
+        }
+        n
+    }
+}

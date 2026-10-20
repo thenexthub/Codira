@@ -120,9 +120,32 @@ impl Ty {
                         );
                         Some(TyKind::Channel(element).intern())
                     }
+                    // A session type, by name (sessions take no arguments).
+                    [] => resolver
+                        .resolve_path_as_session(db, path)
+                        .map(|(id, _)| TyKind::Session(id.into(), false).intern()),
                     _ => None,
                 }
             }),
+            TypeRef::Dual(inner) => {
+                let inner_ty = Self::from_hir_with_diagnostics(
+                    db,
+                    resolver,
+                    type_ref_map,
+                    diagnostics,
+                    *inner,
+                );
+                match inner_ty.interned() {
+                    TyKind::Session(session, dual) => {
+                        Some(TyKind::Session(*session, !dual).intern())
+                    }
+                    TyKind::Unknown => Some(inner_ty),
+                    _ => {
+                        diagnostics.push(LowerDiagnostic::DualOfNonSession { id: type_ref });
+                        Some(TyKind::Unknown.intern())
+                    }
+                }
+            }
             TypeRef::Error => Some(TyKind::Unknown.intern()),
             TypeRef::Tuple(inner) => {
                 let inner_tys = inner.iter().map(|tr| {
@@ -157,6 +180,23 @@ impl Ty {
                 ))
                 .intern(),
             ),
+            TypeRef::Function { params, ret } => {
+                let params = params
+                    .iter()
+                    .map(|tr| {
+                        Self::from_hir_with_diagnostics(
+                            db,
+                            resolver,
+                            type_ref_map,
+                            diagnostics,
+                            *tr,
+                        )
+                    })
+                    .collect();
+                let ret =
+                    Self::from_hir_with_diagnostics(db, resolver, type_ref_map, diagnostics, *ret);
+                Some(Ty::function(params, ret))
+            }
             TypeRef::Refinement(inner) => Some(Self::from_hir_with_diagnostics(
                 db,
                 resolver,
@@ -304,7 +344,7 @@ impl From<ModuleDef> for Option<TypableDef> {
             ModuleDef::Struct(t) => Some(TypableDef::Struct(t)),
             ModuleDef::TypeAlias(t) => Some(TypableDef::TypeAlias(t)),
             ModuleDef::Enum(e) => Some(TypableDef::Enum(e)),
-            ModuleDef::Module(_) | ModuleDef::Effect(_) => None,
+            ModuleDef::Module(_) | ModuleDef::Effect(_) | ModuleDef::Session(_) => None,
         }
     }
 }
@@ -479,15 +519,23 @@ pub mod diagnostics {
     use codira_hir_input::FileId;
 
     use crate::{
-        diagnostics::{DiagnosticSink, PrivateAccess, UnresolvedType},
+        diagnostics::{DiagnosticSink, PrivateAccess, SessionError, UnresolvedType},
         type_ref::{LocalTypeRefId, TypeRefSourceMap},
         HirDatabase,
     };
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum LowerDiagnostic {
-        UnresolvedType { id: LocalTypeRefId },
-        TypeIsPrivate { id: LocalTypeRefId },
+        UnresolvedType {
+            id: LocalTypeRefId,
+        },
+        TypeIsPrivate {
+            id: LocalTypeRefId,
+        },
+        /// `dual T` where `T` is not a session type.
+        DualOfNonSession {
+            id: LocalTypeRefId,
+        },
     }
 
     impl LowerDiagnostic {
@@ -506,6 +554,13 @@ pub mod diagnostics {
                 LowerDiagnostic::TypeIsPrivate { id } => sink.push(PrivateAccess {
                     file: file_id,
                     expr: source_map.type_ref_syntax(*id).unwrap().syntax_node_ptr(),
+                }),
+                LowerDiagnostic::DualOfNonSession { id } => sink.push(SessionError {
+                    file: file_id,
+                    node: source_map.type_ref_syntax(*id).unwrap().syntax_node_ptr(),
+                    message: "`dual` applies to a session type: `dual S` is the other \
+                              endpoint's view of session `S`"
+                        .to_string(),
                 }),
             }
         }

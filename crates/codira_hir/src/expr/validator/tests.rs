@@ -214,7 +214,6 @@ fn test_unlowered_constructs_are_reported_not_crashed() {
     }
     "#,
     ), @"
-    103..128: a closure is not supported by the code generator yet: there is no function-value representation or capture analysis yet
     177..179: postfix `!` unwraps an optional (`T?`), but this is `i32`
     ");
 }
@@ -241,6 +240,162 @@ fn test_for_range_and_continue_errors() {
     93..94: a `for` loop's pattern must always match: use a name, `_` or a tuple of those
     113..121: `continue` outside of a loop
     ");
+}
+
+/// A closure captures by value: assigning to a captured variable, or to a
+/// field of a captured value struct, inside the closure is an error. A field
+/// of a captured class instance is shared storage and may be assigned, as may
+/// the closure's own locals. A parameter type must come from somewhere, and
+/// a channel (which lives only as long as its `scope`) cannot be captured.
+#[test]
+fn test_closure_capture_rules() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    struct Point { x: i32, y: i32 }
+    class Counter { n: i32 }
+
+    func f() {
+        var x = 1
+        let p = Point { x: 1, y: 2 }
+        let c = Counter { n: 1 }
+        let g = func() { x = 2 }
+        let h = func() { p.x = 3 }
+        let k = func() { c.n = 3 }
+        let m = func() { var y = 1; y = 2 }
+        let u = func(a) { a }
+    }
+
+    func c() {
+        scope {
+            let ch = channel(1)
+            let w = func() { ch <- 1 }
+        }
+    }
+    "#,
+    ), @"
+    166..171: cannot assign to `x` inside this closure: the closure captured `x` by value when it was created, so the assignment would change only the closure's copy; keep state the closure changes in a class instance and capture that
+    195..202: cannot assign to `p` inside this closure: the closure captured `p` by value when it was created, so the assignment would change only the closure's copy; keep state the closure changes in a class instance and capture that
+    293..294: cannot infer the type of this closure parameter: write it out (`x: T`), or pass the closure where a function type is expected
+    372..390: this closure cannot capture `ch` of type `Channel[i32]`: a channel is a handle that lives only as long as its `scope`, so a closure cannot keep it
+    ");
+}
+
+/// Function values are typed by signature; using one at the wrong type,
+/// with the wrong arguments, or with `==` is a type error, and a generic
+/// function cannot become a value.
+#[test]
+fn test_function_value_type_errors() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func square(x: i32) -> i32 { x * x }
+    func id[T](x: T) -> T { x }
+
+    func f() -> bool {
+        let a = square
+        let b: func(i32) -> bool = square
+        let c = id
+        a(1, 2)
+        a == a
+    }
+    "#,
+    ), @"
+    135..141: mismatched type
+    154..156: the generic function `id` cannot be used as a function value yet: a value names no instantiation of it; wrap the call in a closure instead
+    161..168: this function takes 1 parameters but 2 parameters was supplied
+    173..179: cannot apply binary operator
+    ");
+}
+
+/// Closures carry no effect handlers and are not tasks: they cannot perform,
+/// a function that uses effects cannot become a value, `spawn` cannot run a
+/// function value, and `break` does not leave the closure.
+#[test]
+fn test_closure_effects_tasks_and_loops() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    effect Fail {
+        func fail(code: i32) -> i32
+    }
+
+    func risky() uses Fail -> i32 { perform Fail.fail(1) }
+
+    func g() uses Fail -> i32 {
+        let f = func() -> i32 { perform Fail.fail(2) }
+        let h = risky
+        let k = func() -> i32 { risky() }
+        1
+    }
+
+    func work() {}
+
+    func t() {
+        scope {
+            let f = work
+            spawn f()
+        }
+    }
+
+    func l() {
+        loop {
+            let f = func() { break }
+        }
+    }
+    "#,
+    ), @"
+    196..201: `risky` uses effects, so it cannot be used as a function value: a function value carries no effect handlers
+    161..181: a closure cannot `perform` an effect: a function value carries no effect handlers
+    230..237: a closure cannot call `risky`, which uses effects: a function value carries no effect handlers
+    323..326: `spawn` cannot run a function value: a closure may carry references to shared objects, and nothing proves them safe to use from another task; spawn a named function of this module instead
+    383..388: `break` outside of a loop
+    ");
+}
+
+/// A closure that captures a secret is secret; a constant-time function
+/// neither creates nor calls function values; a verified function's closure
+/// bodies are reported as unverified.
+#[test]
+fn test_closure_secrets_and_contracts() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func leak(key: secret u64) -> func() -> u64 {
+        func() -> u64 { key }
+    }
+
+    @constant_time
+    func ct(a: secret u64) -> secret u64 {
+        let f = func(x: u64) -> u64 { x }
+        f(a)
+    }
+
+    func verified(x: i64) -> i64
+        requires x > 0
+    {
+        let f = func(y: i64) -> i64 { y / x }
+        f(1)
+    }
+    "#,
+    ), @"
+    50..71: secret value returned from a function whose result is not `secret` (wrap it in `declassify(..)` if revealing it is intended)
+    141..166: a constant-time function cannot create a closure: whatever calls it is not known to be constant-time
+    171..175: a constant-time function cannot call a function value: the callee is not known to be constant-time
+    173..174: secret value passed to a function value, whose parameters are never `secret`
+    241..270: this closure's body is not verified yet: the obligations in it (divisions, calls to functions with contracts) would go unchecked; move that code into a named function
+    ");
+}
+
+/// A function-typed parameter of a generic function is passed on to another
+/// generic function: the instantiated parameter unifies with the caller's
+/// own `T`.
+#[test]
+fn test_function_parameter_passed_between_generic_functions() {
+    insta::assert_snapshot!(diagnostics(
+        r#"
+    func g[T](a: T, cmp: func(T, T) -> i32) -> i32 { cmp(a, a) }
+    func f[T](a: T, cmp: func(T, T) -> i32) -> i32 {
+        g(a, cmp)
+    }
+    "#,
+    ), @"");
 }
 
 /// A `match` must cover every value: a missing `bool` literal, a missing

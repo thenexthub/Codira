@@ -1,0 +1,27 @@
+import root.window.{ Agg }
+
+// Read-only views the evaluation harness uses to compare logical state
+// across versions. Never changed by any update in the history.
+public func hist_at(a: Agg, i: i64) -> i64 {
+    if i < 0 || i >= 15 { return 0 }
+    a.hist[i]
+}
+
+public func win_id_at(a: Agg, i: i64) -> i64 {
+    if i < 0 || i >= 8 { return 0 }
+    a.win_id[i]
+}
+
+public func win_sum_at(a: Agg, i: i64) -> i64 {
+    if i < 0 || i >= 8 { return 0 }
+    a.win_sum[i]
+}
+
+public func win_cnt_at(a: Agg, i: i64) -> i64 {
+    if i < 0 || i >= 8 { return 0 }
+    a.win_cnt[i]
+}
+
+public func agg_total(a: Agg) -> i64 { a.total }
+public func agg_late(a: Agg) -> i64 { a.late }
+public func agg_newest(a: Agg) -> i64 { a.newest }

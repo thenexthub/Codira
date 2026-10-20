@@ -147,4 +147,24 @@ impl CodiraLibrary {
             Err(_) => false,
         }
     }
+
+    /// Calls a hardware-safety build's `set_hardware_safety` with `table`
+    /// (the runtime's capability table) and returns the
+    /// `HARDWARE_SAFETY_*` flags the library was built with; `0` for a
+    /// library built without one.
+    ///
+    /// # Safety
+    ///
+    /// This operations executes a function in the codiralib. `table` must
+    /// stay valid for as long as code in the library runs.
+    pub unsafe fn set_hardware_safety(&mut self, table: *mut c_void) -> u32 {
+        match self
+            .0
+            .library()
+            .get::<extern "C" fn(*mut c_void) -> u32>(abi::SET_HARDWARE_SAFETY_FN_NAME.as_bytes())
+        {
+            Ok(set_hardware_safety_fn) => set_hardware_safety_fn(table),
+            Err(_) => 0,
+        }
+    }
 }

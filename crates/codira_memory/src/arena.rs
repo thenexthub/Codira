@@ -51,6 +51,41 @@ struct Chunk {
     layout: Layout,
 }
 
+/// Where an arena's chunks come from: the system allocator by default, or
+/// mappings with special properties (`codira_runtime` maps MTE-tagged memory
+/// for regions under `--sanitize=memtag`).
+#[derive(Clone, Copy)]
+pub struct ChunkSource {
+    /// Returns `size` bytes aligned to at least 16, or `None`.
+    pub alloc: fn(size: usize) -> Option<NonNull<u8>>,
+    /// Gives back a chunk `alloc` returned, with the same `size`.
+    ///
+    /// # Safety
+    ///
+    /// `base` must come from this source's `alloc` with `size`, and is not
+    /// used again.
+    pub free: unsafe fn(base: NonNull<u8>, size: usize),
+}
+
+impl ChunkSource {
+    /// Chunks from the global allocator, aligned to 16.
+    pub const SYSTEM: ChunkSource = ChunkSource {
+        alloc: |size| {
+            let layout = Layout::from_size_align(size, 16).ok()?;
+            // Safety: `size` is never zero (an arena grows by at least
+            // `FIRST_CHUNK`).
+            NonNull::new(unsafe { std::alloc::alloc(layout) })
+        },
+        free: |base, size| {
+            // Safety: the caller passes a chunk `alloc` returned for `size`,
+            // whose layout was valid then.
+            unsafe {
+                std::alloc::dealloc(base.as_ptr(), Layout::from_size_align_unchecked(size, 16));
+            }
+        },
+    };
+}
+
 /// A bump allocator with bulk free and an optional byte quota.
 pub struct Arena {
     chunks: Vec<Chunk>,
@@ -61,6 +96,7 @@ pub struct Arena {
     /// Bytes handed out, including alignment padding.
     used: usize,
     quota: Option<usize>,
+    source: ChunkSource,
 }
 
 // Safety: the arena exclusively owns its chunks.
@@ -70,13 +106,26 @@ impl Arena {
     /// Creates an empty arena. No memory is requested until the first
     /// allocation.
     pub fn new(quota: Option<usize>) -> Self {
+        Self::with_chunk_source(quota, ChunkSource::SYSTEM)
+    }
+
+    /// Creates an empty arena whose chunks come from `source`.
+    pub fn with_chunk_source(quota: Option<usize>, source: ChunkSource) -> Self {
         Self {
             chunks: Vec::new(),
             cursor: 0,
             end: 0,
             used: 0,
             quota,
+            source,
         }
+    }
+
+    /// The address and size of every chunk the arena holds.
+    pub fn chunk_ranges(&self) -> impl Iterator<Item = (NonNull<u8>, usize)> + '_ {
+        self.chunks
+            .iter()
+            .map(|chunk| (chunk.base, chunk.layout.size()))
     }
 
     /// Returns the bytes handed out since creation or the last reset.
@@ -148,7 +197,7 @@ impl Arena {
                 align: layout.align(),
             }
         })?;
-        let base = NonNull::new(unsafe { std::alloc::alloc(chunk_layout) })
+        let base = (self.source.alloc)(chunk_layout.size())
             .ok_or(ArenaError::SystemOutOfMemory { requested: size })?;
         self.chunks.push(Chunk {
             base,
@@ -164,7 +213,7 @@ impl Arena {
     pub fn reset(&mut self) {
         while self.chunks.len() > 1 {
             let chunk = self.chunks.pop().expect("checked length");
-            unsafe { std::alloc::dealloc(chunk.base.as_ptr(), chunk.layout) };
+            unsafe { (self.source.free)(chunk.base, chunk.layout.size()) };
         }
         if let Some(first) = self.chunks.first() {
             self.cursor = first.base.as_ptr() as usize;
@@ -180,7 +229,7 @@ impl Arena {
 impl Drop for Arena {
     fn drop(&mut self) {
         for chunk in self.chunks.drain(..) {
-            unsafe { std::alloc::dealloc(chunk.base.as_ptr(), chunk.layout) };
+            unsafe { (self.source.free)(chunk.base, chunk.layout.size()) };
         }
     }
 }

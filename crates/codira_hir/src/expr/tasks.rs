@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Lowers the structured-concurrency expressions to HIR: `scope { .. }`,
-//!   `spawn f(args)`, `channel <- value` and `<-channel`.
+//!   `spawn f(args)`, `channel <- value`, `<-channel` and `select { .. }`.
 //!
 //! # The model
 //!
@@ -21,9 +21,20 @@
 //! scope it is created in and is freed when that scope ends, after its tasks
 //! have been joined. See `expr::validator::tasks` for the rules that make
 //! those lifetimes sound and `codira_runtime::tasks` for the runtime.
+//!
+//! # `select`
+//!
+//! `select { arm, .. }` multiplexes channel operations, Go-style. Each arm is
+//! `name = <-ch -> body` (the received value is bound to `name` in `body`),
+//! `<-ch -> body`, `ch <- value -> body`, or `default -> body`. Every
+//! channel and sent value is evaluated first, in source order; then the
+//! select waits until at least one operation can proceed, performs exactly
+//! one -- chosen uniformly at random among the ready ones, so no arm starves
+//! -- and runs its body. With `default` it does not wait. The arms' bodies
+//! have one type, which is the `select`'s.
 use codira_syntax::{ast, AstNode, AstPtr};
 
-use super::{Expr, ExprCollector, ExprId};
+use super::{Expr, ExprCollector, ExprId, SelectArm, SelectOp};
 
 impl ExprCollector<'_> {
     /// `channel <- value`. The node has no named children: its two
@@ -39,5 +50,48 @@ impl ExprCollector<'_> {
         let channel = self.collect_expr_opt(channel);
         let value = self.collect_expr_opt(value);
         self.alloc_expr(Expr::ChannelSend { channel, value }, syntax_ptr)
+    }
+
+    /// `select { arm, .. }`.
+    pub(super) fn collect_select(
+        &mut self,
+        select: &ast::SelectExpr,
+        syntax_ptr: AstPtr<ast::Expr>,
+    ) -> ExprId {
+        let arms = select
+            .select_arm_list()
+            .into_iter()
+            .flat_map(|list| list.arms())
+            .map(|arm| {
+                let binding = arm.pat().map(|pat| self.collect_pat(pat));
+                let op = if arm.is_default() {
+                    SelectOp::Default
+                } else {
+                    match arm.operation().map(|op| (op.kind(), op)) {
+                        Some((ast::ExprKind::ChannelRecvExpr(recv), _)) => SelectOp::Receive {
+                            channel: self.collect_expr_opt(recv.expr()),
+                        },
+                        Some((ast::ExprKind::ChannelSendExpr(send), _)) => {
+                            let mut operands = send.syntax().children().filter_map(ast::Expr::cast);
+                            let channel = operands.next();
+                            let value = operands.next();
+                            SelectOp::Send {
+                                channel: self.collect_expr_opt(channel),
+                                value: self.collect_expr_opt(value),
+                            }
+                        }
+                        Some((_, other)) => SelectOp::Invalid {
+                            expr: self.collect_expr(other),
+                        },
+                        None => SelectOp::Invalid {
+                            expr: self.collect_expr_opt(None),
+                        },
+                    }
+                };
+                let body = self.collect_expr_opt(arm.body());
+                SelectArm { binding, op, body }
+            })
+            .collect();
+        self.alloc_expr(Expr::Select { arms }, syntax_ptr)
     }
 }

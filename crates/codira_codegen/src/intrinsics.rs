@@ -89,11 +89,27 @@ runtime_functions! {
 
     /// Receives the next element into address `out`, waiting while there is none.
     pub fn channel_receive(channel: usize, out: usize) -> () = "codira.channel_receive";
+
+    /// Performs one of `count` channel operations laid out at `cases` (three
+    /// `usize`s each: channel, 0 = receive / 1 = send, data address) and
+    /// returns its index; returns `count` at once if `has_default` is set and
+    /// none can proceed.
+    pub fn channel_select(cases: usize, count: usize, has_default: usize) -> usize = "codira.channel_select";
+
+    /// Creates the two endpoints of a session in `scope`, writing their
+    /// handles to the two `usize`s at `out`.
+    pub fn session_open(scope: usize, out: usize) -> () = "codira.session_open";
+
+    /// Sends the `size` bytes at `value` to the other endpoint.
+    pub fn session_send(endpoint: usize, value: usize, size: usize) -> () = "codira.session_send";
+
+    /// Receives the other endpoint's next message into the `size` bytes at `out`.
+    pub fn session_receive(endpoint: usize, out: usize, size: usize) -> () = "codira.session_receive";
 }
 
 /// Every runtime function `scope`, `spawn` and channels lower to, collected
 /// together like [`print_functions`].
-pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
+pub fn task_functions() -> [&'static dyn Intrinsic; 10] {
     [
         &scope_begin,
         &scope_spawn,
@@ -101,6 +117,10 @@ pub fn task_functions() -> [&'static dyn Intrinsic; 6] {
         &channel_new,
         &channel_send,
         &channel_receive,
+        &channel_select,
+        &session_open,
+        &session_send,
+        &session_receive,
     ]
 }
 

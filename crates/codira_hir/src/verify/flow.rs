@@ -29,7 +29,8 @@
 //! * a secret value may not reach a non-secret sink: returned from a function
 //!   whose result is not `secret`, passed to a non-`secret` parameter
 //!   (including `print`/`println`), bound by a `let` declared with a non-secret
-//!   type, or stored through a field or index;
+//!   type, stored through a field or index, or sent on a channel (plain or in a
+//!   `select` arm);
 //!
 //! and in a `@constant_time`/`oblivious` function, where the time taken must
 //! not depend on secrets:
@@ -43,6 +44,18 @@
 //!   data-dependent time on mainstream CPUs);
 //! * a secret may only be passed to a function that is itself `@constant_time`
 //!   (or to the builtins above).
+//!
+//! # Function values
+//!
+//! A closure that captures a secret is itself secret: so is the result of
+//! calling a secret function value, and a secret closure cannot be returned
+//! from a non-`secret` function or stored in a field, like any other secret.
+//! A function value's parameters are never `secret` (a function type cannot
+//! say so), so passing a secret to one is reported. A constant-time function
+//! neither creates nor calls function values: whatever is called through one
+//! is not known to be constant-time. Inside a closure body, `return` leaves
+//! the closure, so it is not checked against the enclosing function's
+//! result; the closure's own taint carries the value out.
 //!
 //! # Threat model, honestly
 //!
@@ -69,6 +82,10 @@ use crate::{
     expr::{ArithOp, BinaryOp, LogicOp, Statement},
     BuiltinFn, Expr, ExprId, HasSource, HirDatabase, Pat, PatId,
 };
+
+const SECRET_ON_CHANNEL: &str =
+    "secret value sent on a channel: what a channel delivers is public (declassify it first if \
+     that is intended)";
 
 /// What a function's signature says about secrets.
 #[derive(Debug, Clone, Default)]
@@ -124,6 +141,8 @@ struct Checker<'a> {
     tainted: FxHashSet<PatId>,
     /// Locals bound by a `let` whose ascribed type is not `secret`.
     declared_public: FxHashSet<PatId>,
+    /// Every expression inside a closure body.
+    in_closure: FxHashSet<ExprId>,
     errors: Vec<(ExprId, String)>,
 }
 
@@ -137,12 +156,20 @@ pub(super) fn flow_diagnostics(
     }
     let frame = Frame::new(db, func);
     let sig = secret_signature(db, func);
+    let mut in_closure = FxHashSet::default();
+    for (closure, _) in frame.infer.closures() {
+        let Expr::Closure { body, .. } = &frame.body[closure] else {
+            continue;
+        };
+        collect_subtree(&frame, *body, &mut in_closure);
+    }
     let mut checker = Checker {
         db,
         frame,
         sig,
         tainted: FxHashSet::default(),
         declared_public: FxHashSet::default(),
+        in_closure,
         errors: Vec::new(),
     };
     if !checker.seed() {
@@ -164,6 +191,12 @@ pub(super) fn flow_diagnostics(
             });
         }
     }
+}
+
+/// Adds `expr` and every expression below it to `out`.
+fn collect_subtree(frame: &Frame, expr: ExprId, out: &mut FxHashSet<ExprId>) {
+    out.insert(expr);
+    frame.body[expr].walk_child_exprs(|child| collect_subtree(frame, child, out));
 }
 
 impl Checker<'_> {
@@ -262,9 +295,16 @@ impl Checker<'_> {
                 // A resolved callee's result is secret exactly when its
                 // signature says so; a secret argument to a public parameter
                 // is reported at the argument, not propagated through the
-                // result as well.
+                // result as well. A call through a function value is secret
+                // when the value is (it captured a secret) or an argument is.
                 None => self.callee(expr).map_or_else(
-                    || args.iter().any(|a| self.tainted(*a)),
+                    || {
+                        let callee_tainted = match &body[expr] {
+                            Expr::Call { callee, .. } => self.tainted(*callee),
+                            _ => false,
+                        };
+                        callee_tainted || args.iter().any(|a| self.tainted(*a))
+                    },
                     |f| secret_signature(self.db, f).result,
                 ),
             },
@@ -273,12 +313,36 @@ impl Checker<'_> {
                 |f| secret_signature(self.db, f).result,
             ),
             Expr::Block { tail, .. } => tail.is_some_and(|t| self.tainted(t)),
+            // A closure is secret when it captured a secret, or when what it
+            // returns (its tail or a `return`) is secret.
+            Expr::Closure {
+                body: closure_body, ..
+            } => {
+                let captured = self
+                    .frame
+                    .infer
+                    .closure(expr)
+                    .is_some_and(|c| c.captures.iter().any(|p| self.tainted.contains(p)));
+                captured || self.tainted(*closure_body) || self.returns_secret(*closure_body)
+            }
             other => {
                 let mut any = false;
                 other.walk_child_exprs(|c| any |= self.tainted(c));
                 any
             }
         }
+    }
+
+    /// Whether a `return` somewhere below `expr` returns a secret.
+    fn returns_secret(&self, expr: ExprId) -> bool {
+        if let Expr::Return { expr: Some(value) } = &self.frame.body[expr] {
+            if self.tainted(*value) {
+                return true;
+            }
+        }
+        let mut any = false;
+        self.frame.body[expr].walk_child_exprs(|c| any |= self.returns_secret(c));
+        any
     }
 
     /// Runs the taint to a fixpoint: assignments and `let`s carry it to the
@@ -415,8 +479,20 @@ impl Checker<'_> {
     fn check_expr(&mut self, id: ExprId) {
         let body = Arc::clone(&self.frame.body);
         let ct = self.sig.constant_time;
+        if self.frame.infer.is_indirect_call(id) {
+            self.check_indirect_call(id);
+        }
         match &body[id] {
-            Expr::Return { expr: Some(value) } if !self.sig.result && self.tainted(*value) => {
+            Expr::Closure { .. } if ct => {
+                self.error(
+                    id,
+                    "a constant-time function cannot create a closure: whatever calls it is not \
+                     known to be constant-time",
+                );
+            }
+            Expr::Return { expr: Some(value) }
+                if !self.sig.result && !self.in_closure.contains(&id) && self.tainted(*value) =>
+            {
                 self.error(
                     *value,
                     "secret value returned from a function whose result is not `secret` \
@@ -432,10 +508,25 @@ impl Checker<'_> {
                             }
                         }
                     }
+                    // `select` and the branch hints are not constant-time: LLVM
+                    // may turn them into a branch. `ct_select` is the form for
+                    // a secret condition.
+                    Some(BuiltinFn::Select | BuiltinFn::Likely | BuiltinFn::Unlikely) => {
+                        if let Some(&cond) = args.first() {
+                            if self.tainted(cond) {
+                                self.error(
+                                    cond,
+                                    "secret value used as the condition of a non-constant-time builtin (use `ct_select`)",
+                                );
+                            }
+                        }
+                    }
                     // `len`/`unchecked_get` are methods, never a `Call`.
                     Some(
                         BuiltinFn::Declassify
                         | BuiltinFn::CtSelect
+                        | BuiltinFn::ArrayFilled
+                        | BuiltinFn::Fma
                         | BuiltinFn::Channel
                         | BuiltinFn::ArrayLen
                         | BuiltinFn::ArrayUncheckedGet
@@ -445,6 +536,20 @@ impl Checker<'_> {
                 }
             }
             Expr::MethodCall { receiver, args, .. } => self.check_call(id, args, Some(*receiver)),
+            // A channel is a public sink: whatever is received from it is
+            // public, so a secret sent on one would come out declassified.
+            Expr::ChannelSend { value, .. } if self.tainted(*value) => {
+                self.error(*value, SECRET_ON_CHANNEL);
+            }
+            Expr::Select { arms } => {
+                for arm in arms {
+                    if let crate::SelectOp::Send { value, .. } = arm.op {
+                        if self.tainted(value) {
+                            self.error(value, SECRET_ON_CHANNEL);
+                        }
+                    }
+                }
+            }
             Expr::BinaryOp {
                 lhs,
                 rhs,
@@ -535,6 +640,30 @@ impl Checker<'_> {
                 );
             }
             _ => {}
+        }
+    }
+
+    /// A call through a function value: its parameters are never `secret`,
+    /// and in a constant-time function it is not allowed at all.
+    fn check_indirect_call(&mut self, call: ExprId) {
+        let args = match &self.frame.body[call] {
+            Expr::Call { args, .. } | Expr::MethodCall { args, .. } => args.clone(),
+            _ => return,
+        };
+        if self.sig.constant_time {
+            self.error(
+                call,
+                "a constant-time function cannot call a function value: the callee is not known \
+                 to be constant-time",
+            );
+        }
+        for arg in args {
+            if self.tainted(arg) {
+                self.error(
+                    arg,
+                    "secret value passed to a function value, whose parameters are never `secret`",
+                );
+            }
         }
     }
 

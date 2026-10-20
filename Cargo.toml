@@ -83,6 +83,28 @@ yansi-term = { version = "0.1.2", default-features = false }
 notify = { version = "5.2.0" }
 winapi = { version = "0.3.9", default-features = false }
 
+# Dependencies of the Funis linker crates (crates/funis*), forked from mold.
+blake3 = "1.8.7"
+bstr = "1"
+cpp_demangle = "0.5.1"
+crc32fast = "1"
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+hashbrown = "0.17.1"
+libc = "0.2"
+libz-rs-sys = "0.6.8"
+memchr = "2.8.3"
+memmap2 = "0.9"
+mimalloc = { package = "mold-mimalloc", version = "0.1.52" }
+portable-atomic = "1"
+rayon = "1"
+rustc-demangle = "0.1"
+sha1 = "0.11"
+sha2 = "0.11"
+uuid = { version = "1.27", default-features = false, features = ["v4"] }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+zlib-rs = { version = "0.6.8", default-features = false }
+zstd = "0.13"
+
 [profile.dev]
 rpath = true
 

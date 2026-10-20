@@ -11,13 +11,18 @@ mod r#impl;
 mod module;
 mod package;
 mod primitive_type;
+pub(crate) mod session;
 pub(crate) mod src;
 pub(crate) mod r#struct;
 mod type_alias;
 
 use std::sync::Arc;
 
-pub(crate) use self::{effect::lower_effect_query, r#enum::lower_enum_query};
+pub(crate) use self::{
+    effect::lower_effect_query,
+    r#enum::lower_enum_query,
+    session::{lower_session_query, session_protocol_query},
+};
 pub use self::{
     effect::{Effect, EffectData, EffectOpSig},
     function::{Function, FunctionData},
@@ -27,6 +32,7 @@ pub use self::{
     r#enum::{Enum, EnumData, EnumLayout, EnumSlot, EnumVariant, VariantKind},
     r#impl::{AssocItem, ImplData},
     r#struct::{Field, Struct, StructData, StructKind, StructMemoryKind},
+    session::{Protocol, ProtocolStep, Session, SessionData},
     src::HasSource,
     type_alias::{TypeAlias, TypeAliasData},
 };

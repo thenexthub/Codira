@@ -126,6 +126,7 @@ struct ItemTreeData {
     consts: Arena<Const>,
     impls: Arena<Impl>,
     effects: Arena<Effect>,
+    sessions: Arena<Session>,
     enums: Arena<Enum>,
 
     visibilities: ItemVisibilities,
@@ -241,6 +242,7 @@ mod_items! {
     Import in imports -> ast::Use,
     Impl in impls -> ast::Extend,
     Effect in effects -> ast::EffectDef,
+    Session in sessions -> ast::SessionDef,
     Enum in enums -> ast::EnumDef,
 }
 
@@ -483,6 +485,16 @@ pub struct Effect {
     pub ast_id: FileAstId<ast::EffectDef>,
 }
 
+/// A session type declaration: `session Name { send T; recv T; .. }` (see
+/// `code_model::session`). Only the name is recorded here; the protocol is
+/// read from the source on demand, like an effect's operations.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Session {
+    pub name: Name,
+    pub visibility: RawVisibilityId,
+    pub ast_id: FileAstId<ast::SessionDef>,
+}
+
 /// An `enum` declaration (see `spec/LANGUAGE_SPEC.md`, "Enums & pattern
 /// matching").
 ///
@@ -673,6 +685,10 @@ mod diagnostics {
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),
                     ModItem::Effect(item) => InFile::new(
+                        item_tree.file_id,
+                        SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
+                    ),
+                    ModItem::Session(item) => InFile::new(
                         item_tree.file_id,
                         SyntaxNodePtr::new(item_tree.source(db, item).syntax()),
                     ),

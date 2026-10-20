@@ -13,8 +13,8 @@ mod resolve;
 
 use std::{fmt, iter::FromIterator, mem, ops::Deref, sync::Arc};
 
-pub use infer::InferenceResult;
 pub(crate) use infer::{infer_query, substitute_type_params};
+pub use infer::{ClosureInfo, InferenceResult};
 pub use lower::TypableDef;
 pub(crate) use lower::{
     callable_item_sig, fn_sig_for_fn, type_for_def, type_for_impl_self, CallableDef,
@@ -95,6 +95,18 @@ pub enum TyKind {
     /// ```
     FnDef(CallableDef, Substitution),
 
+    /// The type of a function *value*: `func(A, B) -> R`. Holds the
+    /// parameter types followed by the return type, so the substitution is
+    /// never empty.
+    ///
+    /// Unlike `FnDef`, which names one particular function, any function
+    /// with this signature -- a named function used as a value, or a
+    /// closure -- has this type. At run time it is a reference to a GC
+    /// object whose first field locates the code (see
+    /// `codira_codegen::ir::body::closures`); calls go through a runtime
+    /// cell that hot reloading repoints, never through a raw code pointer.
+    Function(Substitution),
+
     /// An dynamically sized array type
     Array(Ty),
 
@@ -103,6 +115,11 @@ pub enum TyKind {
     /// is the `scope` that created it.
     Channel(Ty),
 
+    /// An endpoint of a session: `S` (`false`) or `dual S` (`true`). A
+    /// runtime handle, linear and scope-bound like a channel; the point of
+    /// its protocol it has reached is tracked by `expr::session`, not by
+    /// the type.
+    Session(crate::code_model::Session, bool),
     /// `T?`: a `T`, or `nil`. Represented as a present flag and a payload,
     /// with no allocation -- see `codira_codegen`'s `get_optional_type`.
     Optional(Ty),
@@ -226,6 +243,23 @@ impl Ty {
         }
     }
 
+    /// Constructs the function-value type `func(params..) -> ret`.
+    pub fn function(params: Vec<Ty>, ret: Ty) -> Ty {
+        TyKind::Function(params.into_iter().chain(std::iter::once(ret)).collect()).intern()
+    }
+
+    /// If this is a function-value type, returns its parameter types and its
+    /// return type.
+    pub fn as_function(&self) -> Option<(&[Ty], &Ty)> {
+        match self.interned() {
+            TyKind::Function(substs) => {
+                let (ret, params) = substs.split_last()?;
+                Some((params, ret))
+            }
+            _ => None,
+        }
+    }
+
     /// Returns true if this type represents the empty tuple type
     pub fn is_empty(&self) -> bool {
         matches!(self.interned(), TyKind::Tuple(0, _))
@@ -324,6 +358,27 @@ impl Ty {
             TyKind::Int(ty) => Some(format!("core::{}", ty.as_str())),
             TyKind::Array(ty) => Some(format!("[{}]", ty.display(db))),
             TyKind::Channel(ty) => Some(format!("core::Channel[{}]", ty.guid_string(db)?)),
+            TyKind::Session(session, dual) => Some(format!(
+                "{}session {}::{}",
+                if *dual { "dual " } else { "" },
+                session.module(db).name(db).unwrap_or_default(),
+                session.name(db)
+            )),
+            // Structural: two function types are the same exactly when their
+            // signatures are. Elements go through `guid_string` like a
+            // tuple's, so a struct parameter's layout is part of the name.
+            TyKind::Function(substs) => {
+                let (ret, params) = substs.split_last()?;
+                let params = params
+                    .iter()
+                    .map(|ty| ty.guid_string(db))
+                    .collect::<Option<Vec<_>>>()?;
+                Some(format!(
+                    "core::fn({}) -> {}",
+                    params.join(", "),
+                    ret.guid_string(db)?
+                ))
+            }
             // Structural like a tuple, so the name is built from the payload.
             TyKind::Optional(ty) => Some(format!("{}?", ty.guid_string(db)?)),
             // A tuple is a structural type: two tuples are the same type
@@ -366,6 +421,7 @@ impl Ty {
             TyKind::Tuple(_, substs)
             | TyKind::FnDef(_, substs)
             | TyKind::Struct(_, substs)
+            | TyKind::Function(substs)
             | TyKind::Enum(_, substs) => Some(substs),
             _ => None,
         }
@@ -379,6 +435,7 @@ impl Ty {
             TyKind::Tuple(_, substs)
             | TyKind::FnDef(_, substs)
             | TyKind::Struct(_, substs)
+            | TyKind::Function(substs)
             | TyKind::Enum(_, substs) => Some(substs),
             _ => None,
         }
@@ -399,9 +456,12 @@ impl Ty {
             | (TyKind::Channel(_), TyKind::Channel(_))
             | (TyKind::Optional(_), TyKind::Optional(_))
             | (TyKind::Bool, TyKind::Bool) => true,
+            (TyKind::Session(s1, d1), TyKind::Session(s2, d2)) => s1 == s2 && d1 == d2,
             (TyKind::Float(f1), TyKind::Float(f2)) => f1 == f2,
             (TyKind::Int(i1), TyKind::Int(i2)) => i1 == i2,
             (TyKind::FnDef(def, _), TyKind::FnDef(def2, _)) => def == def2,
+            // Arity only, as for tuples: the caller unifies the elements.
+            (TyKind::Function(a), TyKind::Function(b)) => a.len() == b.len(),
             _ => false,
         }
     }
@@ -558,8 +618,25 @@ impl HirDisplay for Ty {
                 f.write_joined(sig.params(), ", ")?;
                 write!(f, ") -> {}", sig.ret().display(f.db))
             }
+            TyKind::Function(substs) => {
+                let (ret, params) = substs
+                    .split_last()
+                    .expect("a function type always has a return type");
+                write!(f, "func(")?;
+                f.write_joined(params.iter(), ", ")?;
+                write!(f, ")")?;
+                if ret.is_empty() {
+                    Ok(())
+                } else {
+                    write!(f, " -> {}", ret.display(f.db))
+                }
+            }
             TyKind::Array(elem_ty) => write!(f, "[{}]", elem_ty.display(f.db)),
             TyKind::Channel(elem_ty) => write!(f, "Channel[{}]", elem_ty.display(f.db)),
+            TyKind::Session(session, dual) => {
+                let prefix = if *dual { "dual " } else { "" };
+                write!(f, "{prefix}{}", session.name(f.db))
+            }
             TyKind::Optional(inner) => write!(f, "{}?", inner.display(f.db)),
             TyKind::Unknown => write!(f, "{{unknown}}"),
         }

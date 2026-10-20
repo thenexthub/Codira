@@ -198,6 +198,9 @@ pub fn compile_gpu_kernels(
         fuel: false,
         // PTX is not a library a certificate describes.
         keep_function_symbols: false,
+        // Likewise for the hardware-safety modes: they guard host memory.
+        hardware_safety: crate::HardwareSafety::NONE,
+        safety_refusals: Rc::default(),
         target_machine: Rc::new(machine),
     };
 

@@ -1,0 +1,319 @@
+//! Input file access.
+//!
+//! Every input file is read once and kept in memory for the whole link,
+//! because sections, symbol names and relocation tables of object files
+//! are used until the output is written. Files are therefore leaked with a
+//! `'static` lifetime rather than tracked with reference counts, which
+//! keeps lifetimes out of every data structure that refers to file
+//! contents. In a library session (see `session`) the leaked files are freed
+//! when the link is over.
+
+use std::borrow::Cow;
+use std::fs::File;
+use std::io::{self, Read};
+use std::ops::Range;
+#[cfg(not(windows))]
+use std::os::unix::fs::MetadataExt;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+#[cfg(not(windows))]
+use rayon::prelude::*;
+
+use crate::error::strerror;
+use crate::fatal;
+use crate::mem::{leak, leak_mut, leak_vec};
+use crate::parallel::SyncUnsafeCell;
+use crate::path::clean_path;
+
+/// All files opened during this link.
+static FILE_POOL: Mutex<Vec<&'static MappedFile>> = Mutex::new(Vec::new());
+
+/// The files that are memory-mapped, for [`drop_mappings`].
+static MMAPPED_FILES: Mutex<Vec<&'static MappedFile>> = Mutex::new(Vec::new());
+
+/// The device and inode numbers of the memory-mapped files, for
+/// [`is_mmapped`].
+#[cfg(not(windows))]
+static MMAPPED_INODES: Mutex<Vec<(u64, u64)>> = Mutex::new(Vec::new());
+
+/// Returns all files opened during this link, sorted by name. Input
+/// files are opened in parallel, so the order in which they were opened
+/// changes from run to run.
+pub fn file_pool() -> Vec<&'static MappedFile> {
+    let mut files = FILE_POOL.lock().unwrap().clone();
+    files.sort_by(|a, b| a.name.cmp(&b.name));
+    files
+}
+
+/// Forgets every file opened by a library session (see `session`). The files
+/// themselves are freed with the session's other leaked allocations; this
+/// drops the references to them that the globals above hold.
+pub(crate) fn reset() {
+    FILE_POOL.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    MMAPPED_FILES.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    #[cfg(not(windows))]
+    MMAPPED_INODES.lock().unwrap_or_else(|e| e.into_inner()).clear();
+}
+
+/// Drops the page table entries of the mapped input files, in parallel.
+/// This makes process exit faster, as the kernel otherwise reclaims them
+/// in a single thread on exit. The files' contents stay in the page cache,
+/// but the relocation records rewritten in place through these private
+/// mappings are discarded, so this must be the last use of the input data.
+pub fn drop_mappings() {
+    let files = std::mem::take(&mut *MMAPPED_FILES.lock().unwrap());
+    #[cfg(windows)]
+    let _ = files;
+    #[cfg(not(windows))]
+    files.par_iter().for_each(|mf| {
+        // SAFETY: the range is a whole mapping of the file that lives for
+        // the rest of the process; MADV_DONTNEED only discards the pages,
+        // which are faulted in again if they are ever read.
+        unsafe {
+            libc::madvise(
+                mf.data().as_ptr() as *mut libc::c_void,
+                mf.data().len(),
+                libc::MADV_DONTNEED,
+            )
+        };
+    });
+}
+
+/// Returns true if the file at `path` is memory-mapped as an input. Such a
+/// file must not be written in place, because a private mapping reflects
+/// changes to the file in the pages it has not copied yet.
+#[cfg(not(windows))]
+pub fn is_mmapped(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .is_ok_and(|m| MMAPPED_INODES.lock().unwrap().contains(&(m.dev(), m.ino())))
+}
+
+/// Output files are never written in place on Windows.
+#[cfg(windows)]
+pub fn is_mmapped(_path: &Path) -> bool {
+    false
+}
+
+// Files up to this size are read into malloc'ed memory rather than
+// mmap'ed. mmap(2) takes the process's address space lock, so with tens
+// of thousands of input files, the calls serialize at a few microseconds
+// each no matter how many threads make them. read(2) takes no such lock,
+// but copying costs memory bandwidth in proportion to the file size, so
+// large files are still mmap'ed. On a Chromium link, files below this
+// threshold are 64% of the inputs by count but 16% by size.
+//
+// The buffers add up to hundreds of megabytes on such a link, so they
+// need to be backed by huge pages; with 4 KiB pages, faulting them in
+// costs more than the mmap calls did. mimalloc does that by default.
+const READ_THRESHOLD: u64 = 32 * 1024;
+
+// MappedFile represents an input file that is either mmap'ed or read into
+// memory. Either way, its contents are accessible through `data`.
+#[derive(Debug)]
+pub struct MappedFile {
+    /// The path this file was opened by, which already has --chroot
+    /// applied, or the member name for a slice of an archive.
+    pub name: PathBuf,
+    /// The contents, in an allocation that is deliberately leaked with the
+    /// input file. The bytes are cells because the linker modifies private
+    /// relocation records in place, as C++ funis does.
+    pub data: &'static [SyncUnsafeCell<u8>],
+
+    /// False if the file was found by searching library paths (`-l`),
+    /// which affects how a shared library's soname defaults.
+    pub given_fullpath: bool,
+
+    /// The archive this file is a member of.
+    pub parent: Option<&'static Self>,
+
+    /// The thin archive this file is a member of.
+    pub thin_parent: Option<&'static Self>,
+
+    // For --dependency-file
+    pub is_dependency: AtomicBool,
+}
+
+impl MappedFile {
+    fn open_impl(path: &Path) -> io::Result<&'static Self> {
+        let file = File::open(path)?;
+
+        let display = path.display();
+        let metadata =
+            file.metadata().unwrap_or_else(|e| fatal!("{display}: fstat failed: {}", strerror(&e)));
+        let size = metadata.len();
+
+        // True if `data` is a memory mapping of the file rather than a copy of
+        // its contents in anonymous memory.
+        let mut is_mmapped = false;
+        let data: &'static [SyncUnsafeCell<u8>] = if size == 0 {
+            &[]
+        } else if size <= READ_THRESHOLD && metadata.is_file() {
+            let mut buf = Vec::with_capacity(size as usize);
+            (&file)
+                .take(size)
+                .read_to_end(&mut buf)
+                .unwrap_or_else(|e| fatal!("{display}: read failed: {}", strerror(&e)));
+            if buf.len() as u64 != size {
+                fatal!("{display}: file is shorter than its reported size");
+            }
+            SyncUnsafeCell::from_mut(leak_vec(buf))
+        } else {
+            // C++ funis maps inputs MAP_PRIVATE with write permission so it
+            // can redirect ordinary relocation records in place without
+            // changing the input file.
+            //
+            // SAFETY: the mapping is private and lives for the rest of the
+            // process. Input files are not expected to change while the
+            // linker runs.
+            let map_len = usize::try_from(size)
+                .unwrap_or_else(|_| fatal!("{display}: file is too large to map"));
+            let map = unsafe { memmap2::MmapOptions::new().len(map_len).map_copy(&file) }
+                .unwrap_or_else(|e| fatal!("{display}: mmap failed: {}", strerror(&e)));
+            is_mmapped = true;
+            SyncUnsafeCell::from_mut(leak_mut(map).as_mut())
+        };
+
+        let mf = leak(Self {
+            name: path.to_path_buf(),
+            data,
+            given_fullpath: true,
+            parent: None,
+            thin_parent: None,
+            is_dependency: AtomicBool::new(true),
+        });
+        FILE_POOL.lock().unwrap().push(mf);
+        if is_mmapped {
+            MMAPPED_FILES.lock().unwrap().push(mf);
+            #[cfg(not(windows))]
+            MMAPPED_INODES.lock().unwrap().push((metadata.dev(), metadata.ino()));
+        }
+        Ok(mf)
+    }
+
+    /// Opens a file, returning `None` if it doesn't exist.
+    pub fn open(path: impl AsRef<Path>) -> Option<&'static Self> {
+        let path = path.as_ref();
+        match Self::open_impl(path) {
+            Ok(mf) => Some(mf),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
+            Err(e) => fatal!("opening {} failed: {}", path.display(), strerror(&e)),
+        }
+    }
+
+    /// Opens a file that must exist.
+    pub fn must_open(path: impl AsRef<Path>) -> &'static Self {
+        let path = path.as_ref();
+        Self::open_impl(path)
+            .unwrap_or_else(|e| fatal!("cannot open {}: {}", path.display(), strerror(&e)))
+    }
+
+    /// Returns a view of a member of this archive.
+    pub fn slice(&'static self, name: PathBuf, start: usize, size: usize) -> &'static Self {
+        let mf = leak(Self {
+            name,
+            data: &self.data[start..start + size],
+            given_fullpath: true,
+            parent: Some(self),
+            thin_parent: None,
+            is_dependency: AtomicBool::new(true),
+        });
+        FILE_POOL.lock().unwrap().push(mf);
+        mf
+    }
+
+    /// Opens a member whose bytes are stored outside this thin archive.
+    pub fn open_thin_member(&'static self, path: &Path) -> &'static Self {
+        let member = Self::must_open(path);
+        leak(Self {
+            name: member.name.clone(),
+            data: member.data,
+            given_fullpath: true,
+            parent: None,
+            thin_parent: Some(self),
+            is_dependency: AtomicBool::new(true),
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.data.len()
+    }
+
+    #[inline]
+    pub fn data(&self) -> &[u8] {
+        // SAFETY: the only writes are to relocation ranges during exclusive
+        // linker phases, which use no shared view of those ranges.
+        unsafe { SyncUnsafeCell::as_slice(self.data) }
+    }
+
+    /// Returns a relocation range for modification.
+    ///
+    /// # Safety
+    ///
+    /// The caller must have exclusive access to `range` while the slice is
+    /// alive, and no shared reference to an overlapping range may be used
+    /// during that time.
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn data_mut(&self, range: Range<usize>) -> &mut [u8] {
+        // SAFETY: guaranteed by the caller.
+        unsafe { SyncUnsafeCell::as_mut_slice(&self.data[range]) }
+    }
+
+    /// The offset of this slice within its top-level archive file.
+    pub fn offset(&self) -> usize {
+        match self.parent {
+            Some(parent) => {
+                self.data.as_ptr() as usize - parent.data.as_ptr() as usize + parent.offset()
+            }
+            None => 0,
+        }
+    }
+
+    // Returns a string that uniquely identifies a file that is possibly
+    // in an archive.
+    pub fn identifier(&self) -> std::ffi::OsString {
+        if let Some(parent) = self.parent {
+            // Archive members may have the same name, so use the file offset.
+            let mut name = parent.name.as_os_str().to_os_string();
+            name.push(format!(":{}", self.offset()));
+            return name;
+        }
+        if let Some(parent) = self.thin_parent {
+            // Thin archive members have unique filenames.
+            let mut name = parent.name.as_os_str().to_os_string();
+            name.push(":");
+            name.push(&self.name);
+            return name;
+        }
+        self.name.as_os_str().to_os_string()
+    }
+
+    pub fn is_dependency(&self) -> bool {
+        self.is_dependency.load(Ordering::Relaxed)
+    }
+
+    pub fn set_dependency(&self, value: bool) {
+        self.is_dependency.store(value, Ordering::Relaxed);
+    }
+}
+
+pub fn apply_chroot<'a>(chroot: &Path, path: &'a Path) -> Cow<'a, Path> {
+    if path.is_absolute() && !chroot.as_os_str().is_empty() {
+        Cow::Owned(chroot.join(clean_path(path).strip_prefix("/").unwrap_or(path)))
+    } else {
+        Cow::Borrowed(path)
+    }
+}
+
+/// Opens an input file, applying `--chroot` to absolute paths.
+pub fn open_file(chroot: &Path, path: impl AsRef<Path>) -> Option<&'static MappedFile> {
+    MappedFile::open(apply_chroot(chroot, path.as_ref()))
+}
+
+/// Opens an input file that must exist, applying `--chroot` to absolute paths.
+pub fn must_open_file(chroot: &Path, path: impl AsRef<Path>) -> &'static MappedFile {
+    let path = path.as_ref();
+    MappedFile::open_impl(&apply_chroot(chroot, path))
+        .unwrap_or_else(|e| fatal!("cannot open {}: {}", path.display(), strerror(&e)))
+}
