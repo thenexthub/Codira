@@ -1419,6 +1419,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "codira_update"
+version = "0.6.0-dev"
+dependencies = [
+ "codira_certificate",
+ "codira_smt",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "toml 0.8.19",
+]
+
+[[package]]
 name = "codira_vfs"
 version = "0.6.0-dev"
 dependencies = [

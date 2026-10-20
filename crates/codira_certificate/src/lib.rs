@@ -499,7 +499,7 @@ fn command_heads(text: &str) -> Result<Vec<String>, String> {
 }
 
 /// How a recorded query decided when checked again.
-enum Recheck {
+pub enum Recheck {
     /// `unsat`; `vacuous` when the premise alone is already unsat.
     Unsat {
         vacuous: bool,
@@ -508,7 +508,11 @@ enum Recheck {
     Unknown(String),
 }
 
-fn recheck(text: &str, rlimit: u32) -> Result<Recheck, String> {
+/// Decides one recorded query -- a script of declarations and exactly two
+/// assertions, the premise and the negated goal -- under `rlimit`, with
+/// nothing but Z3. `Err` says why the text is not such a query. Shared with
+/// `codira_update`, whose obligations have the same shape.
+pub fn recheck(text: &str, rlimit: u32) -> Result<Recheck, String> {
     let heads = command_heads(text)?;
     if let Some(bad) = heads
         .iter()
