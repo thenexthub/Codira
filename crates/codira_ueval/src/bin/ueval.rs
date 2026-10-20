@@ -216,7 +216,7 @@ fn history(m: &Manifest, csv: &Path, seed: u64, prefix: usize, suffix: usize) ->
     std::fs::create_dir_all(&tmp)?;
     let limit = Duration::from_secs(120);
     let mut rows = vec![
-        "workload,update,category,provenance,layout_change,migrate,behaviour,hot_outcome,state_preserved,suffix_equal_fresh,first_divergence,final_state_equal_fresh,install_ms,detect_ms,relink_ms,hot_p99_ms,restart_snapshot,restart_snapshot_downtime_ms,restart_reingest,restart_reingest_downtime_ms,restart_reingest_suffix_equal_fresh"
+        "workload,update,category,provenance,layout_change,migrate,behaviour,fresh_start,hot_outcome,state_preserved,suffix_equal_fresh,first_divergence,final_state_equal_fresh,install_ms,detect_ms,relink_ms,hot_p99_ms,restart_snapshot,restart_snapshot_downtime_ms,restart_reingest,restart_reingest_downtime_ms,restart_reingest_suffix_equal_fresh"
             .to_string(),
     ];
     for u in &m.updates {
@@ -258,14 +258,17 @@ fn history(m: &Manifest, csv: &Path, seed: u64, prefix: usize, suffix: usize) ->
             &tmp.join("rein.txt"),
             limit,
         )?;
-        let ChildEnd::Done(fresh_o) = fresh else {
-            return Err(anyhow!("fresh start of {} failed", u.to));
+        let fresh_label = end_label(&fresh);
+        let fresh_ok = matches!(fresh, ChildEnd::Done(_));
+        let fresh_o = match fresh {
+            ChildEnd::Done(o) => *o,
+            _ => RunOutput::default(),
         };
         let (mut sp, mut sf, mut fd, mut fs) =
             (String::new(), String::new(), String::new(), String::new());
         let (mut ins, mut det, mut rel, mut p99) =
             (String::new(), String::new(), String::new(), String::new());
-        if let ChildEnd::Done(o) = &hot {
+        if let (true, ChildEnd::Done(o)) = (fresh_ok, &hot) {
             let c = compare_with_fresh(o, &fresh_o, p.prefix);
             sp = c.state_preserved.to_string();
             sf = c.suffix_equal_fresh.to_string();
@@ -285,13 +288,13 @@ fn history(m: &Manifest, csv: &Path, seed: u64, prefix: usize, suffix: usize) ->
             _ => String::new(),
         };
         let rein_eq = match &rein {
-            ChildEnd::Done(o) => compare_with_fresh(o, &fresh_o, p.prefix)
+            ChildEnd::Done(o) if fresh_ok => compare_with_fresh(o, &fresh_o, p.prefix)
                 .suffix_equal_fresh
                 .to_string(),
             _ => String::new(),
         };
         let row = format!(
-            "{},{},{},{},{},{},{},{},{sp},{sf},{fd},{fs},{ins},{det},{rel},{p99},{},{},{},{},{rein_eq}",
+            "{},{},{},{},{},{},{},{},{},{sp},{sf},{fd},{fs},{ins},{det},{rel},{p99},{},{},{},{},{rein_eq}",
             m.name,
             u.id,
             u.category,
@@ -299,6 +302,7 @@ fn history(m: &Manifest, csv: &Path, seed: u64, prefix: usize, suffix: usize) ->
             u.layout_change,
             u.migrate.split(':').next().unwrap_or(""),
             u.behaviour,
+            fresh_label,
             end_label(&hot),
             end_label(&snap),
             down(&snap),
@@ -307,6 +311,7 @@ fn history(m: &Manifest, csv: &Path, seed: u64, prefix: usize, suffix: usize) ->
         );
         println!("{row}");
         rows.push(row);
+        std::fs::write(csv, rows.join("\n") + "\n")?;
     }
     std::fs::write(csv, rows.join("\n") + "\n")?;
     Ok(())
@@ -430,6 +435,65 @@ fn faults(m: &Manifest, csv: &Path, per_update: usize, seed: u64) -> Result<()> 
     Ok(())
 }
 
+/// Pause and downtime of each update, repeated `reps` times with the order of
+/// the three delivery modes rotated every repetition.
+fn pause(m: &Manifest, reps: usize, csv: &Path) -> Result<()> {
+    let dirs = build_versions(m)?;
+    let p = Params {
+        seed: 1,
+        prefix: 100,
+        suffix: 50,
+        interval_ns: 0,
+    };
+    let tmp = work_root().join(&m.name).join("pause");
+    std::fs::create_dir_all(&tmp)?;
+    let limit = Duration::from_secs(120);
+    let modes = ["hot", "restart-snapshot", "restart-reingest"];
+    let mut rows = vec!["workload,update,rep,mode,pause_ms,install_ms,detect_ms".to_string()];
+    let mut by: BTreeMap<(String, &str), Vec<f64>> = BTreeMap::new();
+    for rep in 0..reps {
+        for u in &m.updates {
+            for k in 0..3 {
+                let mode = modes[(rep + k) % 3];
+                let end = spawn_worker(
+                    &m.name,
+                    Some(&dirs[&u.from]),
+                    &dirs[&u.to],
+                    mode,
+                    &p,
+                    &tmp.join("o.txt"),
+                    limit,
+                )?;
+                let ChildEnd::Done(o) = end else { continue };
+                let (pause, ins, det) = match (mode, &o.timing, o.downtime) {
+                    ("hot", Some(t), _) => (ms(t.relink_call), ms(t.install), ms(t.detect)),
+                    (_, _, Some(d)) => (ms(d), 0.0, 0.0),
+                    _ => continue,
+                };
+                rows.push(format!(
+                    "{},{},{rep},{mode},{pause:.3},{ins:.3},{det:.3}",
+                    m.name, u.id
+                ));
+                by.entry((u.id.clone(), mode)).or_default().push(pause);
+            }
+        }
+        std::fs::write(csv, rows.join("\n") + "\n")?;
+    }
+    println!("update,mode,n,min_ms,median_ms,iqr_ms,max_ms");
+    for ((id, mode), v) in &by {
+        let s = Summary::of(v);
+        println!(
+            "{id},{mode},{},{:.2},{:.2},{:.2},{:.2}",
+            s.n,
+            s.min,
+            s.median,
+            s.iqr(),
+            s.max
+        );
+    }
+    Ok(())
+}
+
 /// Steady-state overhead: the same version built with and without hot reload,
 /// serving the same stream, alternating which goes first in every repetition.
 fn bench(m: &Manifest, version: &str, reps: usize, requests: usize, csv: &Path) -> Result<()> {
@@ -506,14 +570,7 @@ fn bench(m: &Manifest, version: &str, reps: usize, requests: usize, csv: &Path) 
             ));
         }
     }
-    std::fs::write(
-        csv,
-        rows.join(
-            "
-",
-        ) + "
-",
-    )?;
+    std::fs::write(csv, rows.join("\n") + "\n")?;
     for (v, name) in [(0, "hot-reload"), (1, "no-hot-reload")] {
         let t = Summary::of(&thr[v]);
         let p = Summary::of(&p99[v]);
@@ -612,6 +669,10 @@ fn main() -> Result<()> {
                 num(4, 400) as usize,
                 num(5, 400) as usize,
             )
+        }
+        Some("pause") => {
+            let m = load(arg(&args, 1))?;
+            pause(&m, num(2, 25) as usize, Path::new(arg(&args, 3)))
         }
         Some("bench") => {
             let m = load(arg(&args, 1))?;

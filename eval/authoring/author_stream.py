@@ -273,6 +273,9 @@ U.append(Update(
     edits=[
         (W, "    public hist: [i64],\n    public win_id: [i64],\n    public win_sum: [i64],\n    public win_cnt: [i64],\n    public total: i64,\n    public late: i64,\n    public newest: i64,\n    public sum_all: i64,\n    public min_val: i64,\n    public max_val: i64,\n}",
             "    public total: i64,\n    public late: i64,\n    public newest: i64,\n    public sum_all: i64,\n    public min_val: i64,\n    public max_val: i64,\n    public hist: [i64],\n    public win_id: [i64],\n    public win_sum: [i64],\n    public win_cnt: [i64],\n}"),
+        # Struct literals list fields in declaration order (toolchain defect, see UEVAL_RESULTS.txt).
+        (W, "        hist: [" + stream_v01.zeros(15) + "],\n        win_id: [" + stream_v01.minus7(8) + "],\n        win_sum: [" + stream_v01.zeros(8) + "],\n        win_cnt: [" + stream_v01.zeros(8) + "],\n        total: 0,\n        late: 0,\n        newest: -7,\n        sum_all: 0,\n        min_val: 1099511627776,\n        max_val: 0,\n",
+            "        total: 0,\n        late: 0,\n        newest: -7,\n        sum_all: 0,\n        min_val: 1099511627776,\n        max_val: 0,\n        hist: [" + stream_v01.zeros(15) + "],\n        win_id: [" + stream_v01.minus7(8) + "],\n        win_sum: [" + stream_v01.zeros(8) + "],\n        win_cnt: [" + stream_v01.zeros(8) + "],\n"),
         (W, '''    var seen = 0
     var b = 0
     while b < 15 {

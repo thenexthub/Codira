@@ -356,6 +356,9 @@ U.append(Update(
     edits=[
         (A, "    public accts: [Acct],\n    public n: i64,\n    public total: i64,\n    public ok: i64,\n    public denied: i64,\n    public fee_shift: i64,\n}",
             "    public n: i64,\n    public total: i64,\n    public fee_shift: i64,\n    public ok: i64,\n    public denied: i64,\n    public accts: [Acct],\n}"),
+        # Struct literals list fields in declaration order (toolchain defect, see UEVAL_RESULTS.txt).
+        (A, "        accts: [" + ledger_v01.fresh(32) + "],\n        n: 32,\n        total: 32000,\n        ok: 0,\n        denied: 0,\n        fee_shift: 0,\n",
+            "        n: 32,\n        total: 32000,\n        fee_shift: 0,\n        ok: 0,\n        denied: 0,\n        accts: [" + ledger_v01.fresh(32) + "],\n"),
         (A, ("func", "audit"), '''// Sum of all balances minus the money supply: zero while the books balance.
 @noalloc
 public func audit(l: Ledger) -> i64 {
