@@ -58,6 +58,8 @@ pub trait InternDatabase: SourceDatabase {
     #[salsa::interned]
     fn intern_effect(&self, loc: ids::EffectLoc) -> ids::EffectId;
     #[salsa::interned]
+    fn intern_session(&self, loc: ids::SessionLoc) -> ids::SessionId;
+    #[salsa::interned]
     fn intern_enum(&self, loc: ids::EnumLoc) -> ids::EnumId;
 }
 
@@ -73,6 +75,9 @@ pub trait DefDatabase: InternDatabase + AstDatabase {
 
     #[salsa::invoke(crate::code_model::EffectData::effect_data_query)]
     fn effect_data(&self, id: ids::EffectId) -> Arc<crate::code_model::EffectData>;
+
+    #[salsa::invoke(crate::code_model::SessionData::session_data_query)]
+    fn session_data(&self, id: ids::SessionId) -> Arc<crate::code_model::SessionData>;
 
     #[salsa::invoke(crate::code_model::EnumData::enum_data_query)]
     fn enum_data(&self, id: ids::EnumId) -> Arc<crate::code_model::EnumData>;
@@ -129,6 +134,17 @@ pub trait HirDatabase: DefDatabase {
 
     #[salsa::invoke(crate::code_model::lower_effect_query)]
     fn lower_effect(&self, def: crate::code_model::Effect) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::lower_session_query)]
+    fn lower_session(&self, def: crate::code_model::Session) -> Arc<LowerTyMap>;
+
+    #[salsa::invoke(crate::code_model::session_protocol_query)]
+    fn session_protocol(&self, def: crate::code_model::Session)
+        -> Arc<crate::code_model::Protocol>;
+
+    /// The session checker's findings for one body (see `expr::session`).
+    #[salsa::invoke(crate::expr::session::session_flow_query)]
+    fn session_flow(&self, def: crate::ids::DefWithBodyId) -> Arc<crate::expr::SessionFlow>;
 
     #[salsa::invoke(crate::code_model::lower_enum_query)]
     fn lower_enum(&self, def: crate::code_model::Enum) -> Arc<LowerTyMap>;

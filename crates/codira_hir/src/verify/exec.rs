@@ -29,7 +29,7 @@ use super::{
 };
 use crate::{
     code_model::{Function, HasSource},
-    expr::{ArithOp, BinaryOp, BodySourceMap, CmpOp, LogicOp, Ordering, Statement},
+    expr::{ArithOp, BinaryOp, BodySourceMap, CmpOp, LogicOp, Ordering, SelectArm, Statement},
     ids::DefWithBodyId,
     in_file::InFile,
     resolve::{resolver_for_expr, ValueNs},
@@ -1015,6 +1015,20 @@ impl<'ctx> Exec<'_, 'ctx> {
                 let value = self.eval(state, *inner)?;
                 Some(cast(self.db, self.ctx, value, &self.frame.infer[expr]))
             }
+            Expr::Select { arms } => {
+                for arm in arms {
+                    for operand in arm.operands() {
+                        self.eval(state, operand)?;
+                    }
+                }
+                self.eval_select_arms(state, arms)
+            }
+            // The other endpoint chooses the branch: unknown, like a
+            // `select`'s arm.
+            Expr::Offer { endpoint, branches } => {
+                self.eval(state, *endpoint)?;
+                self.eval_offer_branches(state, branches)
+            }
             // A closure's body runs later, if ever, with arguments nobody
             // knows here, so it is not evaluated at the literal. Its
             // obligations are therefore not checked: where there are any (a
@@ -1265,6 +1279,83 @@ impl<'ctx> Exec<'_, 'ctx> {
             (Some(a), Some(b)) => {
                 *state = merge_states(arm_state, rest_state, cb);
                 Some(merge_sym(cb, a, b))
+            }
+        }
+    }
+
+    /// The arms of a `select`, after its operands. Which arm runs depends
+    /// on other tasks, so each is a nondeterministic choice, and a received
+    /// value is unconstrained. No arms: the `select` waits forever.
+    fn eval_select_arms(
+        &mut self,
+        state: &mut State<'ctx>,
+        arms: &[SelectArm],
+    ) -> Option<Sym<'ctx>> {
+        let (arm, rest) = arms.split_first()?;
+        let run = |this: &mut Self, state: &mut State<'ctx>| {
+            if let Some(binding) = arm.binding {
+                let ty = this.frame.infer[binding].clone();
+                let value = this.fresh_for_ty(&ty, "received");
+                this.bind(state, binding, value);
+            }
+            this.eval(state, arm.body)
+        };
+        if rest.is_empty() {
+            return run(self, state);
+        }
+        let choice = self.fresh_bool("select");
+        let mut this_state = state.clone();
+        this_state.pc = state.pc.and(choice);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(choice.not());
+        let this_value = run(self, &mut this_state);
+        let rest_value = self.eval_select_arms(&mut rest_state, rest);
+        match (this_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = this_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(this_state, rest_state, choice);
+                Some(merge_sym(choice, a, b))
+            }
+        }
+    }
+
+    fn eval_offer_branches(
+        &mut self,
+        state: &mut State<'ctx>,
+        branches: &[ExprId],
+    ) -> Option<Sym<'ctx>> {
+        let (&branch, rest) = branches.split_first()?;
+        if rest.is_empty() {
+            return self.eval(state, branch);
+        }
+        let choice = self.fresh_bool("offer");
+        let mut this_state = state.clone();
+        this_state.pc = state.pc.and(choice);
+        let mut rest_state = state.clone();
+        rest_state.pc = state.pc.and(choice.not());
+        let this_value = self.eval(&mut this_state, branch);
+        let rest_value = self.eval_offer_branches(&mut rest_state, rest);
+        match (this_value, rest_value) {
+            (None, None) => None,
+            (Some(v), None) => {
+                *state = this_state;
+                Some(v)
+            }
+            (None, Some(v)) => {
+                *state = rest_state;
+                Some(v)
+            }
+            (Some(a), Some(b)) => {
+                *state = merge_states(this_state, rest_state, choice);
+                Some(merge_sym(choice, a, b))
             }
         }
     }

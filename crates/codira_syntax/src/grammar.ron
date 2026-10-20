@@ -176,6 +176,22 @@ Grammar(
         // stays an ordinary identifier everywhere else (`if scope { .. }`
         // still tests a variable named `scope`).
         "scope",
+        // `select { .. }`: waits on several channel operations and performs
+        // exactly one. Promoted only when directly followed by `{` where a
+        // block may start, like `scope`; `default` only at the start of a
+        // `select` arm, before `->`.
+        "select",
+        "default",
+        // Session types (see `codira_hir`'s `session` module): `session` at
+        // the start of a declaration followed by a name and `{`; `send`,
+        // `recv`, `offer` and `or` inside a session declaration; `dual`
+        // before a type; `offer ep { .. } or { .. }` as an expression.
+        "session",
+        "send",
+        "recv",
+        "offer",
+        "or",
+        "dual",
         // Synthesis: `choose x where pred` (see `codira_hir`'s
         // `verify::synth`). `??`, the other synthesis hole, is two `?`
         // tokens and needs no keyword.
@@ -299,6 +315,14 @@ Grammar(
         "PERFORM_EXPR",
         "SPAWN_EXPR",
         "SCOPE_EXPR",
+        "SELECT_EXPR",
+        "SELECT_ARM_LIST",
+        "SELECT_ARM",
+        "SESSION_DEF",
+        "SESSION_PROTOCOL",
+        "SESSION_STEP",
+        "DUAL_TYPE",
+        "OFFER_EXPR",
         "HANDLE_EXPR",
         "HANDLER_ARM_LIST",
         "HANDLER_ARM",
@@ -348,7 +372,7 @@ Grammar(
             traits: [ "ModuleItemOwner", "FunctionDefOwner" ],
         ),
         "ModuleItem": (
-            enum: ["Use", "FunctionDef", "StructDef", "TypeAliasDef", "ConstDef", "TraitDef", "EnumDef", "EffectDef", "MacroDef", "Extend", "ExternBlock", "SupervisorDef"]
+            enum: ["Use", "FunctionDef", "StructDef", "TypeAliasDef", "ConstDef", "TraitDef", "EnumDef", "EffectDef", "MacroDef", "Extend", "ExternBlock", "SupervisorDef", "SessionDef"]
         ),
         "Visibility": (),
         "AttributeList": (collections: [("attributes", "Attribute")]),
@@ -449,6 +473,23 @@ Grammar(
             options: ["EffectOpList"],
         ),
         "EffectOpList": (collections: [("ops", "EffectOp")]),
+        // `session Name { send T; recv T; choose { .. } or { .. } }`.
+        "SessionDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+            ],
+            options: [["protocol", "SessionProtocol"]],
+        ),
+        "SessionProtocol": (collections: [("steps", "SessionStep")]),
+        // `send T`, `recv T`, `choose { .. } or { .. }` or
+        // `offer { .. } or { .. }`; the keyword says which.
+        "SessionStep": (
+            options: ["TypeRef"],
+            collections: [("branches", "SessionProtocol")],
+        ),
         "EffectOp": (
             traits: ["NameOwner"],
             options: ["ParamList", "RetType"],
@@ -617,6 +658,19 @@ Grammar(
             options: [ ["expr", "Expr"] ]
         ),
         "ChannelSendExpr": (),
+        // `select { v = <-ch -> body, ch <- x -> body, default -> body }`.
+        "SelectExpr": (
+            options: [ "SelectArmList" ]
+        ),
+        "SelectArmList": (collections: [("arms", "SelectArm")]),
+        // The binding is the `Pat`; the operation and the body are the
+        // arm's expression children, read in `expr_extensions`.
+        "SelectArm": (
+            options: [ "Pat" ]
+        ),
+        // `offer ep { .. } or { .. }`: the endpoint and the branches are the
+        // node's expression children, read in `expr_extensions`.
+        "OfferExpr": (),
         "HandleExpr": (
             options: [ ["expr", "Expr"], "HandlerArmList" ]
         ),
@@ -670,6 +724,8 @@ Grammar(
                 "TransferExpr",
                 "ChannelRecvExpr",
                 "ChannelSendExpr",
+                "SelectExpr",
+                "OfferExpr",
                 "HoleExpr",
                 "ChooseExpr",
             ]
@@ -710,6 +766,8 @@ Grammar(
         // `secret T` -- the information-flow qualifier. Erases to `T`
         // everywhere except the flow checker.
         "SecretType": (options: ["TypeRef"]),
+        // `dual S`: the other endpoint's view of session `S`.
+        "DualType": (options: ["TypeRef"]),
         // `T unit(<dimension>)` -- a unit of measure on a numeric type.
         // Erases to `T` everywhere except the dimension checker.
         "UnitType": (options: [["base", "TypeRef"], ["dimension", "Expr"]]),
@@ -726,6 +784,7 @@ Grammar(
                 "OptionalType",
                 "RefinementType",
                 "SecretType",
+                "DualType",
                 "UnitType",
             ]
         ),

@@ -629,6 +629,34 @@ impl DecreasesClause {
     }
 }
 
+// DualType
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DualType {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for DualType {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, DUAL_TYPE)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(DualType { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl DualType {
+    pub fn type_ref(&self) -> Option<TypeRef> {
+        super::child_opt(self)
+    }
+}
+
 // EffectDef
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -889,6 +917,8 @@ impl AstNode for Expr {
                 | TRANSFER_EXPR
                 | CHANNEL_RECV_EXPR
                 | CHANNEL_SEND_EXPR
+                | SELECT_EXPR
+                | OFFER_EXPR
                 | HOLE_EXPR
                 | CHOOSE_EXPR
         )
@@ -939,6 +969,8 @@ pub enum ExprKind {
     TransferExpr(TransferExpr),
     ChannelRecvExpr(ChannelRecvExpr),
     ChannelSendExpr(ChannelSendExpr),
+    SelectExpr(SelectExpr),
+    OfferExpr(OfferExpr),
     HoleExpr(HoleExpr),
     ChooseExpr(ChooseExpr),
 }
@@ -1107,6 +1139,16 @@ impl From<ChannelSendExpr> for Expr {
         Expr { syntax: n.syntax }
     }
 }
+impl From<SelectExpr> for Expr {
+    fn from(n: SelectExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
+impl From<OfferExpr> for Expr {
+    fn from(n: OfferExpr) -> Expr {
+        Expr { syntax: n.syntax }
+    }
+}
 impl From<HoleExpr> for Expr {
     fn from(n: HoleExpr) -> Expr {
         Expr { syntax: n.syntax }
@@ -1166,6 +1208,8 @@ impl Expr {
             CHANNEL_SEND_EXPR => {
                 ExprKind::ChannelSendExpr(ChannelSendExpr::cast(self.syntax.clone()).unwrap())
             }
+            SELECT_EXPR => ExprKind::SelectExpr(SelectExpr::cast(self.syntax.clone()).unwrap()),
+            OFFER_EXPR => ExprKind::OfferExpr(OfferExpr::cast(self.syntax.clone()).unwrap()),
             HOLE_EXPR => ExprKind::HoleExpr(HoleExpr::cast(self.syntax.clone()).unwrap()),
             CHOOSE_EXPR => ExprKind::ChooseExpr(ChooseExpr::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
@@ -2186,6 +2230,7 @@ impl AstNode for ModuleItem {
                 | EXTEND
                 | EXTERN_BLOCK
                 | SUPERVISOR_DEF
+                | SESSION_DEF
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -2213,6 +2258,7 @@ pub enum ModuleItemKind {
     Extend(Extend),
     ExternBlock(ExternBlock),
     SupervisorDef(SupervisorDef),
+    SessionDef(SessionDef),
 }
 impl From<Use> for ModuleItem {
     fn from(n: Use) -> ModuleItem {
@@ -2274,6 +2320,11 @@ impl From<SupervisorDef> for ModuleItem {
         ModuleItem { syntax: n.syntax }
     }
 }
+impl From<SessionDef> for ModuleItem {
+    fn from(n: SessionDef) -> ModuleItem {
+        ModuleItem { syntax: n.syntax }
+    }
+}
 
 impl ModuleItem {
     pub fn kind(&self) -> ModuleItemKind {
@@ -2297,6 +2348,9 @@ impl ModuleItem {
             }
             SUPERVISOR_DEF => {
                 ModuleItemKind::SupervisorDef(SupervisorDef::cast(self.syntax.clone()).unwrap())
+            }
+            SESSION_DEF => {
+                ModuleItemKind::SessionDef(SessionDef::cast(self.syntax.clone()).unwrap())
             }
             _ => unreachable!(),
         }
@@ -2376,6 +2430,30 @@ impl AstNode for NeverType {
     }
 }
 impl NeverType {}
+
+// OfferExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct OfferExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for OfferExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, OFFER_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(OfferExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl OfferExpr {}
 
 // OptionalType
 
@@ -3283,6 +3361,90 @@ impl SecretType {
     }
 }
 
+// SelectArm
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectArm {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectArm {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_ARM)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectArm { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectArm {
+    pub fn pat(&self) -> Option<Pat> {
+        super::child_opt(self)
+    }
+}
+
+// SelectArmList
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectArmList {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectArmList {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_ARM_LIST)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectArmList { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectArmList {
+    pub fn arms(&self) -> impl Iterator<Item = SelectArm> {
+        super::children(self)
+    }
+}
+
+// SelectExpr
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SelectExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SelectExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SELECT_EXPR)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SelectExpr { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SelectExpr {
+    pub fn select_arm_list(&self) -> Option<SelectArmList> {
+        super::child_opt(self)
+    }
+}
+
 // SelfParam
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -3307,6 +3469,98 @@ impl AstNode for SelfParam {
 }
 impl ast::TypeAscriptionOwner for SelfParam {}
 impl SelfParam {}
+
+// SessionDef
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SessionDef {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SessionDef {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SESSION_DEF)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SessionDef { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl ast::NameOwner for SessionDef {}
+impl ast::VisibilityOwner for SessionDef {}
+impl ast::DocCommentsOwner for SessionDef {}
+impl ast::AttributeOwner for SessionDef {}
+impl SessionDef {
+    pub fn protocol(&self) -> Option<SessionProtocol> {
+        super::child_opt(self)
+    }
+}
+
+// SessionProtocol
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SessionProtocol {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SessionProtocol {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SESSION_PROTOCOL)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SessionProtocol { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SessionProtocol {
+    pub fn steps(&self) -> impl Iterator<Item = SessionStep> {
+        super::children(self)
+    }
+}
+
+// SessionStep
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SessionStep {
+    pub(crate) syntax: SyntaxNode,
+}
+
+impl AstNode for SessionStep {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, SESSION_STEP)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(SessionStep { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl SessionStep {
+    pub fn branches(&self) -> impl Iterator<Item = SessionProtocol> {
+        super::children(self)
+    }
+
+    pub fn type_ref(&self) -> Option<TypeRef> {
+        super::child_opt(self)
+    }
+}
 
 // SourceFile
 
@@ -3910,6 +4164,7 @@ impl AstNode for TypeRef {
                 | OPTIONAL_TYPE
                 | REFINEMENT_TYPE
                 | SECRET_TYPE
+                | DUAL_TYPE
                 | UNIT_TYPE
         )
     }
@@ -3937,6 +4192,7 @@ pub enum TypeRefKind {
     OptionalType(OptionalType),
     RefinementType(RefinementType),
     SecretType(SecretType),
+    DualType(DualType),
     UnitType(UnitType),
 }
 impl From<PathType> for TypeRef {
@@ -3994,6 +4250,11 @@ impl From<SecretType> for TypeRef {
         TypeRef { syntax: n.syntax }
     }
 }
+impl From<DualType> for TypeRef {
+    fn from(n: DualType) -> TypeRef {
+        TypeRef { syntax: n.syntax }
+    }
+}
 impl From<UnitType> for TypeRef {
     fn from(n: UnitType) -> TypeRef {
         TypeRef { syntax: n.syntax }
@@ -4024,6 +4285,7 @@ impl TypeRef {
                 TypeRefKind::RefinementType(RefinementType::cast(self.syntax.clone()).unwrap())
             }
             SECRET_TYPE => TypeRefKind::SecretType(SecretType::cast(self.syntax.clone()).unwrap()),
+            DUAL_TYPE => TypeRefKind::DualType(DualType::cast(self.syntax.clone()).unwrap()),
             UNIT_TYPE => TypeRefKind::UnitType(UnitType::cast(self.syntax.clone()).unwrap()),
             _ => unreachable!(),
         }

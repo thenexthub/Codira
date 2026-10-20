@@ -799,6 +799,67 @@ fn secret_values_may_not_reach_public_sinks() {
     assert_eq!(diags.lines().count(), 4, "{diags}");
 }
 
+/// A `select` runs one arm of several, chosen by other tasks: the verifier
+/// treats the choice as unknown and a received value as unconstrained, so a
+/// postcondition that holds on only some arms is refuted, and one that holds
+/// on all is proven.
+#[test]
+fn select_arms_are_a_nondeterministic_choice() {
+    let r = report(
+        r#"
+    func pick(a: Channel[i64], b: Channel[i64]) -> i64
+        ensures result >= 1
+    {
+        select {
+            <-a -> 1,
+            v = <-b -> 2,
+        }
+    }
+    "#,
+        "pick",
+    );
+    assert!(all_proven(&r), "{r:#?}");
+
+    let r = report(
+        r#"
+    func pick(a: Channel[i64], b: Channel[i64]) -> i64
+        ensures result == 1
+    {
+        select {
+            <-a -> 1,
+            v = <-b -> v,
+        }
+    }
+    "#,
+        "pick",
+    );
+    assert!(
+        refuted(&r, &ObligationKind::Postcondition).is_some(),
+        "the received value is not known to be 1: {r:#?}"
+    );
+}
+
+#[test]
+fn secrets_may_not_be_sent_on_channels() {
+    let diags = diagnostics(
+        r#"
+    func send(ch: Channel[u64], key: secret u64) {
+        ch <- key;
+        ch <- declassify(key);
+        select {
+            ch <- key + 1 -> {},
+            default -> {},
+        }
+    }
+    "#,
+    );
+    assert_eq!(
+        diags.matches("secret value sent on a channel").count(),
+        2,
+        "{diags}"
+    );
+}
+
 #[test]
 fn implicit_flows_through_branches_are_tracked() {
     let diags = diagnostics(

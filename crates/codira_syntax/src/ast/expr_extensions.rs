@@ -300,3 +300,63 @@ impl ast::RangeExpr {
             .any(|token| token.kind() == T![..=])
     }
 }
+
+impl ast::OfferExpr {
+    /// The endpoint, `ep` in `offer ep { .. } or { .. }`.
+    pub fn endpoint(&self) -> Option<ast::Expr> {
+        children(self).next()
+    }
+
+    /// The branches' blocks, in order.
+    pub fn branches(&self) -> impl Iterator<Item = ast::Expr> {
+        children(self).skip(1)
+    }
+}
+
+/// What a step of a session protocol does.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SessionStepKind {
+    Send,
+    Recv,
+    Choose,
+    Offer,
+}
+
+impl ast::SessionStep {
+    pub fn kind(&self) -> Option<SessionStepKind> {
+        self.syntax()
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find_map(|token| match token.kind() {
+                T![send] => Some(SessionStepKind::Send),
+                T![recv] => Some(SessionStepKind::Recv),
+                T![choose] => Some(SessionStepKind::Choose),
+                T![offer] => Some(SessionStepKind::Offer),
+                _ => None,
+            })
+    }
+}
+
+impl ast::SelectArm {
+    /// Whether this is the `default -> body` arm.
+    pub fn is_default(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .any(|token| token.kind() == T![default])
+    }
+
+    /// The channel operation, `<-ch` or `ch <- value`; `None` for `default`.
+    pub fn operation(&self) -> Option<ast::Expr> {
+        if self.is_default() {
+            None
+        } else {
+            children(self).next()
+        }
+    }
+
+    /// The expression after `->`.
+    pub fn body(&self) -> Option<ast::Expr> {
+        children(self).nth(usize::from(!self.is_default()))
+    }
+}

@@ -151,6 +151,42 @@ fn scopes_spawns_and_channels() {
 }
 
 #[test]
+fn select_arms() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        func run(a: Channel[i32], b: Channel[i32]) {
+            select {
+                v = <-a -> total += v,
+                <-a -> {}
+                b <- x + 1 -> sent += 1,
+                default -> idle += 1,
+            }
+            if select { 1 }
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
+fn sessions_dual_types_and_offers() {
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+        public session Checkout {
+            send i64; recv i64
+            choose { send bool; recv i64 } or { send i32 }
+        }
+        func shop(ep: dual Checkout) {
+            offer ep { ep <- 1 } or { let x = <-ep }
+            ep.choose(0)
+            let session = 1
+        }
+        "#,
+    )
+    .debug_dump());
+}
+
+#[test]
 fn attributes_and_extern_blocks() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

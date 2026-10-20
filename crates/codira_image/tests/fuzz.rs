@@ -30,7 +30,8 @@ const EXPORTS: [&str; 3] = ["get_info", "get_version", "set_allocator_handle"];
 
 /// How long to fuzz, and the seed: fixed by default so a failure repeats;
 /// `CODIRA_FUZZ_SECONDS` and `CODIRA_FUZZ_SEED` let a longer, different run
-/// look for more.
+/// look for more. The time only bounds a run that has already tried the minimum
+/// number of mutants, so a loaded machine slows the test and cannot fail it.
 fn budget(default_seconds: u64) -> Duration {
     let seconds = std::env::var("CODIRA_FUZZ_SECONDS")
         .ok()
@@ -222,7 +223,7 @@ fn mutated_objects_are_declined_or_give_images_the_tools_accept() {
     let budget = budget(5);
     let (mut tried, mut accepted, mut declined, mut checked_by_tool) = (0u32, 0u32, 0u32, 0u32);
 
-    while started.elapsed() < budget
+    while (tried < 2_000 || started.elapsed() < budget)
         && (tried < 60_000 || std::env::var_os("CODIRA_FUZZ_SECONDS").is_some())
     {
         tried += 1;
@@ -379,7 +380,7 @@ fn mutated_elf_objects_are_declined_or_give_libraries_the_tools_accept() {
     let started = Instant::now();
     let budget = budget(6);
     let (mut tried, mut accepted, mut declined, mut checked_by_tool) = (0u32, 0u32, 0u32, 0u32);
-    while started.elapsed() < budget
+    while (tried < 500 || started.elapsed() < budget)
         && (tried < 60_000 || std::env::var_os("CODIRA_FUZZ_SECONDS").is_some())
     {
         tried += 1;

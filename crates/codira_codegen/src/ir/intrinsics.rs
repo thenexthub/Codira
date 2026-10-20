@@ -53,7 +53,10 @@ fn collect_expr<'ink>(
             | Expr::Spawn { .. }
             | Expr::ChannelSend { .. }
             | Expr::ChannelReceive { .. }
-    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel);
+            | Expr::Select { .. }
+            | Expr::Offer { .. }
+    ) || infer.builtin_call(expr_id) == Some(codira_hir::BuiltinFn::Channel)
+        || matches!(infer[expr_id].interned(), codira_hir::TyKind::Session(..));
     if uses_tasks {
         for intrinsic in intrinsics::task_functions() {
             collect_intrinsic(context, target, intrinsic, intrinsics);

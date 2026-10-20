@@ -427,7 +427,16 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::UnaryOp { expr, op } => self.gen_unary_op(*expr, *op),
             Expr::MethodCall {
                 receiver, ref args, ..
-            } => self.gen_method_call(expr, *receiver, args),
+            } => {
+                let body = self.body.clone();
+                if codira_hir::opened_session(self.db, &body, expr).is_some() {
+                    return self.gen_session_open(expr);
+                }
+                if self.is_endpoint(*receiver) {
+                    return self.gen_session_choose(*receiver, args);
+                }
+                self.gen_method_call(expr, *receiver, args)
+            }
             Expr::Call {
                 ref callee,
                 ref args,
@@ -520,7 +529,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             Expr::Scope { body: scoped } => self.gen_scope(*scoped),
             Expr::Spawn { call } => self.gen_spawn(*call),
             Expr::ChannelSend { channel, value } => self.gen_channel_send(*channel, *value),
-            Expr::ChannelReceive { channel } => self.gen_channel_receive(*channel),
+            Expr::ChannelReceive { channel } => self.gen_channel_receive(expr, *channel),
+            Expr::Select { arms } => self.gen_select(expr, arms),
+            Expr::Offer { endpoint, branches } => self.gen_offer(*endpoint, branches),
             Expr::Closure { .. } => self.gen_closure(expr),
             // Every construct that lowers to `Missing` is reported by
             // `codira_hir`'s `validate_codegen_support`, and a `Missing` from a

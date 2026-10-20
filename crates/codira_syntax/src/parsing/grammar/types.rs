@@ -6,7 +6,7 @@
 //! - Part of the Codira compiler and runtime toolchain.
 use super::{
     expressions, generics, name_ref, paths, CompletedMarker, Parser, TokenSet, ARRAY_TYPE,
-    FUNCTION_TYPE, NEVER_TYPE, OPTIONAL_TYPE, PAREN_TYPE, PATH_TYPE, REFERENCE_TYPE,
+    DUAL_TYPE, FUNCTION_TYPE, NEVER_TYPE, OPTIONAL_TYPE, PAREN_TYPE, PATH_TYPE, REFERENCE_TYPE,
     REFINEMENT_TYPE, RET_TYPE, SECRET_TYPE, TUPLE_TYPE, UNIT_TYPE, VARIADIC_TYPE,
 };
 
@@ -92,6 +92,14 @@ fn type_inner(p: &mut Parser<'_>, allow_refinement: bool) {
             p.bump_remap(T![secret]);
             type_inner(p, allow_refinement);
             m.complete(p, SECRET_TYPE)
+        }
+        // `dual S` -- the other endpoint's view of session `S`. Contextual,
+        // like `secret`.
+        _ if p.at_contextual_kw("dual") && TYPE_FIRST.contains(p.nth(1)) => {
+            let m = p.start();
+            p.bump_remap(T![dual]);
+            type_inner(p, allow_refinement);
+            m.complete(p, DUAL_TYPE)
         }
         _ if paths::is_path_start(p) => path_type(p),
         _ => {
